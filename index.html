@@ -1,14 +1,38 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Grocery List</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Grocery List</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="manifest" href="manifest.json" />
 </head>
 <body>
-  <!-- Tables and UI should be placed here -->
-  <div class="master-toggle" onclick="toggleAllCheckboxes()" title="Toggle All">✓</div>
+  <div class="container">
+    <h1>🛒 Grocery List</h1>
+
+    <div class="table-section">
+      <table id="Grocery">
+        <thead><tr><th>Grocery</th></tr></thead>
+        <tbody></tbody>
+      </table>
+
+      <table id="Veggies">
+        <thead><tr><th>Veggies</th></tr></thead>
+        <tbody></tbody>
+      </table>
+
+      <table id="IndianStore">
+        <thead><tr><th>Indian Store</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <button id="toggleAll" onclick="toggleAllCheckboxes()" title="Check/Uncheck All">
+    ☑️
+  </button>
+
   <script src="script.js"></script>
 </body>
 </html>
