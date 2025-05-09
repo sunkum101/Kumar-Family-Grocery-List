@@ -102,7 +102,7 @@ input[type="checkbox"] {
 
 .add-row {
   position: absolute;
-  right: 0.3em;
+  right: 0.8em;
   top: 50%;
   transform: translateY(-50%);
   background-color: #4CAF50;
