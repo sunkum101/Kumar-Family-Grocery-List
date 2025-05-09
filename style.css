@@ -102,10 +102,29 @@ input[type="checkbox"] {
 
 .add-row {
   position: absolute;
-  right: 0.8em;
+  right: 2.3em; /* Adjusted for new delete button */
   top: 50%;
   transform: translateY(-50%);
   background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 1.5em;
+  height: 1.5em;
+  font-size: 1em;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+.delete-row {
+  position: absolute;
+  right: 0.3em; /* Adjusted for new delete button */
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: #f44336;
   color: white;
   border: none;
   border-radius: 50%;
