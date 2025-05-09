@@ -52,11 +52,12 @@ tr.completed {
 }
 
 td {
-  padding: 0.8em;
+  padding: 0.6em 0.8em;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 0.7em;
   position: relative;
+  flex-wrap: nowrap;
 }
 
 input[type="text"] {
@@ -68,10 +69,11 @@ input[type="text"] {
 }
 
 input[type="checkbox"] {
-  width: 1.5em;
-  height: 1.5em;
+  width: 1.3em;
+  height: 1.3em;
   border-radius: 50%;
   cursor: pointer;
+  accent-color: #4CAF50;
 }
 
 .counter {
@@ -90,11 +92,17 @@ input[type="checkbox"] {
   cursor: pointer;
   line-height: 1.5em;
   text-align: center;
+  padding: 0;
+}
+
+.counter span {
+  min-width: 1.3em;
+  text-align: center;
 }
 
 .add-row {
   position: absolute;
-  right: -0.5em;
+  right: 0.3em;
   top: 50%;
   transform: translateY(-50%);
   background-color: #4CAF50;
@@ -132,8 +140,19 @@ input[type="checkbox"] {
   }
 
   td {
-    flex-direction: column;
-    align-items: flex-start;
+    flex-direction: row;
+    align-items: center;
     gap: 0.5em;
+    flex-wrap: nowrap;
+  }
+
+  .counter button {
+    width: 1.3em;
+    height: 1.3em;
+  }
+
+  input[type="checkbox"] {
+    width: 1.2em;
+    height: 1.2em;
   }
 }
