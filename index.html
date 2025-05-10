@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Grocery Lists</title>
+    <title>KYMS Grocery Lists</title>
     <style>
         :root {
             --veggies-color: #4caf50;
@@ -93,50 +93,67 @@
         }
         
         td {
-            padding: 15px 70px 15px 15px; /* Increased right padding */
+            padding: 15px 70px 15px 15px;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 15px;
             position: relative;
         }
         
+        /* Classic-style checkbox */
         .row-checkbox {
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            border: 2px solid currentColor;
+            -webkit-appearance: none;
+            -moz-appearance: none;
             appearance: none;
+            width: 24px;
+            height: 24px;
+            border: 2px solid #666;
+            border-radius: 4px;
             outline: none;
             cursor: pointer;
-            transition: all 0.2s;
             flex-shrink: 0;
-        }
-        
-        #veggies-items .row-checkbox {
-            border-color: var(--veggies-color);
-        }
-        
-        #grocery-items .row-checkbox {
-            border-color: var(--grocery-color);
-        }
-        
-        #indian-items .row-checkbox {
-            border-color: var(--indian-color);
+            position: relative;
         }
         
         .row-checkbox:checked {
-            background-color: currentColor;
+            background-color: #666;
+            border-color: #666;
+        }
+        
+        .row-checkbox:checked::after {
+            content: "✓";
+            position: absolute;
+            color: white;
+            font-size: 18px;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        #veggies-items .row-checkbox:checked {
+            background-color: var(--veggies-color);
+            border-color: var(--veggies-color);
+        }
+        
+        #grocery-items .row-checkbox:checked {
+            background-color: var(--grocery-color);
+            border-color: var(--grocery-color);
+        }
+        
+        #indian-items .row-checkbox:checked {
+            background-color: var(--indian-color);
+            border-color: var(--indian-color);
         }
         
         .counter {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
         }
         
         .counter-btn {
-            width: 22px;
-            height: 22px;
+            width: 28px;
+            height: 28px;
             border-radius: 50%;
             border: none;
             color: white;
@@ -146,7 +163,7 @@
             justify-content: center;
             cursor: pointer;
             transition: all 0.2s;
-            font-size: 0.9rem;
+            font-size: 1rem;
             padding: 0;
         }
         
@@ -168,16 +185,16 @@
         }
         
         .counter-value {
-            min-width: 20px;
+            min-width: 25px;
             text-align: center;
-            font-size: 1rem;
+            font-size: 1.1rem;
         }
         
         .item-name {
             flex-grow: 1;
             border: none;
             background: transparent;
-            font-size: 1.2rem;
+            font-size: 1.4rem; /* Larger font size */
             padding: 8px;
             outline: none;
             transition: all 0.2s;
@@ -198,14 +215,14 @@
             color: white;
             border: none;
             border-radius: 50%;
-            width: 28px;
-            height: 28px;
+            width: 32px;
+            height: 32px;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             transition: all 0.2s;
-            font-size: 1.1rem;
+            font-size: 1.2rem;
             padding: 0;
             z-index: 1;
         }
@@ -221,12 +238,12 @@
         }
         
         .add-btn {
-            width: 36px;
-            height: 36px;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
             color: white;
             border: none;
-            font-size: 1.4rem;
+            font-size: 1.5rem;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -254,13 +271,13 @@
             position: fixed;
             top: 15px;
             right: 15px;
-            width: 40px;
-            height: 40px;
+            width: 45px;
+            height: 45px;
             border-radius: 50%;
             background-color: var(--master-check-color);
             color: white;
             border: none;
-            font-size: 1.1rem;
+            font-size: 1.2rem;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -277,38 +294,45 @@
             }
             
             td {
-                padding: 12px 60px 12px 10px; /* Increased right padding */
+                padding: 15px 60px 15px 10px;
+                gap: 12px;
+            }
+            
+            .row-checkbox {
+                width: 22px;
+                height: 22px;
+            }
+            
+            .row-checkbox:checked::after {
+                font-size: 16px;
             }
             
             .item-name {
-                font-size: 1.1rem;
+                font-size: 1.3rem;
                 white-space: nowrap;
             }
             
             .counter-btn {
-                width: 20px;
-                height: 20px;
-                font-size: 0.8rem;
+                width: 26px;
+                height: 26px;
+                font-size: 0.9rem;
+            }
+            
+            .counter-value {
+                font-size: 1rem;
             }
             
             .delete-btn {
-                width: 26px;
-                height: 26px;
-                font-size: 1rem;
+                width: 30px;
+                height: 30px;
+                font-size: 1.1rem;
                 right: 10px;
-                background-color: #ff5252;
-                color: white;
-            }
-            
-            .row-checkbox {
-                width: 16px;
-                height: 16px;
             }
             
             .master-check {
-                width: 36px;
-                height: 36px;
-                font-size: 1rem;
+                width: 40px;
+                height: 40px;
+                font-size: 1.1rem;
             }
         }
     </style>
@@ -383,7 +407,7 @@
                     // Load default items if no saved data
                     const defaultData = defaultItems[tableName].map(item => ({
                         checked: false,
-                        count: "0", // Default count set to 0
+                        count: "0",
                         name: item
                     }));
                     localStorage.setItem(tableName, JSON.stringify(defaultData));
@@ -406,7 +430,7 @@
                     <input type="checkbox" class="row-checkbox" onchange="toggleRow(this, '${tableName}')">
                     <div class="counter">
                         <button class="counter-btn" onclick="changeCounter(this, -1)" disabled>-</button>
-                        <span class="counter-value">0</span> <!-- Default count set to 0 -->
+                        <span class="counter-value">0</span>
                         <button class="counter-btn" onclick="changeCounter(this, 1)">+</button>
                     </div>
                     <input type="text" class="item-name" placeholder="Item name" oninput="saveTable('${tableName}')">
