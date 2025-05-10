@@ -1,568 +1,413 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KYMS Grocery Lists</title>
-    <style>
-        :root {
-            --veggies-color: #4caf50;
-            --grocery-color: #2196f3;
-            --indian-color: #ff9800;
-            --checked-color: #e9ecef;
-            --master-check-color: #673ab7;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 15px;
-            background-color: #f5f7fa;
-            color: #333;
-            font-size: 18px;
-            padding-bottom: 80px;
-            padding-top: 60px;
-        }
-        
-        h1 {
-            text-align: center;
-            color: #333;
-            margin-bottom: 25px;
-            font-size: 1.8rem;
-        }
-        
-        .table-container {
-            margin-bottom: 30px;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-            overflow: hidden;
-        }
-        
-        .table-header {
-            padding: 15px;
-            font-weight: bold;
-            font-size: 1.3rem;
-            color: white;
-            position: relative;
-        }
-        
-        #veggies-header {
-            background-color: var(--veggies-color);
-        }
-        
-        #grocery-header {
-            background-color: var(--grocery-color);
-        }
-        
-        #indian-header {
-            background-color: var(--indian-color);
-        }
-        
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        
-        tr {
-            transition: all 0.3s ease;
-            border-bottom: 1px solid #eee;
-            position: relative;
-        }
-        
-        #veggies-items tr:nth-child(even) {
-            background-color: rgba(76, 175, 80, 0.1);
-        }
-        
-        #grocery-items tr:nth-child(even) {
-            background-color: rgba(33, 150, 243, 0.1);
-        }
-        
-        #indian-items tr:nth-child(even) {
-            background-color: rgba(255, 152, 0, 0.1);
-        }
-        
-        tr.checked {
-            background-color: var(--checked-color) !important;
-            color: #6c757d;
-        }
-        
-        tr.checked .item-name {
-            text-decoration: line-through;
-            opacity: 0.7;
-        }
-        
-        td {
-            padding: 15px 70px 15px 15px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            position: relative;
-        }
-        
-        /* Classic-style checkbox */
-        .row-checkbox {
-            -webkit-appearance: none;
-            -moz-appearance: none;
-            appearance: none;
-            width: 24px;
-            height: 24px;
-            border: 2px solid #666;
-            border-radius: 4px;
-            outline: none;
-            cursor: pointer;
-            flex-shrink: 0;
-            position: relative;
-        }
-        
-        .row-checkbox:checked {
-            background-color: #666;
-            border-color: #666;
-        }
-        
-        .row-checkbox:checked::after {
-            content: "✓";
-            position: absolute;
-            color: white;
-            font-size: 18px;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-        }
-        
-        #veggies-items .row-checkbox:checked {
-            background-color: var(--veggies-color);
-            border-color: var(--veggies-color);
-        }
-        
-        #grocery-items .row-checkbox:checked {
-            background-color: var(--grocery-color);
-            border-color: var(--grocery-color);
-        }
-        
-        #indian-items .row-checkbox:checked {
-            background-color: var(--indian-color);
-            border-color: var(--indian-color);
-        }
-        
-        .counter {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .counter-btn {
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            border: none;
-            color: white;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-size: 1rem;
-            padding: 0;
-        }
-        
-        #veggies-items .counter-btn {
-            background-color: var(--veggies-color);
-        }
-        
-        #grocery-items .counter-btn {
-            background-color: var(--grocery-color);
-        }
-        
-        #indian-items .counter-btn {
-            background-color: var(--indian-color);
-        }
-        
-        .counter-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        
-        .counter-value {
-            min-width: 25px;
-            text-align: center;
-            font-size: 1.1rem;
-        }
-        
-        .item-name {
-            flex-grow: 1;
-            border: none;
-            background: transparent;
-            font-size: 1.4rem; /* Larger font size */
-            padding: 8px;
-            outline: none;
-            transition: all 0.2s;
-            min-width: 0;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        
-        .item-name:focus {
-            background-color: rgba(0,0,0,0.05);
-            border-radius: 4px;
-        }
-        
-        .delete-btn {
-            position: absolute;
-            right: 15px;
-            background-color: #ff5252;
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 32px;
-            height: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-size: 1.2rem;
-            padding: 0;
-            z-index: 1;
-        }
-        
-        .delete-btn:hover {
-            background-color: #ff0000;
-        }
-        
-        .add-row {
-            display: flex;
-            justify-content: flex-end;
-            padding: 12px 15px;
-        }
-        
-        .add-btn {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            color: white;
-            border: none;
-            font-size: 1.5rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        
-        #veggies-add {
-            background-color: var(--veggies-color);
-        }
-        
-        #grocery-add {
-            background-color: var(--grocery-color);
-        }
-        
-        #indian-add {
-            background-color: var(--indian-color);
-        }
-        
-        .add-btn:hover {
-            transform: scale(1.1);
-        }
-        
-        .master-check {
-            position: fixed;
-            top: 15px;
-            right: 15px;
-            width: 45px;
-            height: 45px;
-            border-radius: 50%;
-            background-color: var(--master-check-color);
-            color: white;
-            border: none;
-            font-size: 1.2rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-            z-index: 100;
-        }
-        
-        @media (max-width: 600px) {
-            body {
-                font-size: 16px;
-                padding: 10px;
-                padding-top: 50px;
-            }
-            
-            td {
-                padding: 15px 60px 15px 10px;
-                gap: 12px;
-            }
-            
-            .row-checkbox {
-                width: 22px;
-                height: 22px;
-            }
-            
-            .row-checkbox:checked::after {
-                font-size: 16px;
-            }
-            
-            .item-name {
-                font-size: 1.3rem;
-                white-space: nowrap;
-            }
-            
-            .counter-btn {
-                width: 26px;
-                height: 26px;
-                font-size: 0.9rem;
-            }
-            
-            .counter-value {
-                font-size: 1rem;
-            }
-            
-            .delete-btn {
-                width: 30px;
-                height: 30px;
-                font-size: 1.1rem;
-                right: 10px;
-            }
-            
-            .master-check {
-                width: 40px;
-                height: 40px;
-                font-size: 1.1rem;
-            }
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My Grocery Lists</title>
+  <style>
+    :root {
+      --veggies-color: #4caf50;
+      --grocery-color: #2196f3;
+      --indian-color: #ff9800;
+      --checked-color: #e9ecef;
+      --master-check-color: #673ab7;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 15px;
+      background-color: #f5f7fa;
+      color: #333;
+      font-size: 18px;
+      padding-bottom: 80px;
+      padding-top: 60px;
+    }
+
+    h1 {
+      text-align: center;
+      color: #333;
+      margin-bottom: 25px;
+      font-size: 1.8rem;
+    }
+
+    .table-container {
+      margin-bottom: 30px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      overflow: hidden;
+    }
+
+    .table-header {
+      padding: 15px;
+      font-weight: bold;
+      font-size: 1.3rem;
+      color: white;
+    }
+
+    #veggies-header { background-color: var(--veggies-color); }
+    #grocery-header { background-color: var(--grocery-color); }
+    #indian-header  { background-color: var(--indian-color); }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    tr {
+      transition: all 0.3s ease;
+      border-bottom: 1px solid #eee;
+    }
+
+    tr.checked {
+      background-color: var(--checked-color) !important;
+      color: #6c757d;
+    }
+
+    tr.checked .item-name {
+      text-decoration: line-through;
+      opacity: 0.7;
+    }
+
+    td {
+      padding: 15px;
+    }
+
+    .row-content {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+
+    .row-checkbox {
+      width: 30px;
+      height: 30px;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+      border: 2px solid #666;
+      border-radius: 4px;
+      position: relative;
+      cursor: pointer;
+    }
+
+    .row-checkbox:checked {
+      background-color: #666;
+      border-color: #666;
+    }
+
+    .row-checkbox:checked::after {
+      content: "✓";
+      color: white;
+      font-size: 20px;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    #veggies-items .row-checkbox:checked {
+      background-color: var(--veggies-color);
+      border-color: var(--veggies-color);
+    }
+
+    #grocery-items .row-checkbox:checked {
+      background-color: var(--grocery-color);
+      border-color: var(--grocery-color);
+    }
+
+    #indian-items .row-checkbox:checked {
+      background-color: var(--indian-color);
+      border-color: var(--indian-color);
+    }
+
+    .counter {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .counter-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: none;
+      color: white;
+      font-weight: bold;
+      font-size: 1.2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .counter-value {
+      min-width: 30px;
+      text-align: center;
+      font-size: 1.2rem;
+    }
+
+    .item-name {
+      flex: 1;
+      font-size: 1.6rem;
+      padding: 8px;
+      border: none;
+      background: transparent;
+      outline: none;
+    }
+
+    .delete-btn {
+      background-color: #ff5252;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      font-size: 1.4rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .delete-btn:hover {
+      background-color: #ff0000;
+    }
+
+    #veggies-items .counter-btn,
+    #veggies-items .delete-btn { background-color: var(--veggies-color); }
+
+    #grocery-items .counter-btn,
+    #grocery-items .delete-btn { background-color: var(--grocery-color); }
+
+    #indian-items .counter-btn,
+    #indian-items .delete-btn { background-color: var(--indian-color); }
+
+    .add-row {
+      display: flex;
+      justify-content: flex-end;
+      padding: 12px 15px;
+    }
+
+    .add-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      color: white;
+      border: none;
+      font-size: 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    #veggies-add { background-color: var(--veggies-color); }
+    #grocery-add { background-color: var(--grocery-color); }
+    #indian-add  { background-color: var(--indian-color); }
+
+    .add-btn:hover {
+      transform: scale(1.1);
+    }
+
+    .master-check {
+      position: fixed;
+      top: 15px;
+      right: 15px;
+      width: 45px;
+      height: 45px;
+      border-radius: 50%;
+      background-color: var(--master-check-color);
+      color: white;
+      border: none;
+      font-size: 1.2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      z-index: 100;
+    }
+
+    @media (max-width: 600px) {
+      body {
+        font-size: 16px;
+        padding: 10px;
+        padding-top: 50px;
+      }
+
+      .row-content {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .item-name {
+        width: 100%;
+      }
+    }
+  </style>
 </head>
 <body>
-    <button class="master-check" onclick="toggleAllCheckboxes()" title="Toggle all checkboxes">✓</button>
-    
-    <h1>KYMS Grocery Lists</h1>
-    
-    <div class="table-container">
-        <div class="table-header" id="veggies-header">Veggies</div>
-        <table id="veggies-table">
-            <tbody id="veggies-items"></tbody>
-        </table>
-        <div class="add-row">
-            <button class="add-btn" id="veggies-add" onclick="addRow('veggies')">+</button>
-        </div>
+
+  <button class="master-check" onclick="toggleAllCheckboxes()" title="Toggle all checkboxes">✓</button>
+  <h1>My Grocery Lists</h1>
+
+  <!-- Table Blocks -->
+  <div class="table-container">
+    <div class="table-header" id="veggies-header">Veggies</div>
+    <table><tbody id="veggies-items"></tbody></table>
+    <div class="add-row">
+      <button class="add-btn" id="veggies-add" onclick="addRow('veggies')">+</button>
     </div>
-    
-    <div class="table-container">
-        <div class="table-header" id="grocery-header">Grocery</div>
-        <table id="grocery-table">
-            <tbody id="grocery-items"></tbody>
-        </table>
-        <div class="add-row">
-            <button class="add-btn" id="grocery-add" onclick="addRow('grocery')">+</button>
-        </div>
+  </div>
+
+  <div class="table-container">
+    <div class="table-header" id="grocery-header">Grocery</div>
+    <table><tbody id="grocery-items"></tbody></table>
+    <div class="add-row">
+      <button class="add-btn" id="grocery-add" onclick="addRow('grocery')">+</button>
     </div>
-    
-    <div class="table-container">
-        <div class="table-header" id="indian-header">Indian Store</div>
-        <table id="indian-table">
-            <tbody id="indian-items"></tbody>
-        </table>
-        <div class="add-row">
-            <button class="add-btn" id="indian-add" onclick="addRow('indian')">+</button>
-        </div>
+  </div>
+
+  <div class="table-container">
+    <div class="table-header" id="indian-header">Indian Store</div>
+    <table><tbody id="indian-items"></tbody></table>
+    <div class="add-row">
+      <button class="add-btn" id="indian-add" onclick="addRow('indian')">+</button>
     </div>
-    
-    <script>
-        // Initialize tables
-        const tables = {
-            veggies: 'veggies-items',
-            grocery: 'grocery-items',
-            indian: 'indian-items'
-        };
-        
-        // Default items
-        const defaultItems = {
-            veggies: [
-                "टमाटर", "Avocado", "Pears", "अदरक", "कद्दू", "केले", "नींबू", "पालक", "पुदीना", 
-                "प्याज", "बैंगन", "भिंडी", "मेथी", "लाल सेब", "शकरकंदी", "हरा धनिया", "हरे सेब", 
-                "खीरा", "Avocado", "Beans", "Beetroot", "Broccoli", "Corn", "Kiwi", "अंगूर", 
-                "गाजर", "तरबूज", "पपीता", "प्याज", "लहसुन", "लोकी", "शिमला मिर्च", 
-                "संतरे (Kunal)", "संतरे for जूस"
-            ],
-            grocery: [
-                "Bin bags", "Bread", "Buns", "Chicken", "Chicken Ng.", "Detergent", 
-                "Dish Tablets", "Dish. Liquid", "Dish. Ringe.", "Eggs", "Full Cr. Milk", 
-                "Hard Butter", "Kids Snack", "Pizza Base", "Pizza Cheese", "Potato", 
-                "Pre-wash", "Soft Butter", "Sugar", "Woolwash"
-            ],
-            indian: [
-                "आटा", "चावल", "पोहा", "दाल:", "राई", "दलिया", "बेसन", "सरसों तेल"
-            ]
-        };
-        
-        // Load saved data or default items
-        document.addEventListener('DOMContentLoaded', function() {
-            for (const [tableName, tableId] of Object.entries(tables)) {
-                if (!localStorage.getItem(tableName)) {
-                    // Load default items if no saved data
-                    const defaultData = defaultItems[tableName].map(item => ({
-                        checked: false,
-                        count: "0",
-                        name: item
-                    }));
-                    localStorage.setItem(tableName, JSON.stringify(defaultData));
-                }
-                loadTable(tableName);
-            }
+  </div>
+
+  <!-- Script -->
+  <script>
+    const tables = {
+      veggies: 'veggies-items',
+      grocery: 'grocery-items',
+      indian: 'indian-items'
+    };
+
+    const defaultItems = {
+      veggies: ["टमाटर", "Avocado", "Pears", "अदरक"],
+      grocery: ["Bread", "Eggs", "Butter", "Milk"],
+      indian: ["आटा", "चावल", "दाल", "तेल"]
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+      for (const [tableName, tableId] of Object.entries(tables)) {
+        if (!localStorage.getItem(tableName)) {
+          const defaultData = defaultItems[tableName].map(item => ({
+            checked: false,
+            count: "0",
+            name: item
+          }));
+          localStorage.setItem(tableName, JSON.stringify(defaultData));
+        }
+        loadTable(tableName);
+      }
+    });
+
+    function addRow(tableName) {
+      const tableId = tables[tableName];
+      const tbody = document.getElementById(tableId);
+      const rowId = 'row-' + Date.now();
+
+      const row = document.createElement('tr');
+      row.id = rowId;
+      row.innerHTML = `
+        <td>
+          <div class="row-content">
+            <input type="checkbox" class="row-checkbox" onchange="toggleRow(this, '${tableName}')">
+            <div class="counter">
+              <button class="counter-btn" onclick="changeCounter(this, -1)" disabled>-</button>
+              <span class="counter-value">0</span>
+              <button class="counter-btn" onclick="changeCounter(this, 1)">+</button>
+            </div>
+            <input type="text" class="item-name" placeholder="Item name" oninput="saveTable('${tableName}')">
+            <button class="delete-btn" onclick="deleteRow('${rowId}', '${tableName}')" title="Delete">×</button>
+          </div>
+        </td>
+      `;
+      tbody.appendChild(row);
+      saveTable(tableName);
+    }
+
+    function changeCounter(button, change) {
+      const counter = button.parentElement;
+      const valueSpan = counter.querySelector('.counter-value');
+      let value = parseInt(valueSpan.textContent);
+      value = Math.max(0, Math.min(50, value + change));
+      valueSpan.textContent = value;
+      counter.querySelector('.counter-btn:first-child').disabled = value <= 0;
+      counter.querySelector('.counter-btn:last-child').disabled = value >= 50;
+      saveTable(getTableNameFromRow(button.closest('tr')));
+    }
+
+    function toggleRow(checkbox, tableName) {
+      const row = checkbox.closest('tr');
+      row.classList.toggle('checked', checkbox.checked);
+      saveTable(tableName);
+    }
+
+    function deleteRow(rowId, tableName) {
+      if (confirm("Are you sure you want to delete this item?")) {
+        document.getElementById(rowId)?.remove();
+        saveTable(tableName);
+      }
+    }
+
+    function toggleAllCheckboxes() {
+      if (confirm("Do you want to toggle all checkboxes?")) {
+        const checkboxes = document.querySelectorAll('.row-checkbox');
+        const anyChecked = [...checkboxes].some(cb => cb.checked);
+        checkboxes.forEach(cb => {
+          cb.checked = !anyChecked;
+          cb.dispatchEvent(new Event('change'));
         });
-        
-        // Add a new row to the specified table
-        function addRow(tableName) {
-            const tableId = tables[tableName];
-            const tbody = document.getElementById(tableId);
-            const rowId = 'row-' + Date.now();
-            
-            const row = document.createElement('tr');
-            row.id = rowId;
-            
-            row.innerHTML = `
-                <td>
-                    <input type="checkbox" class="row-checkbox" onchange="toggleRow(this, '${tableName}')">
-                    <div class="counter">
-                        <button class="counter-btn" onclick="changeCounter(this, -1)" disabled>-</button>
-                        <span class="counter-value">0</span>
-                        <button class="counter-btn" onclick="changeCounter(this, 1)">+</button>
-                    </div>
-                    <input type="text" class="item-name" placeholder="Item name" oninput="saveTable('${tableName}')">
-                    <button class="delete-btn" onclick="deleteRow('${rowId}', '${tableName}')" title="Delete">×</button>
-                </td>
-            `;
-            
-            tbody.appendChild(row);
-            saveTable(tableName);
-        }
-        
-        // Change counter value
-        function changeCounter(button, change) {
-            const counterDiv = button.parentElement;
-            const valueSpan = counterDiv.querySelector('.counter-value');
-            let value = parseInt(valueSpan.textContent);
-            value += change;
-            
-            if (value < 0) value = 0;
-            if (value > 50) value = 50;
-            
-            valueSpan.textContent = value;
-            
-            // Enable/disable buttons based on value
-            const minusBtn = counterDiv.querySelector('.counter-btn:first-child');
-            const plusBtn = counterDiv.querySelector('.counter-btn:last-child');
-            
-            minusBtn.disabled = value <= 0;
-            plusBtn.disabled = value >= 50;
-            
-            saveTable(getTableNameFromRow(button.closest('tr')));
-        }
-        
-        // Toggle row checked state
-        function toggleRow(checkbox, tableName) {
-            const row = checkbox.closest('tr');
-            if (checkbox.checked) {
-                row.classList.add('checked');
-            } else {
-                row.classList.remove('checked');
-            }
-            saveTable(tableName);
-        }
-        
-        // Delete a row with confirmation
-        function deleteRow(rowId, tableName) {
-            if (confirm('Are you sure you want to delete this item?')) {
-                const row = document.getElementById(rowId);
-                row.remove();
-                saveTable(tableName);
-            }
-        }
-        
-        // Toggle all checkboxes
-        function toggleAllCheckboxes() {
-            if (confirm('Do you want to toggle all checkboxes? Press Cancel to keep current state.')) {
-                const checkboxes = document.querySelectorAll('.row-checkbox');
-                const anyChecked = Array.from(checkboxes).some(cb => cb.checked);
-                
-                checkboxes.forEach(checkbox => {
-                    checkbox.checked = !anyChecked;
-                    const event = new Event('change');
-                    checkbox.dispatchEvent(event);
-                });
-            }
-        }
-        
-        // Save table data to localStorage
-        function saveTable(tableName) {
-            const tableId = tables[tableName];
-            const rows = document.getElementById(tableId).querySelectorAll('tr');
-            const data = [];
-            
-            rows.forEach(row => {
-                const checkbox = row.querySelector('.row-checkbox');
-                const counter = row.querySelector('.counter-value');
-                const itemName = row.querySelector('.item-name');
-                
-                data.push({
-                    checked: checkbox.checked,
-                    count: counter.textContent,
-                    name: itemName.value
-                });
-            });
-            
-            localStorage.setItem(tableName, JSON.stringify(data));
-        }
-        
-        // Load table data from localStorage
-        function loadTable(tableName) {
-            const savedData = localStorage.getItem(tableName);
-            if (!savedData) return;
-            
-            const data = JSON.parse(savedData);
-            const tableId = tables[tableName];
-            const tbody = document.getElementById(tableId);
-            tbody.innerHTML = '';
-            
-            data.forEach(item => {
-                const rowId = 'row-' + Date.now() + Math.random().toString(36).substr(2, 9);
-                const row = document.createElement('tr');
-                row.id = rowId;
-                
-                if (item.checked) {
-                    row.classList.add('checked');
-                }
-                
-                row.innerHTML = `
-                    <td>
-                        <input type="checkbox" class="row-checkbox" onchange="toggleRow(this, '${tableName}')" ${item.checked ? 'checked' : ''}>
-                        <div class="counter">
-                            <button class="counter-btn" onclick="changeCounter(this, -1)" ${item.count <= 0 ? 'disabled' : ''}>-</button>
-                            <span class="counter-value">${item.count}</span>
-                            <button class="counter-btn" onclick="changeCounter(this, 1)" ${item.count >= 50 ? 'disabled' : ''}>+</button>
-                        </div>
-                        <input type="text" class="item-name" value="${item.name}" oninput="saveTable('${tableName}')">
-                        <button class="delete-btn" onclick="deleteRow('${rowId}', '${tableName}')" title="Delete">×</button>
-                    </td>
-                `;
-                
-                tbody.appendChild(row);
-            });
-        }
-        
-        // Helper function to get table name from row
-        function getTableNameFromRow(row) {
-            const tableId = row.closest('tbody').id;
-            for (const [name, id] of Object.entries(tables)) {
-                if (id === tableId) return name;
-            }
-            return '';
-        }
-    </script>
+      }
+    }
+
+    function saveTable(tableName) {
+      const rows = document.getElementById(tables[tableName]).querySelectorAll('tr');
+      const data = [...rows].map(row => ({
+        checked: row.querySelector('.row-checkbox').checked,
+        count: row.querySelector('.counter-value').textContent,
+        name: row.querySelector('.item-name').value
+      }));
+      localStorage.setItem(tableName, JSON.stringify(data));
+    }
+
+    function loadTable(tableName) {
+      const data = JSON.parse(localStorage.getItem(tableName));
+      const tbody = document.getElementById(tables[tableName]);
+      tbody.innerHTML = '';
+      data.forEach(item => {
+        const rowId = 'row-' + Date.now() + Math.random().toString(36).substr(2, 9);
+        const row = document.createElement('tr');
+        row.id = rowId;
+        if (item.checked) row.classList.add('checked');
+        row.innerHTML = `
+          <td>
+            <div class="row-content">
+              <input type="checkbox" class="row-checkbox" onchange="toggleRow(this, '${tableName}')" ${item.checked ? 'checked' : ''}>
+              <div class="counter">
+                <button class="counter-btn" onclick="changeCounter(this, -1)" ${item.count <= 0 ? 'disabled' : ''}>-</button>
+                <span class="counter-value">${item.count}</span>
+                <button class="counter-btn" onclick="changeCounter(this, 1)" ${item.count >= 50 ? 'disabled' : ''}>+</button>
+              </div>
+              <input type="text" class="item-name" value="${item.name}" oninput="saveTable('${tableName}')">
+              <button class="delete-btn" onclick="deleteRow('${rowId}', '${tableName}')" title="Delete">×</button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    function getTableNameFromRow(row) {
+      const tableId = row.closest('tbody').id;
+      return Object.keys(tables).find(name => tables[name] === tableId);
+    }
+  </script>
 </body>
 </html>
