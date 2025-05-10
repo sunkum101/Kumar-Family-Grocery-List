@@ -23,6 +23,7 @@ section {
   background-color: #fff;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  position: relative;
 }
 
 h2 {
@@ -38,6 +39,7 @@ h2 {
 table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
 }
 
 td {
@@ -46,6 +48,7 @@ td {
   display: flex;
   align-items: center;
   gap: 1rem;
+  position: relative;
 }
 
 tr:nth-child(odd) {
@@ -56,6 +59,7 @@ tr.completed {
   text-decoration: line-through;
   color: #aaa;
   background-color: #eeeeee !important;
+  opacity: 0.6;
 }
 
 input[type="checkbox"] {
@@ -101,8 +105,21 @@ input[type="text"] {
   border: none;
   color: red;
   font-size: 1.2rem;
-  margin-left: auto;
+  position: absolute;
+  right: -1.5rem;
   cursor: pointer;
+}
+
+.add-row-btn {
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  margin: 0.5rem;
+  border-radius: 5px;
+  font-size: 1rem;
+  cursor: pointer;
+  display: inline-block;
 }
 
 #toggleAll {
@@ -128,6 +145,7 @@ input[type="text"] {
     gap: 0.5rem;
   }
   .delete-row {
-    margin-left: 0;
+    position: static;
+    margin-top: 0.5rem;
   }
 }
