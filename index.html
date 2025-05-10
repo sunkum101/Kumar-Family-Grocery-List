@@ -78,7 +78,9 @@
       display: flex;
       align-items: center;
       gap: 15px;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      white-space: nowrap;
     }
 
     .row-checkbox {
@@ -91,6 +93,7 @@
       border-radius: 4px;
       position: relative;
       cursor: pointer;
+      flex-shrink: 0;
     }
 
     .row-checkbox:checked {
@@ -127,6 +130,7 @@
       display: flex;
       align-items: center;
       gap: 8px;
+      flex-shrink: 0;
     }
 
     .counter-btn {
@@ -158,6 +162,14 @@
       outline: none;
     }
 
+    .item-name.highlight {
+      font-weight: bold;
+      color: #d32f2f;
+      background-color: #fff3cd;
+      border-radius: 4px;
+      padding: 2px 6px;
+    }
+
     .delete-btn {
       background-color: #ff5252;
       color: white;
@@ -170,6 +182,7 @@
       align-items: center;
       justify-content: center;
       cursor: pointer;
+      flex-shrink: 0;
     }
 
     .delete-btn:hover {
@@ -239,8 +252,7 @@
       }
 
       .row-content {
-        flex-direction: column;
-        align-items: flex-start;
+        flex-wrap: wrap;
       }
 
       .item-name {
@@ -254,7 +266,6 @@
   <button class="master-check" onclick="toggleAllCheckboxes()" title="Toggle all checkboxes">✓</button>
   <h1>My Grocery Lists</h1>
 
-  <!-- Table Blocks -->
   <div class="table-container">
     <div class="table-header" id="veggies-header">Veggies</div>
     <table><tbody id="veggies-items"></tbody></table>
@@ -279,7 +290,6 @@
     </div>
   </div>
 
-  <!-- Script -->
   <script>
     const tables = {
       veggies: 'veggies-items',
@@ -340,6 +350,14 @@
       valueSpan.textContent = value;
       counter.querySelector('.counter-btn:first-child').disabled = value <= 0;
       counter.querySelector('.counter-btn:last-child').disabled = value >= 50;
+
+      const itemName = counter.parentElement.querySelector('.item-name');
+      if (value > 0) {
+        itemName.classList.add('highlight');
+      } else {
+        itemName.classList.remove('highlight');
+      }
+
       saveTable(getTableNameFromRow(button.closest('tr')));
     }
 
@@ -395,7 +413,7 @@
                 <span class="counter-value">${item.count}</span>
                 <button class="counter-btn" onclick="changeCounter(this, 1)" ${item.count >= 50 ? 'disabled' : ''}>+</button>
               </div>
-              <input type="text" class="item-name" value="${item.name}" oninput="saveTable('${tableName}')">
+              <input type="text" class="item-name ${item.count > 0 ? 'highlight' : ''}" value="${item.name}" oninput="saveTable('${tableName}')">
               <button class="delete-btn" onclick="deleteRow('${rowId}', '${tableName}')" title="Delete">×</button>
             </div>
           </td>
