@@ -93,10 +93,11 @@
         }
         
         td {
-            padding: 15px 60px 15px 15px;
+            padding: 15px 70px 15px 15px; /* Increased right padding */
             display: flex;
             align-items: center;
             gap: 10px;
+            position: relative;
         }
         
         .row-checkbox {
@@ -180,7 +181,9 @@
             padding: 8px;
             outline: none;
             transition: all 0.2s;
-            min-width: 0; /* Fix for text overflow */
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         
         .item-name:focus {
@@ -191,8 +194,8 @@
         .delete-btn {
             position: absolute;
             right: 15px;
-            background-color: transparent;
-            color: #ff5252;
+            background-color: #ff5252;
+            color: white;
             border: none;
             border-radius: 50%;
             width: 28px;
@@ -202,12 +205,13 @@
             justify-content: center;
             cursor: pointer;
             transition: all 0.2s;
-            font-size: 1.3rem;
+            font-size: 1.1rem;
             padding: 0;
+            z-index: 1;
         }
         
         .delete-btn:hover {
-            background-color: rgba(255, 82, 82, 0.1);
+            background-color: #ff0000;
         }
         
         .add-row {
@@ -273,15 +277,11 @@
             }
             
             td {
-                padding: 12px 50px 12px 10px;
-                gap: 8px;
+                padding: 12px 60px 12px 10px; /* Increased right padding */
             }
             
             .item-name {
                 font-size: 1.1rem;
-                min-width: 0;
-                overflow: hidden;
-                text-overflow: ellipsis;
                 white-space: nowrap;
             }
             
@@ -292,10 +292,12 @@
             }
             
             .delete-btn {
-                width: 24px;
-                height: 24px;
-                font-size: 1.2rem;
+                width: 26px;
+                height: 26px;
+                font-size: 1rem;
                 right: 10px;
+                background-color: #ff5252;
+                color: white;
             }
             
             .row-checkbox {
@@ -381,7 +383,7 @@
                     // Load default items if no saved data
                     const defaultData = defaultItems[tableName].map(item => ({
                         checked: false,
-                        count: "0",
+                        count: "0", // Default count set to 0
                         name: item
                     }));
                     localStorage.setItem(tableName, JSON.stringify(defaultData));
@@ -404,7 +406,7 @@
                     <input type="checkbox" class="row-checkbox" onchange="toggleRow(this, '${tableName}')">
                     <div class="counter">
                         <button class="counter-btn" onclick="changeCounter(this, -1)" disabled>-</button>
-                        <span class="counter-value">0</span>
+                        <span class="counter-value">0</span> <!-- Default count set to 0 -->
                         <button class="counter-btn" onclick="changeCounter(this, 1)">+</button>
                     </div>
                     <input type="text" class="item-name" placeholder="Item name" oninput="saveTable('${tableName}')">
