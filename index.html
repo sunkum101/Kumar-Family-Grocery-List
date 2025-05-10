@@ -204,6 +204,12 @@
         { name: "Dal", count: 2, checked: false }
       ]
     };
+    
+    for (const [key, items] of Object.entries(defaultItems)) {
+      firebase.firestore().collection('grocery-lists').doc(key).set({ items })
+        .then(() => console.log(`✅ Added: ${key}`))
+        .catch(err => console.error(`❌ Failed: ${key}`, err));
+    }
 
     document.addEventListener('DOMContentLoaded', () => {
       for (const [tableName, tableId] of Object.entries(tables)) {
