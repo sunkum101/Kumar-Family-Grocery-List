@@ -1,220 +1,120 @@
-const tableIds = ["Grocery", "Veggies", "IndianStore"];
-let data = {};
+const defaultData = {
+  grocery: [
+    "केले", "Chicken Ng.", "लाल सेब", "हरे सेब", "Dish. Ringe.", "Pears",
+    "Dish Tablets", "Avocado", "Dish. Liquid", "संतरे for जूस", "Woolwash",
+    "संतरे (Kunal)", "Pre-wash", "अंगूर", "Detergent", "गाजर", "Bin bags",
+    "प्याज", "Beetroot", "Potato", "Chicken", "Kids Snack", "Sugar",
+    "Hard Butter", "Eggs", "Pizza Cheese", "Bread", "Soft Butter",
+    "Pizza Base", "Full Cr. Milk", "Buns", "Coconut", "Yakult"
+  ],
+  veggies: [
+    "टमाटर", "खीरा", "भिंडी", "शिमला मिर्च", "नींबू", "लोकी", "अदरक", "लहसुन",
+    "पालक", "Beans", "हरा धनिया", "Broccoli", "पुदीना", "Corn", "मेथी",
+    "पपीता", "बैंगन", "Kiwi", "कद्दू", "शकरकंदी", "तरबूज", "प्याज"
+  ],
+  indian: [
+    "आटा", "राई", "चावल", "दलिया", "पोहा", "बेसन", "दाल", "सरसों तेल"
+  ]
+};
 
-function saveData() {
-  localStorage.setItem("groceryListData", JSON.stringify(data));
+function loadData(tableId, items) {
+  const saved = JSON.parse(localStorage.getItem(tableId) || 'null');
+  const list = saved || items.map(text => ({ text, count: 1, done: false }));
+  const tbody = document.querySelector(`#${tableId} tbody`);
+  tbody.innerHTML = '';
+  list.forEach(item => addRow(tableId, item.text, item.count, item.done));
 }
 
-function loadData() {
-  const stored = localStorage.getItem("groceryListData");
-  if (stored) data = JSON.parse(stored);
-}
+function addRow(tableId, text = '', count = 1, done = false) {
+  const tbody = document.querySelector(`#${tableId} tbody`);
+  const tr = document.createElement('tr');
+  if (done) tr.classList.add('completed');
 
-function createRow(tableId, item = "", count = 1, checked = false) {
-  const tr = document.createElement("tr");
-  if (checked) tr.classList.add("checked");
-
-  const td = document.createElement("td");
-
-  const checkbox = document.createElement("input");
-  checkbox.type = "checkbox";
-  checkbox.className = "item-checkbox";
-  checkbox.checked = checked;
-  checkbox.addEventListener("change", () => {
-    tr.classList.toggle("checked", checkbox.checked);
-    updateStorage(tableId);
+  const td = document.createElement('td');
+  const checkbox = document.createElement('input');
+  checkbox.type = 'checkbox';
+  checkbox.checked = done;
+  checkbox.addEventListener('change', () => {
+    tr.classList.toggle('completed', checkbox.checked);
+    saveTable(tableId);
   });
 
-  const minus = document.createElement("button");
-  minus.textContent = "−";
-  minus.className = "counter-btn";
+  const counter = document.createElement('div');
+  counter.className = 'counter';
+
+  const minus = document.createElement('button');
+  minus.textContent = '−';
   minus.onclick = () => {
-    if (counter.value > 1) {
-      counter.value--;
-      updateStorage(tableId);
-    }
+    if (input.value > 1) input.value--;
+    saveTable(tableId);
   };
 
-  const counter = document.createElement("input");
-  counter.type = "number";
-  counter.value = count;
-  counter.min = 1;
-  counter.max = 50;
-  counter.style.width = "48px";
-  counter.style.textAlign = "center";
-  counter.onchange = () => updateStorage(tableId);
+  const input = document.createElement('input');
+  input.type = 'number';
+  input.min = '1';
+  input.max = '50';
+  input.value = count;
+  input.className = 'count-input';
+  input.addEventListener('input', () => saveTable(tableId));
 
-  const plus = document.createElement("button");
-  plus.textContent = "+";
-  plus.className = "counter-btn";
+  const plus = document.createElement('button');
+  plus.textContent = '+';
   plus.onclick = () => {
-    if (counter.value < 50) {
-      counter.value++;
-      updateStorage(tableId);
-    }
+    if (input.value < 50) input.value++;
+    saveTable(tableId);
   };
 
-  const itemName = document.createElement("span");
-  itemName.contentEditable = "true";
-  itemName.className = "item-name";
-  itemName.textContent = item;
-  itemName.addEventListener("input", () => updateStorage(tableId));
-  itemName.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      const rows = Array.from(tr.parentElement.children);
-      const currentIndex = rows.indexOf(tr);
-      if (itemName.textContent.trim() && currentIndex + 1 === rows.length) {
-        const newRow = createRow(tableId);
-        tr.parentElement.appendChild(newRow);
-        setTimeout(() => {
-          newRow.querySelector(".item-name").focus();
-        }, 10);
-      }
+  counter.append(minus, input, plus);
+
+  const editable = document.createElement('input');
+  editable.type = 'text';
+  editable.value = text;
+  editable.addEventListener('input', () => saveTable(tableId));
+  editable.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && editable.value.trim() && tr.nextSibling === null) {
+      addRow(tableId);
+      setTimeout(() => {
+        tr.nextSibling.querySelector('input[type=text]').focus();
+      }, 100);
     }
   });
 
-  const insertBtn = document.createElement("button");
-  insertBtn.className = "insert-btn";
-  insertBtn.textContent = "+";
-  insertBtn.onclick = () => {
-    const newRow = createRow(tableId);
-    tr.after(newRow);
-    setTimeout(() => {
-      newRow.querySelector(".item-name").focus();
-    }, 10);
-    updateStorage(tableId);
+  const del = document.createElement('button');
+  del.className = 'delete-row';
+  del.textContent = '×';
+  del.onclick = () => {
+    if (confirm('Delete this item?')) {
+      tr.remove();
+      saveTable(tableId);
+    }
   };
 
-  td.append(checkbox, minus, counter, plus, itemName, insertBtn);
+  td.append(checkbox, counter, editable, del);
   tr.appendChild(td);
-  return tr;
+  tbody.appendChild(tr);
 }
 
-function updateStorage(tableId) {
-  const tbody = document.querySelector(`#${tableId} tbody`);
-  const rows = tbody.querySelectorAll("tr");
-  data[tableId] = Array.from(rows).map((tr) => {
-    const checkbox = tr.querySelector("input[type=checkbox]");
-    const counter = tr.querySelector("input[type=number]");
-    const itemName = tr.querySelector(".item-name");
+function saveTable(tableId) {
+  const rows = document.querySelectorAll(`#${tableId} tbody tr`);
+  const data = Array.from(rows).map(tr => {
+    const inputs = tr.querySelectorAll('input');
     return {
-      item: itemName.textContent.trim(),
-      count: parseInt(counter.value),
-      checked: checkbox.checked
+      text: inputs[2].value,
+      count: parseInt(inputs[1].value),
+      done: inputs[0].checked
     };
   });
-  saveData();
+  localStorage.setItem(tableId, JSON.stringify(data));
 }
 
-function renderTable(tableId) {
-  const tbody = document.querySelector(`#${tableId} tbody`);
-  tbody.innerHTML = "";
-  const items = data[tableId] || [];
-  items.forEach(({ item, count, checked }) => {
-    const row = createRow(tableId, item, count, checked);
-    tbody.appendChild(row);
+["grocery", "veggies", "indian"].forEach(id => loadData(id, defaultData[id]));
+
+document.getElementById('toggleAll').addEventListener('click', () => {
+  if (!confirm("Are you sure you want to check/uncheck all?")) return;
+  const all = document.querySelectorAll('tbody input[type=checkbox]');
+  const anyUnchecked = Array.from(all).some(cb => !cb.checked);
+  all.forEach(cb => {
+    cb.checked = anyUnchecked;
+    cb.dispatchEvent(new Event('change'));
   });
-  const finalRow = createRow(tableId);
-  tbody.appendChild(finalRow);
-}
-
-function toggleAllCheckboxes() {
-  if (!confirm("Do you really want to check/uncheck all items?")) return;
-  const anyUnchecked = tableIds.some(id =>
-    (data[id] || []).some(row => !row.checked)
-  );
-  tableIds.forEach(tableId => {
-    const rows = document.querySelectorAll(`#${tableId} tbody tr`);
-    rows.forEach(row => {
-      const checkbox = row.querySelector("input[type=checkbox]");
-      checkbox.checked = anyUnchecked;
-      row.classList.toggle("checked", anyUnchecked);
-    });
-    updateStorage(tableId);
-  });
-}
-
-function init() {
-  loadData();
-
-  // Default items if first time
-  if (!localStorage.getItem("groceryListData")) {
-    data = {
-      Grocery: [
-        { item: "केले", count: 1, checked: false },
-        { item: "Chicken Ng.", count: 1, checked: false },
-        { item: "लाल सेब", count: 1, checked: false },
-        { item: "हरे सेब", count: 1, checked: false },
-        { item: "Dish. Ringe.", count: 1, checked: false },
-        { item: "Pears", count: 1, checked: false },
-        { item: "Dish Tablets", count: 1, checked: false },
-        { item: "Avocado", count: 1, checked: false },
-        { item: "Dish. Liquid", count: 1, checked: false },
-        { item: "संतरे for जूस", count: 1, checked: false },
-        { item: "Woolwash", count: 1, checked: false },
-        { item: "संतरे (Kunal)", count: 1, checked: false },
-        { item: "Pre-wash", count: 1, checked: false },
-        { item: "अंगूर", count: 1, checked: false },
-        { item: "Detergent", count: 1, checked: false },
-        { item: "गाजर", count: 1, checked: false },
-        { item: "Bin bags", count: 1, checked: false },
-        { item: "प्याज", count: 1, checked: false },
-        { item: "Beetroot", count: 1, checked: false },
-        { item: "Potato", count: 1, checked: false },
-        { item: "Chicken", count: 1, checked: false },
-        { item: "Kids Snack", count: 1, checked: false },
-        { item: "Sugar", count: 1, checked: false },
-        { item: "Hard Butter", count: 1, checked: false },
-        { item: "Eggs", count: 1, checked: false },
-        { item: "Pizza Cheese", count: 1, checked: false },
-        { item: "Bread", count: 1, checked: false },
-        { item: "Soft Butter", count: 1, checked: false },
-        { item: "Pizza Base", count: 1, checked: false },
-        { item: "Full Cr. Milk", count: 1, checked: false },
-        { item: "Buns", count: 1, checked: false },
-        { item: "Coconut", count: 1, checked: false },
-        { item: "Yakult", count: 1, checked: false },
-      ],
-      Veggies: [
-        { item: "टमाटर", count: 1, checked: false },
-        { item: "खीरा", count: 1, checked: false },
-        { item: "भिंडी", count: 1, checked: false },
-        { item: "शिमला मिर्च", count: 1, checked: false },
-        { item: "नींबू", count: 1, checked: false },
-        { item: "लोकी", count: 1, checked: false },
-        { item: "अदरक", count: 1, checked: false },
-        { item: "लहसुन", count: 1, checked: false },
-        { item: "पालक", count: 1, checked: false },
-        { item: "Beans", count: 1, checked: false },
-        { item: "हरा धनिया", count: 1, checked: false },
-        { item: "Broccoli", count: 1, checked: false },
-        { item: "पुदीना", count: 1, checked: false },
-        { item: "Corn", count: 1, checked: false },
-        { item: "मेथी", count: 1, checked: false },
-        { item: "पपीता", count: 1, checked: false },
-        { item: "बैंगन", count: 1, checked: false },
-        { item: "Kiwi", count: 1, checked: false },
-        { item: "कद्दू", count: 1, checked: false },
-        { item: "शकरकंदी", count: 1, checked: false },
-        { item: "तरबूज", count: 1, checked: false },
-        { item: "प्याज", count: 1, checked: false }
-      ],
-      IndianStore: [
-        { item: "आटा", count: 1, checked: false },
-        { item: "राई", count: 1, checked: false },
-        { item: "चावल", count: 1, checked: false },
-        { item: "दलिया", count: 1, checked: false },
-        { item: "पोहा", count: 1, checked: false },
-        { item: "बेसन", count: 1, checked: false },
-        { item: "दाल", count: 1, checked: false },
-        { item: "सरसों तेल", count: 1, checked: false }
-      ]
-    };
-    saveData();
-  }
-
-  tableIds.forEach(renderTable);
-}
-
-init();
+});
