@@ -10,6 +10,7 @@
             --grocery-color: #2196f3;
             --indian-color: #ff9800;
             --checked-color: #e9ecef;
+            --master-check-color: #673ab7;
         }
         
         body {
@@ -20,6 +21,7 @@
             color: #333;
             font-size: 18px;
             padding-bottom: 80px;
+            padding-top: 60px; /* Space for master check button */
         }
         
         h1 {
@@ -42,6 +44,7 @@
             font-weight: bold;
             font-size: 1.3rem;
             color: white;
+            position: relative;
         }
         
         #veggies-header {
@@ -96,9 +99,7 @@
             gap: 10px;
         }
         
-        .checkbox {
-            position: absolute;
-            right: 45px;
+        .row-checkbox {
             width: 18px;
             height: 18px;
             border-radius: 50%;
@@ -107,21 +108,22 @@
             outline: none;
             cursor: pointer;
             transition: all 0.2s;
+            flex-shrink: 0;
         }
         
-        #veggies-items .checkbox {
+        #veggies-items .row-checkbox {
             border-color: var(--veggies-color);
         }
         
-        #grocery-items .checkbox {
+        #grocery-items .row-checkbox {
             border-color: var(--grocery-color);
         }
         
-        #indian-items .checkbox {
+        #indian-items .row-checkbox {
             border-color: var(--indian-color);
         }
         
-        .checkbox:checked {
+        .row-checkbox:checked {
             background-color: currentColor;
         }
         
@@ -245,35 +247,28 @@
         
         .master-check {
             position: fixed;
-            bottom: 20px;
-            right: 20px;
-            width: 50px;
-            height: 50px;
+            top: 15px;
+            right: 15px;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
-            background-color: #673ab7;
+            background-color: var(--master-check-color);
             color: white;
             border: none;
-            font-size: 1.3rem;
+            font-size: 1.1rem;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
             z-index: 100;
-            opacity: 0;
-            transition: opacity 0.3s;
-            pointer-events: none;
-        }
-        
-        body.show-master-check .master-check {
-            opacity: 1;
-            pointer-events: auto;
         }
         
         @media (max-width: 600px) {
             body {
                 font-size: 16px;
                 padding: 10px;
+                padding-top: 50px;
             }
             
             td {
@@ -298,15 +293,22 @@
                 right: 10px;
             }
             
-            .checkbox {
-                right: 40px;
+            .row-checkbox {
                 width: 16px;
                 height: 16px;
+            }
+            
+            .master-check {
+                width: 36px;
+                height: 36px;
+                font-size: 1rem;
             }
         }
     </style>
 </head>
 <body>
+    <button class="master-check" onclick="toggleAllCheckboxes()" title="Toggle all checkboxes">✓</button>
+    
     <h1>My Grocery Lists</h1>
     
     <div class="table-container">
@@ -338,8 +340,6 @@
             <button class="add-btn" id="indian-add" onclick="addRow('indian')">+</button>
         </div>
     </div>
-    
-    <button class="master-check" onclick="toggleAllCheckboxes()">✓</button>
     
     <script>
         // Initialize tables
@@ -385,16 +385,6 @@
             }
         });
         
-        // Show/hide master check button on scroll
-        let scrollTimeout;
-        window.addEventListener('scroll', function() {
-            document.body.classList.add('show-master-check');
-            clearTimeout(scrollTimeout);
-            scrollTimeout = setTimeout(function() {
-                document.body.classList.remove('show-master-check');
-            }, 2000);
-        });
-        
         // Add a new row to the specified table
         function addRow(tableName) {
             const tableId = tables[tableName];
@@ -406,7 +396,7 @@
             
             row.innerHTML = `
                 <td>
-                    <input type="checkbox" class="checkbox" onchange="toggleRow(this, '${tableName}')">
+                    <input type="checkbox" class="row-checkbox" onchange="toggleRow(this, '${tableName}')">
                     <div class="counter">
                         <button class="counter-btn" onclick="changeCounter(this, -1)" disabled>-</button>
                         <span class="counter-value">0</span>
@@ -466,7 +456,7 @@
         // Toggle all checkboxes
         function toggleAllCheckboxes() {
             if (confirm('Do you want to toggle all checkboxes? Press Cancel to keep current state.')) {
-                const checkboxes = document.querySelectorAll('.checkbox');
+                const checkboxes = document.querySelectorAll('.row-checkbox');
                 const anyChecked = Array.from(checkboxes).some(cb => cb.checked);
                 
                 checkboxes.forEach(checkbox => {
@@ -484,7 +474,7 @@
             const data = [];
             
             rows.forEach(row => {
-                const checkbox = row.querySelector('.checkbox');
+                const checkbox = row.querySelector('.row-checkbox');
                 const counter = row.querySelector('.counter-value');
                 const itemName = row.querySelector('.item-name');
                 
@@ -519,7 +509,7 @@
                 
                 row.innerHTML = `
                     <td>
-                        <input type="checkbox" class="checkbox" onchange="toggleRow(this, '${tableName}')" ${item.checked ? 'checked' : ''}>
+                        <input type="checkbox" class="row-checkbox" onchange="toggleRow(this, '${tableName}')" ${item.checked ? 'checked' : ''}>
                         <div class="counter">
                             <button class="counter-btn" onclick="changeCounter(this, -1)" ${item.count <= 0 ? 'disabled' : ''}>-</button>
                             <span class="counter-value">${item.count}</span>
