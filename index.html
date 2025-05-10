@@ -86,8 +86,6 @@
     .row-checkbox {
       width: 30px;
       height: 30px;
-      -webkit-appearance: none;
-      -moz-appearance: none;
       appearance: none;
       border: 2px solid #666;
       border-radius: 4px;
@@ -171,32 +169,22 @@
     }
 
     .delete-btn {
-      background-color: #ff5252;
-      color: white;
+      background: none;
+      color: black;
       border: none;
-      border-radius: 50%;
-      width: 36px;
-      height: 36px;
-      font-size: 1.4rem;
+      width: 28px;
+      height: 28px;
+      font-size: 1.1rem;
+      cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      cursor: pointer;
       flex-shrink: 0;
     }
 
     .delete-btn:hover {
-      background-color: #ff0000;
+      opacity: 0.6;
     }
-
-    #veggies-items .counter-btn,
-    #veggies-items .delete-btn { background-color: var(--veggies-color); }
-
-    #grocery-items .counter-btn,
-    #grocery-items .delete-btn { background-color: var(--grocery-color); }
-
-    #indian-items .counter-btn,
-    #indian-items .delete-btn { background-color: var(--indian-color); }
 
     .add-row {
       display: flex;
@@ -334,7 +322,7 @@
               <button class="counter-btn" onclick="changeCounter(this, 1)">+</button>
             </div>
             <input type="text" class="item-name" placeholder="Item name" oninput="saveTable('${tableName}')">
-            <button class="delete-btn" onclick="deleteRow('${rowId}', '${tableName}')" title="Delete">×</button>
+            <button class="delete-btn" onclick="deleteRow('${rowId}', '${tableName}')" title="Delete">🗑️</button>
           </div>
         </td>
       `;
@@ -414,7 +402,7 @@
                 <button class="counter-btn" onclick="changeCounter(this, 1)" ${item.count >= 50 ? 'disabled' : ''}>+</button>
               </div>
               <input type="text" class="item-name ${item.count > 0 ? 'highlight' : ''}" value="${item.name}" oninput="saveTable('${tableName}')">
-              <button class="delete-btn" onclick="deleteRow('${rowId}', '${tableName}')" title="Delete">×</button>
+              <button class="delete-btn" onclick="deleteRow('${rowId}', '${tableName}')" title="Delete">🗑️</button>
             </div>
           </td>
         `;
