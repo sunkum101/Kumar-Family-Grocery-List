@@ -6,24 +6,27 @@
     <title>My Grocery Lists</title>
     <style>
         :root {
-            --primary-color: #4a6fa5;
-            --secondary-color: #f8f9fa;
-            --accent-color: #ff6b6b;
+            --veggies-color: #4caf50;
+            --grocery-color: #2196f3;
+            --indian-color: #ff9800;
             --checked-color: #e9ecef;
         }
         
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
-            padding: 20px;
+            padding: 15px;
             background-color: #f5f7fa;
             color: #333;
+            font-size: 18px;
+            padding-bottom: 80px; /* Space for master check button */
         }
         
         h1 {
             text-align: center;
-            color: var(--primary-color);
-            margin-bottom: 30px;
+            color: #333;
+            margin-bottom: 25px;
+            font-size: 1.8rem;
         }
         
         .table-container {
@@ -35,11 +38,22 @@
         }
         
         .table-header {
-            background-color: var(--primary-color);
-            color: white;
-            padding: 12px 15px;
+            padding: 15px;
             font-weight: bold;
-            font-size: 1.1rem;
+            font-size: 1.3rem;
+            color: white;
+        }
+        
+        #veggies-header {
+            background-color: var(--veggies-color);
+        }
+        
+        #grocery-header {
+            background-color: var(--grocery-color);
+        }
+        
+        #indian-header {
+            background-color: var(--indian-color);
         }
         
         table {
@@ -49,14 +63,23 @@
         
         tr {
             transition: all 0.3s ease;
+            border-bottom: 1px solid #eee;
         }
         
-        tr:nth-child(even) {
-            background-color: var(--secondary-color);
+        #veggies-items tr:nth-child(even) {
+            background-color: rgba(76, 175, 80, 0.1);
+        }
+        
+        #grocery-items tr:nth-child(even) {
+            background-color: rgba(33, 150, 243, 0.1);
+        }
+        
+        #indian-items tr:nth-child(even) {
+            background-color: rgba(255, 152, 0, 0.1);
         }
         
         tr.checked {
-            background-color: var(--checked-color);
+            background-color: var(--checked-color) !important;
             color: #6c757d;
         }
         
@@ -66,17 +89,17 @@
         }
         
         td {
-            padding: 12px 15px;
+            padding: 15px;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
         }
         
         .checkbox {
-            width: 20px;
-            height: 20px;
+            width: 22px;
+            height: 22px;
             border-radius: 50%;
-            border: 2px solid var(--primary-color);
+            border: 2px solid currentColor;
             appearance: none;
             outline: none;
             cursor: pointer;
@@ -84,23 +107,33 @@
             transition: all 0.2s;
         }
         
+        #veggies-items .checkbox {
+            border-color: var(--veggies-color);
+        }
+        
+        #grocery-items .checkbox {
+            border-color: var(--grocery-color);
+        }
+        
+        #indian-items .checkbox {
+            border-color: var(--indian-color);
+        }
+        
         .checkbox:checked {
-            background-color: var(--primary-color);
-            border-color: var(--primary-color);
+            background-color: currentColor;
         }
         
         .counter {
             display: flex;
             align-items: center;
-            gap: 5px;
+            gap: 8px;
         }
         
         .counter-btn {
-            width: 24px;
-            height: 24px;
+            width: 28px;
+            height: 28px;
             border-radius: 50%;
             border: none;
-            background-color: var(--primary-color);
             color: white;
             font-weight: bold;
             display: flex;
@@ -108,6 +141,19 @@
             justify-content: center;
             cursor: pointer;
             transition: all 0.2s;
+            font-size: 1rem;
+        }
+        
+        #veggies-items .counter-btn {
+            background-color: var(--veggies-color);
+        }
+        
+        #grocery-items .counter-btn {
+            background-color: var(--grocery-color);
+        }
+        
+        #indian-items .counter-btn {
+            background-color: var(--indian-color);
         }
         
         .counter-btn:disabled {
@@ -116,59 +162,77 @@
         }
         
         .counter-value {
-            min-width: 20px;
+            min-width: 25px;
             text-align: center;
+            font-size: 1rem;
         }
         
         .item-name {
             flex-grow: 1;
             border: none;
             background: transparent;
-            font-size: 1rem;
-            padding: 5px;
+            font-size: 1.1rem;
+            padding: 8px;
             outline: none;
             transition: all 0.2s;
         }
         
         .item-name:focus {
-            background-color: rgba(74, 111, 165, 0.1);
+            background-color: rgba(0,0,0,0.05);
             border-radius: 4px;
         }
         
         .delete-btn {
-            background-color: var(--accent-color);
-            color: white;
+            background-color: transparent;
+            color: #ff5252;
             border: none;
-            border-radius: 4px;
-            padding: 5px 10px;
-            cursor: pointer;
-            transition: all 0.2s;
-            flex-shrink: 0;
-        }
-        
-        .delete-btn:hover {
-            background-color: #ff5252;
-        }
-        
-        .add-row {
-            display: flex;
-            justify-content: flex-end;
-            padding: 10px 15px;
-        }
-        
-        .add-btn {
-            width: 30px;
-            height: 30px;
             border-radius: 50%;
-            background-color: var(--primary-color);
-            color: white;
-            border: none;
-            font-size: 1.2rem;
+            width: 32px;
+            height: 32px;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             transition: all 0.2s;
+            flex-shrink: 0;
+            font-size: 1.2rem;
+            padding: 0;
+        }
+        
+        .delete-btn:hover {
+            background-color: rgba(255, 82, 82, 0.1);
+        }
+        
+        .add-row {
+            display: flex;
+            justify-content: flex-end;
+            padding: 12px 15px;
+        }
+        
+        .add-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            color: white;
+            border: none;
+            font-size: 1.4rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        #veggies-add {
+            background-color: var(--veggies-color);
+        }
+        
+        #grocery-add {
+            background-color: var(--grocery-color);
+        }
+        
+        #indian-add {
+            background-color: var(--indian-color);
         }
         
         .add-btn:hover {
@@ -182,41 +246,50 @@
             width: 50px;
             height: 50px;
             border-radius: 50%;
-            background-color: var(--primary-color);
+            background-color: #673ab7;
             color: white;
             border: none;
-            font-size: 1.2rem;
+            font-size: 1.3rem;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             box-shadow: 0 4px 12px rgba(0,0,0,0.2);
             z-index: 100;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+        
+        body.show-master-check .master-check {
+            opacity: 1;
+            pointer-events: auto;
         }
         
         @media (max-width: 600px) {
+            body {
+                font-size: 16px;
+                padding: 10px;
+            }
+            
             td {
-                padding: 10px 8px;
-                gap: 6px;
+                padding: 12px 10px;
+                gap: 10px;
             }
             
             .item-name {
-                font-size: 0.9rem;
+                font-size: 1rem;
             }
             
             .counter-btn {
-                width: 20px;
-                height: 20px;
-                font-size: 0.8rem;
-            }
-            
-            .counter-value {
-                font-size: 0.9rem;
+                width: 24px;
+                height: 24px;
             }
             
             .delete-btn {
-                padding: 4px 8px;
-                font-size: 0.8rem;
+                width: 28px;
+                height: 28px;
+                font-size: 1.1rem;
             }
         }
     </style>
@@ -225,32 +298,32 @@
     <h1>My Grocery Lists</h1>
     
     <div class="table-container">
-        <div class="table-header">Grocery</div>
-        <table id="grocery-table">
-            <tbody id="grocery-items"></tbody>
-        </table>
-        <div class="add-row">
-            <button class="add-btn" onclick="addRow('grocery')">+</button>
-        </div>
-    </div>
-    
-    <div class="table-container">
-        <div class="table-header">Veggies</div>
+        <div class="table-header" id="veggies-header">Veggies</div>
         <table id="veggies-table">
             <tbody id="veggies-items"></tbody>
         </table>
         <div class="add-row">
-            <button class="add-btn" onclick="addRow('veggies')">+</button>
+            <button class="add-btn" id="veggies-add" onclick="addRow('veggies')">+</button>
         </div>
     </div>
     
     <div class="table-container">
-        <div class="table-header">Indian Store</div>
+        <div class="table-header" id="grocery-header">Grocery</div>
+        <table id="grocery-table">
+            <tbody id="grocery-items"></tbody>
+        </table>
+        <div class="add-row">
+            <button class="add-btn" id="grocery-add" onclick="addRow('grocery')">+</button>
+        </div>
+    </div>
+    
+    <div class="table-container">
+        <div class="table-header" id="indian-header">Indian Store</div>
         <table id="indian-table">
             <tbody id="indian-items"></tbody>
         </table>
         <div class="add-row">
-            <button class="add-btn" onclick="addRow('indian')">+</button>
+            <button class="add-btn" id="indian-add" onclick="addRow('indian')">+</button>
         </div>
     </div>
     
@@ -259,16 +332,55 @@
     <script>
         // Initialize tables
         const tables = {
-            grocery: 'grocery-items',
             veggies: 'veggies-items',
+            grocery: 'grocery-items',
             indian: 'indian-items'
         };
         
-        // Load saved data
+        // Default items
+        const defaultItems = {
+            veggies: [
+                "टमाटर", "Avocado", "Pears", "अदरक", "कद्दू", "केले", "नींबू", "पालक", "पुदीना", 
+                "प्याज", "बैंगन", "भिंडी", "मेथी", "लाल सेब", "शकरकंदी", "हरा धनिया", "हरे सेब", 
+                "खीरा", "Avocado", "Beans", "Beetroot", "Broccoli", "Corn", "Kiwi", "अंगूर", 
+                "गाजर", "तरबूज", "पपीता", "प्याज", "लहसुन", "लोकी", "शिमला मिर्च", 
+                "संतरे (Kunal)", "संतरे for जूस"
+            ],
+            grocery: [
+                "Bin bags", "Bread", "Buns", "Chicken", "Chicken Ng.", "Detergent", 
+                "Dish Tablets", "Dish. Liquid", "Dish. Ringe.", "Eggs", "Full Cr. Milk", 
+                "Hard Butter", "Kids Snack", "Pizza Base", "Pizza Cheese", "Potato", 
+                "Pre-wash", "Soft Butter", "Sugar", "Woolwash"
+            ],
+            indian: [
+                "आटा", "चावल", "पोहा", "दाल:", "राई", "दलिया", "बेसन", "सरसों तेल"
+            ]
+        };
+        
+        // Load saved data or default items
         document.addEventListener('DOMContentLoaded', function() {
             for (const [tableName, tableId] of Object.entries(tables)) {
+                if (!localStorage.getItem(tableName)) {
+                    // Load default items if no saved data
+                    const defaultData = defaultItems[tableName].map(item => ({
+                        checked: false,
+                        count: "1",
+                        name: item
+                    }));
+                    localStorage.setItem(tableName, JSON.stringify(defaultData));
+                }
                 loadTable(tableName);
             }
+        });
+        
+        // Show/hide master check button on scroll
+        let scrollTimeout;
+        window.addEventListener('scroll', function() {
+            document.body.classList.add('show-master-check');
+            clearTimeout(scrollTimeout);
+            scrollTimeout = setTimeout(function() {
+                document.body.classList.remove('show-master-check');
+            }, 2000);
         });
         
         // Add a new row to the specified table
@@ -289,7 +401,7 @@
                         <button class="counter-btn" onclick="changeCounter(this, 1)">+</button>
                     </div>
                     <input type="text" class="item-name" placeholder="Item name" oninput="saveTable('${tableName}')">
-                    <button class="delete-btn" onclick="deleteRow('${rowId}', '${tableName}')">Delete</button>
+                    <button class="delete-btn" onclick="deleteRow('${rowId}', '${tableName}')" title="Delete">×</button>
                 </td>
             `;
             
@@ -402,7 +514,7 @@
                             <button class="counter-btn" onclick="changeCounter(this, 1)" ${item.count >= 50 ? 'disabled' : ''}>+</button>
                         </div>
                         <input type="text" class="item-name" value="${item.name}" oninput="saveTable('${tableName}')">
-                        <button class="delete-btn" onclick="deleteRow('${rowId}', '${tableName}')">Delete</button>
+                        <button class="delete-btn" onclick="deleteRow('${rowId}', '${tableName}')" title="Delete">×</button>
                     </td>
                 `;
                 
