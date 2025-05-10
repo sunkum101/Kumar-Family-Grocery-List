@@ -214,22 +214,26 @@
     }
 
     .master-check {
-      position: fixed;
-      top: 15px;
-      right: 15px;
-      width: 45px;
-      height: 45px;
-      border-radius: 50%;
-      background-color: var(--master-check-color);
-      color: white;
-      border: none;
-      font-size: 1.2rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-      z-index: 100;
+        position: fixed;
+        top: 15px;
+        right: 15px;
+        width: 35px;  /* Reduced width */
+        height: 35px; /* Reduced height */
+        border-radius: 50%;
+        background-color: var(--master-check-color);
+        color: white;
+        border: none;
+        font-size: 1.1rem;  /* Reduced font size */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        z-index: 100;
+        transition: all 0.3s ease;
+    }
+    .master-check:hover {
+      transform: scale(1.1);  /* Optional: Add a slight hover effect */
     }
 
     @media (max-width: 600px) {
