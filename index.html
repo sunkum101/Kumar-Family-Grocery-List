@@ -1,153 +1,74 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>🛒 Grocery List</title>
-  <link rel="stylesheet" href="style.css" />
-  <link rel="manifest" href="manifest.json" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Grocery List</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="container">
+  <header>
     <h1>🛒 Grocery List</h1>
-    <div class="table-section">
-      <table id="grocery">
-        <thead><tr><th>Grocery</th></tr></thead>
-        <tbody></tbody>
+  </header>
+
+  <main>
+    <section>
+      <h2>Grocery</h2>
+      <table id="groceryTable">
+        <thead>
+          <tr>
+            <th>Done</th>
+            <th>Item</th>
+            <th>Count</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="groceryBody">
+          <!-- Grocery rows will be dynamically added here -->
+        </tbody>
       </table>
-      <table id="veggies">
-        <thead><tr><th>Veggies</th></tr></thead>
-        <tbody></tbody>
+      <button class="add-row-btn" onclick="addRow('grocery')">Add Row</button>
+    </section>
+
+    <section>
+      <h2>Veggies</h2>
+      <table id="veggieTable">
+        <thead>
+          <tr>
+            <th>Done</th>
+            <th>Item</th>
+            <th>Count</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="veggieBody">
+          <!-- Veggies rows will be dynamically added here -->
+        </tbody>
       </table>
-      <table id="indian">
-        <thead><tr><th>Indian Store</th></tr></thead>
-        <tbody></tbody>
+      <button class="add-row-btn" onclick="addRow('veggie')">Add Row</button>
+    </section>
+
+    <section>
+      <h2>Indian Store</h2>
+      <table id="indianStoreTable">
+        <thead>
+          <tr>
+            <th>Done</th>
+            <th>Item</th>
+            <th>Count</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="indianStoreBody">
+          <!-- Indian store rows will be dynamically added here -->
+        </tbody>
       </table>
-    </div>
-  </div>
-  <button id="toggleAll" title="Check/Uncheck All">✔</button>
+      <button class="add-row-btn" onclick="addRow('indianStore')">Add Row</button>
+    </section>
+  </main>
 
-  <script>
-    const defaultData = {
-      grocery: [
-        "केले", "Chicken Ng.", "लाल सेब", "हरे सेब", "Dish. Ringe.", "Pears",
-        "Dish Tablets", "Avocado", "Dish. Liquid", "संतरे for जूस", "Woolwash",
-        "संतरे (Kunal)", "Pre-wash", "अंगूर", "Detergent", "गाजर", "Bin bags",
-        "प्याज", "Beetroot", "Potato", "Chicken", "Kids Snack", "Sugar",
-        "Hard Butter", "Eggs", "Pizza Cheese", "Bread", "Soft Butter",
-        "Pizza Base", "Full Cr. Milk", "Buns", "Coconut", "Yakult"
-      ],
-      veggies: [
-        "टमाटर", "खीरा", "भिंडी", "शिमला मिर्च", "नींबू", "लोकी", "अदरक", "लहसुन",
-        "पालक", "Beans", "हरा धनिया", "Broccoli", "पुदीना", "Corn", "मेथी",
-        "पपीता", "बैंगन", "Kiwi", "कद्दू", "शकरकंदी", "तरबूज", "प्याज"
-      ],
-      indian: [
-        "आटा", "राई", "चावल", "दलिया", "पोहा", "बेसन", "दाल", "सरसों तेल"
-      ]
-    };
+  <button id="toggleAll" onclick="toggleAll()">Check/Uncheck All</button>
 
-    function loadData(tableId, items) {
-      const saved = JSON.parse(localStorage.getItem(tableId) || 'null');
-      const list = saved || items.map(text => ({ text, count: 1, done: false }));
-      const tbody = document.querySelector(`#${tableId} tbody`);
-      tbody.innerHTML = '';
-      list.forEach(item => addRow(tableId, item.text, item.count, item.done));
-    }
-
-    function addRow(tableId, text = '', count = 1, done = false) {
-      const tbody = document.querySelector(`#${tableId} tbody`);
-      const tr = document.createElement('tr');
-      if (done) tr.classList.add('completed');
-
-      const td = document.createElement('td');
-      const checkbox = document.createElement('input');
-      checkbox.type = 'checkbox';
-      checkbox.checked = done;
-      checkbox.addEventListener('change', () => {
-        tr.classList.toggle('completed', checkbox.checked);
-        saveTable(tableId);
-      });
-
-      const counter = document.createElement('div');
-      counter.className = 'counter';
-
-      const minus = document.createElement('button');
-      minus.textContent = '−';
-      minus.onclick = () => {
-        if (input.value > 1) input.value--;
-        saveTable(tableId);
-      };
-
-      const input = document.createElement('input');
-      input.type = 'number';
-      input.min = '1';
-      input.max = '50';
-      input.value = count;
-      input.className = 'count-input';
-      input.addEventListener('input', () => saveTable(tableId));
-
-      const plus = document.createElement('button');
-      plus.textContent = '+';
-      plus.onclick = () => {
-        if (input.value < 50) input.value++;
-        saveTable(tableId);
-      };
-
-      counter.append(minus, input, plus);
-
-      const editable = document.createElement('input');
-      editable.type = 'text';
-      editable.value = text;
-      editable.addEventListener('input', () => saveTable(tableId));
-      editable.addEventListener('keydown', e => {
-        if (e.key === 'Enter' && editable.value.trim() && tr.nextSibling === null) {
-          addRow(tableId);
-          setTimeout(() => {
-            tr.nextSibling.querySelector('input[type=text]').focus();
-          }, 100);
-        }
-      });
-
-      const del = document.createElement('button');
-      del.className = 'delete-row';
-      del.textContent = '×';
-      del.onclick = () => {
-        if (confirm('Delete this item?')) {
-          tr.remove();
-          saveTable(tableId);
-        }
-      };
-
-      td.append(checkbox, counter, editable, del);
-      tr.appendChild(td);
-      tbody.appendChild(tr);
-    }
-
-    function saveTable(tableId) {
-      const rows = document.querySelectorAll(`#${tableId} tbody tr`);
-      const data = Array.from(rows).map(tr => {
-        const inputs = tr.querySelectorAll('input');
-        return {
-          text: inputs[2].value,
-          count: parseInt(inputs[1].value),
-          done: inputs[0].checked
-        };
-      });
-      localStorage.setItem(tableId, JSON.stringify(data));
-    }
-
-    ["grocery", "veggies", "indian"].forEach(id => loadData(id, defaultData[id]));
-
-    document.getElementById('toggleAll').addEventListener('click', () => {
-      if (!confirm("Are you sure you want to check/uncheck all?")) return;
-      const all = document.querySelectorAll('tbody input[type=checkbox]');
-      const anyUnchecked = Array.from(all).some(cb => !cb.checked);
-      all.forEach(cb => {
-        cb.checked = anyUnchecked;
-        cb.dispatchEvent(new Event('change'));
-      });
-    });
-  </script>
+  <script src="script.js"></script>
 </body>
 </html>
