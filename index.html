@@ -349,31 +349,32 @@
       let value = parseInt(valueSpan.textContent);
       value = Math.max(0, Math.min(50, value + change));
       valueSpan.textContent = value;
+      
+      // Enable/disable buttons based on count
       counter.querySelector('.counter-btn:first-child').disabled = value <= 0;
       counter.querySelector('.counter-btn:last-child').disabled = value >= 50;
-
-      const itemName = counter.parentElement.querySelector('.item-name');
-      if (value > 0) {
-        itemName.classList.add('highlight');
-      } else {
-        itemName.classList.remove('highlight');
-      }
-
+    
+      // Sync the updated value with Firestore
       saveTable(getTableNameFromRow(button.closest('tr')));
     }
+
 
     function toggleRow(checkbox, tableName) {
       const row = checkbox.closest('tr');
       row.classList.toggle('checked', checkbox.checked);
-      saveTable(tableName);
+      
+      // Update the Firestore document with the new checked state
+      saveTable(tableName);  // Reuse the saveTable function to update Firestore
     }
+
 
     function deleteRow(rowId, tableName) {
       if (confirm("Are you sure you want to delete this item?")) {
         document.getElementById(rowId)?.remove();
-        saveTable(tableName);
+        saveTable(tableName);  // Update Firestore after row deletion
       }
     }
+
 
     function toggleAllCheckboxes() {
       if (confirm("Do you want to toggle all checkboxes?")) {
@@ -393,40 +394,67 @@
         count: row.querySelector('.counter-value').textContent,
         name: row.querySelector('.item-name').value
       }));
-      localStorage.setItem(tableName, JSON.stringify(data));
+    
+      // Save the data to Firestore
+      db.collection(tableName).doc('grocery-list').set({
+        items: data
+      });
     }
 
     function loadTable(tableName) {
-      const data = JSON.parse(localStorage.getItem(tableName));
       const tbody = document.getElementById(tables[tableName]);
       tbody.innerHTML = '';
-      data.forEach(item => {
-        const rowId = 'row-' + Date.now() + Math.random().toString(36).substr(2, 9);
-        const row = document.createElement('tr');
-        row.id = rowId;
-        if (item.checked) row.classList.add('checked');
-        row.innerHTML = `
-          <td>
-            <div class="row-content">
-              <input type="checkbox" class="row-checkbox" onchange="toggleRow(this, '${tableName}')" ${item.checked ? 'checked' : ''}>
-              <div class="counter">
-                <button class="counter-btn" onclick="changeCounter(this, -1)" ${item.count <= 0 ? 'disabled' : ''}>-</button>
-                <span class="counter-value">${item.count}</span>
-                <button class="counter-btn" onclick="changeCounter(this, 1)" ${item.count >= 50 ? 'disabled' : ''}>+</button>
+    
+      // Listen for real-time updates from Firebase Firestore
+      db.collection(tableName).doc('grocery-list').onSnapshot((doc) => {
+        const data = doc.data().items;
+        data.forEach(item => {
+          const rowId = 'row-' + Date.now() + Math.random().toString(36).substr(2, 9);
+          const row = document.createElement('tr');
+          row.id = rowId;
+          if (item.checked) row.classList.add('checked');
+          row.innerHTML = `
+            <td>
+              <div class="row-content">
+                <input type="checkbox" class="row-checkbox" onchange="toggleRow(this, '${tableName}')" ${item.checked ? 'checked' : ''}>
+                <div class="counter">
+                  <button class="counter-btn" onclick="changeCounter(this, -1)" ${item.count <= 0 ? 'disabled' : ''}>-</button>
+                  <span class="counter-value">${item.count}</span>
+                  <button class="counter-btn" onclick="changeCounter(this, 1)" ${item.count >= 50 ? 'disabled' : ''}>+</button>
+                </div>
+                <input type="text" class="item-name ${item.count > 0 ? 'highlight' : ''}" value="${item.name}" oninput="saveTable('${tableName}')">
+                <button class="delete-btn" onclick="deleteRow('${rowId}', '${tableName}')" title="Delete">🗑️</button>
               </div>
-              <input type="text" class="item-name ${item.count > 0 ? 'highlight' : ''}" value="${item.name}" oninput="saveTable('${tableName}')">
-              <button class="delete-btn" onclick="deleteRow('${rowId}', '${tableName}')" title="Delete">🗑️</button>
-            </div>
-          </td>
-        `;
-        tbody.appendChild(row);
+            </td>
+          `;
+          tbody.appendChild(row);
+        });
       });
     }
+
 
     function getTableNameFromRow(row) {
       const tableId = row.closest('tbody').id;
       return Object.keys(tables).find(name => tables[name] === tableId);
     }
+
+// Firebase configuration (use your actual config from Firebase console)
+const firebaseConfig = {
+  apiKey: "AIzaSyCub2z0BY5QcFuQQ9BNHNiRwDIazeC0sZY",
+  authDomain: "groceryapp-multiedit.firebaseapp.com",
+  projectId: "groceryapp-multiedit",
+  storageBucket: "groceryapp-multiedit.firebasestorage.app",
+  messagingSenderId: "384086398983",
+  appId: "1:384086398983:web:5bd3abf829556e799432a2"
+  measurementId: "your-measurement-id"
+};
+
+// Initialize Firebase
+const app = firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore(app);
   </script>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
 </body>
 </html>
