@@ -1,10 +1,10 @@
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background-color: #f4f7f6;
+  background-color: #f6f9f8;
   margin: 0;
   padding: 1em;
-  color: #333;
-  font-size: 1.15em;
+  color: #222;
+  font-size: 1.2em;
 }
 
 .container {
@@ -27,10 +27,11 @@ h1 {
 th {
   background-color: #4CAF50;
   color: white;
-  padding: 0.7em;
+  padding: 0.8em;
   border-radius: 0.5em 0.5em 0 0;
   text-align: left;
-  font-size: 1.25em;
+  font-size: 1.3em;
+  letter-spacing: 0.5px;
 }
 
 table {
@@ -52,10 +53,10 @@ tr.completed {
 }
 
 td {
-  padding: 0.6em 0.8em;
+  padding: 0.7em 0.8em;
   display: flex;
   align-items: center;
-  gap: 0.7em;
+  gap: 1em;
   position: relative;
   flex-wrap: nowrap;
 }
@@ -63,14 +64,14 @@ td {
 input[type="text"] {
   border: none;
   background: transparent;
-  font-size: 1.1em;
+  font-size: 1.2em;
   width: 100%;
   outline: none;
 }
 
 input[type="checkbox"] {
-  width: 1.3em;
-  height: 1.3em;
+  width: 1.4em;
+  height: 1.4em;
   border-radius: 50%;
   cursor: pointer;
   accent-color: #4CAF50;
@@ -79,58 +80,40 @@ input[type="checkbox"] {
 .counter {
   display: flex;
   align-items: center;
-  gap: 0.4em;
+  gap: 0.5em;
 }
 
 .counter button {
   background-color: #ddd;
   border: none;
   border-radius: 50%;
-  width: 1.5em;
-  height: 1.5em;
-  font-size: 1em;
+  width: 1.7em;
+  height: 1.7em;
+  font-size: 1.1em;
   cursor: pointer;
-  line-height: 1.5em;
+  line-height: 1.7em;
   text-align: center;
   padding: 0;
 }
 
 .counter span {
-  min-width: 1.3em;
+  min-width: 1.5em;
   text-align: center;
-}
-
-.add-row {
-  position: absolute;
-  right: 2.3em; /* Adjusted for new delete button */
-  top: 50%;
-  transform: translateY(-50%);
-  background-color: #4CAF50;
-  color: white;
-  border: none;
-  border-radius: 50%;
-  width: 1.5em;
-  height: 1.5em;
-  font-size: 1em;
-  cursor: pointer;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  font-size: 1.1em;
 }
 
 .delete-row {
   position: absolute;
-  right: 0.3em; /* Adjusted for new delete button */
+  right: 0.5em;
   top: 50%;
   transform: translateY(-50%);
   background-color: #f44336;
   color: white;
   border: none;
   border-radius: 50%;
-  width: 1.5em;
-  height: 1.5em;
-  font-size: 1em;
+  width: 1.7em;
+  height: 1.7em;
+  font-size: 1.1em;
   cursor: pointer;
   display: flex;
   justify-content: center;
@@ -146,11 +129,11 @@ input[type="checkbox"] {
   color: white;
   border: none;
   border-radius: 50%;
-  width: 2.5em;
-  height: 2.5em;
+  width: 2.6em;
+  height: 2.6em;
   font-size: 1.3em;
   cursor: pointer;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
 }
 
 @media (max-width: 600px) {
@@ -161,17 +144,29 @@ input[type="checkbox"] {
   td {
     flex-direction: row;
     align-items: center;
-    gap: 0.5em;
+    gap: 0.6em;
     flex-wrap: nowrap;
   }
 
   .counter button {
+    width: 1.5em;
+    height: 1.5em;
+  }
+
+  input[type="checkbox"] {
     width: 1.3em;
     height: 1.3em;
   }
 
-  input[type="checkbox"] {
-    width: 1.2em;
-    height: 1.2em;
+  .delete-row {
+    width: 1.5em;
+    height: 1.5em;
+    font-size: 1em;
+  }
+
+  #toggleAll {
+    width: 2.3em;
+    height: 2.3em;
+    font-size: 1.1em;
   }
 }
