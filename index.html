@@ -230,8 +230,9 @@
         justify-content: center;
         cursor: pointer;
         box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-        z-index: 100;
+        z-index: 100; /* Ensures it's on top of other elements */
         transition: all 0.3s ease;
+        margin-top: 0; /* Prevents any movement from the top */
     }
     .master-check:hover {
       transform: scale(1.1);  /* Optional: Add a slight hover effect */
