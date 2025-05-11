@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>My Grocery Lists</title>
   <style>
     :root {
@@ -35,7 +35,7 @@
       margin-bottom: 20px;
       background: white;
       border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
       overflow: hidden;
     }
 
@@ -57,6 +57,16 @@
     table {
       width: 100%;
       border-collapse: collapse;
+    }
+
+    thead tr {
+      background: #eee;
+    }
+
+    th {
+      text-align: left;
+      padding: 10px;
+      font-size: 1rem;
     }
 
     tr {
@@ -104,7 +114,7 @@
     }
 
     .row-checkbox:checked::after {
-      content: "✓";
+      content: "\2713";
       color: white;
       font-size: 16px;
       position: relative;
@@ -223,31 +233,38 @@
   </style>
 </head>
 <body>
-
-  <button class="share-button" onclick="shareList()" title="Share">📤</button>
-  <button class="master-reset" onclick="resetAll()" title="Reset">♻️</button>
+  <button class="share-button" onclick="shareList()" title="Share">\ud83d\udce4</button>
+  <button class="master-reset" onclick="resetAll()" title="Reset">\u267b\ufe0f</button>
   <h1>My Grocery Lists</h1>
-
   <div id="toast" class="undo-toast">
     <span>Item deleted</span>
     <button onclick="undoDelete()">UNDO</button>
   </div>
 
   <div id="veggies" class="table-container">
-    <div class="table-header" onclick="toggleTable('veggies')">Veggies <span>▼</span></div>
-    <table><tbody id="veggies-items"></tbody></table>
+    <div class="table-header" onclick="toggleTable('veggies')">Veggies <span>\u25bc</span></div>
+    <table>
+      <thead><tr><th>Item</th></tr></thead>
+      <tbody id="veggies-items"></tbody>
+    </table>
     <div class="add-row"><button class="add-btn" id="veggies-add" onclick="addRow('veggies')">+</button></div>
   </div>
 
   <div id="grocery" class="table-container">
-    <div class="table-header" onclick="toggleTable('grocery')">Grocery <span>▼</span></div>
-    <table><tbody id="grocery-items"></tbody></table>
+    <div class="table-header" onclick="toggleTable('grocery')">Grocery <span>\u25bc</span></div>
+    <table>
+      <thead><tr><th>Item</th></tr></thead>
+      <tbody id="grocery-items"></tbody>
+    </table>
     <div class="add-row"><button class="add-btn" id="grocery-add" onclick="addRow('grocery')">+</button></div>
   </div>
 
   <div id="indian" class="table-container">
-    <div class="table-header" onclick="toggleTable('indian')">Indian Store <span>▼</span></div>
-    <table><tbody id="indian-items"></tbody></table>
+    <div class="table-header" onclick="toggleTable('indian')">Indian Store <span>\u25bc</span></div>
+    <table>
+      <thead><tr><th>Item</th></tr></thead>
+      <tbody id="indian-items"></tbody>
+    </table>
     <div class="add-row"><button class="add-btn" id="indian-add" onclick="addRow('indian')">+</button></div>
   </div>
 
@@ -259,9 +276,9 @@
     };
 
     const defaultItems = {
-      veggies: ["टमाटर", "Avocado", "Pears", "अदरक", "कद्दू"],
+      veggies: ["\u091f\u092e\u093e\u091f\u0930", "Avocado", "Pears", "\u0905\u0926\u0930\u0915", "\u0915\u0926\u094d\u0926\u0942"],
       grocery: ["Bin bags", "Bread", "Chicken", "Eggs", "Pizza Cheese"],
-      indian: ["आटा", "चावल", "पोहा", "दाल:", "बेसन"]
+      indian: ["\u0906\u091f\u093e", "\u091a\u093e\u0935\u0932", "\u092a\u094b\u0939\u093e", "\u0926\u093e\u0932", "\u092c\u0947\u0938\u0928"]
     };
 
     let deletedItem = null;
@@ -269,9 +286,7 @@
     document.addEventListener('DOMContentLoaded', () => {
       for (const tableName in tables) {
         if (!localStorage.getItem(tableName)) {
-          localStorage.setItem(tableName, JSON.stringify(defaultItems[tableName].map(name => ({
-            name, checked: false, count: 0
-          }))));
+          localStorage.setItem(tableName, JSON.stringify(defaultItems[tableName].map(name => ({ name, checked: false, count: 0 }))));
         }
         loadTable(tableName);
       }
@@ -334,12 +349,12 @@
     }
 
     function shareList() {
-      let msg = "🛒 *My Grocery List*:\n\n";
+      let msg = "\ud83d\uded2 *My Grocery List*:\n\n";
       for (const table in tables) {
         msg += `*${table.charAt(0).toUpperCase() + table.slice(1)}:*\n`;
         getData(table).forEach(item => {
-          if (item.count > 0 || item.checked)
-            msg += `- ${item.name} (${item.count}) ${item.checked ? '✔️' : ''}\n`;
+          if (item.count > 0)
+            msg += `- ${item.name} (${item.count})\n`;
         });
         msg += "\n";
       }
@@ -370,13 +385,12 @@
                 <input type="text" class="item-name ${item.count > 0 ? 'highlight' : ''}" value="${item.name}" onchange="getData('${table}')[${i}].name=this.value;saveData('${table}', getData('${table}'));loadTable('${table}')">
               </div>
               <div class="counter">
-                <button onclick="changeCount(${i}, '${table}', -1)">-</button>
+                <button class="counter-btn" onclick="changeCount(${i}, '${table}', -1)">-</button>
                 <span class="counter-value">${item.count}</span>
-                <button onclick="changeCount(${i}, '${table}', 1)">+</button>
+                <button class="counter-btn" onclick="changeCount(${i}, '${table}', 1)">+</button>
               </div>
             </div>
-          </td>
-        `;
+          </td>`;
         tbody.appendChild(row);
       });
     }
