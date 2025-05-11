@@ -421,7 +421,7 @@
     // Load saved data or default items
     document.addEventListener('DOMContentLoaded', () => {
       // Load collapsed states
-      const collapsedStates = JSON.parse(localStorage.getItem('collapsedStates') || {};
+      const collapsedStates = JSON.parse(localStorage.getItem('collapsedStates')) || {};
       for (const tableName in tables) {
         tables[tableName].collapsed = collapsedStates[tableName] || false;
         updateCollapseUI(tableName);
@@ -439,11 +439,10 @@
         }
         loadTable(tableName);
       }
-
+      
       // Set up swipe event listeners
       setupSwipeHandlers();
     });
-
     // Set up swipe event handlers for all rows
     function setupSwipeHandlers() {
       document.querySelectorAll('tr').forEach(row => {
