@@ -426,7 +426,10 @@
         tables[tableName].collapsed = collapsedStates[tableName] || false;
         updateCollapseUI(tableName);
         
-        if (!localStorage.getItem(tableName)) {
+        // Check if table data exists in localStorage
+        const savedData = localStorage.getItem(tableName);
+        if (!savedData) {
+          // If no saved data, load default items
           const defaultData = defaultItems[tableName].map(item => ({
             checked: false,
             count: "0",
@@ -582,13 +585,13 @@
     function shareList() {
       const allData = {};
       for (const tableName in tables) {
-        allData[tableName] = JSON.parse(localStorage.getItem(tableName) || [];
+        allData[tableName] = JSON.parse(localStorage.getItem(tableName)) || [];
       }
       
       const shareText = Object.entries(allData).map(([tableName, items]) => {
         return `${tableName.toUpperCase()}:\n${items.map(item => 
           `${item.checked ? '✓' : '◻'} ${item.name} (${item.count})`
-          .join('\n')}`;
+        ).join('\n')}`;
       }).join('\n\n');
       
       if (navigator.share) {
@@ -660,7 +663,6 @@
       }
     }
 
-    // Existing functions with minor adjustments
     function addRow(tableName) {
       const tableId = tables[tableName].id;
       const tbody = document.getElementById(tableId);
@@ -739,7 +741,7 @@
     }
 
     function loadTable(tableName) {
-      const data = JSON.parse(localStorage.getItem(tableName));
+      const data = JSON.parse(localStorage.getItem(tableName)) || [];
       const tbody = document.getElementById(tables[tableName].id);
       tbody.innerHTML = '';
       
