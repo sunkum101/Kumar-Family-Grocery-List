@@ -2,271 +2,394 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>My Grocery List</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My Grocery Lists</title>
   <style>
+    :root {
+      --veggies-color: #4caf50;
+      --grocery-color: #2196f3;
+      --indian-color: #ff9800;
+      --checked-color: #e9ecef;
+      --master-check-color: #673ab7;
+    }
+
     body {
-      font-family: sans-serif;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       margin: 0;
-      padding: 0;
-      background: #f5f5f5;
+      padding: 15px;
+      background-color: #f5f7fa;
+      color: #333;
+      font-size: 18px;
+      padding-bottom: 80px;
+      padding-top: 60px;
     }
-    header {
-      background: #4caf50;
-      color: white;
-      padding: 1em;
+
+    h1 {
       text-align: center;
-      position: sticky;
-      top: 0;
-      z-index: 10;
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 1.3rem;
     }
-    .controls {
-      display: flex;
-      justify-content: space-between;
-      padding: 0.5em 1em;
-      background: white;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      position: sticky;
-      top: 60px;
-      z-index: 9;
-    }
+
     .table-container {
-      margin: 1em;
+      margin-bottom: 20px;
       background: white;
-      border-radius: 8px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
       overflow: hidden;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
+
     .table-header {
-      background: #2196f3;
+      padding: 15px;
+      font-weight: bold;
+      font-size: 1.1rem;
       color: white;
-      padding: 1em;
-      cursor: pointer;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      cursor: pointer;
     }
+
+    #veggies-header { background-color: var(--veggies-color); }
+    #grocery-header { background-color: var(--grocery-color); }
+    #indian-header  { background-color: var(--indian-color); }
+
     table {
       width: 100%;
       border-collapse: collapse;
     }
-    td {
-      padding: 0.5em;
+
+    tr {
+      transition: all 0.3s ease;
       border-bottom: 1px solid #eee;
+      touch-action: pan-y;
     }
+
+    tr.checked {
+      text-decoration: line-through;
+      opacity: 0.5;
+      color: #aaa;
+    }
+
+    td {
+      padding: 15px;
+    }
+
     .row-content {
       display: flex;
       align-items: center;
       gap: 10px;
+      justify-content: space-between;
     }
+
+    .row-left {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex: 1;
+    }
+
+    .row-checkbox {
+      width: 24px;
+      height: 24px;
+      appearance: none;
+      border: 2px solid #666;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .row-checkbox:checked {
+      background-color: #666;
+      border-color: #666;
+    }
+
+    .row-checkbox:checked::after {
+      content: "✓";
+      color: white;
+      font-size: 16px;
+      position: relative;
+      left: 4px;
+    }
+
+    .item-name {
+      border: none;
+      background: transparent;
+      outline: none;
+      font-size: 1.3rem;
+      flex: 1;
+    }
+
+    .highlight {
+      font-weight: bold;
+      color: #d32f2f;
+      background-color: #fff3cd;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
     .counter {
       display: flex;
       align-items: center;
-      gap: 5px;
-      margin-left: auto;
+      gap: 4px;
     }
+
     .counter-btn {
-      width: 24px;
-      height: 24px;
-      text-align: center;
-      border: none;
+      width: 32px;
+      height: 32px;
       border-radius: 50%;
-      background: #4caf50;
+      border: none;
       color: white;
+      background-color: #999;
+      font-weight: bold;
+      font-size: 1.32rem;
       cursor: pointer;
     }
-    .undo-banner {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      width: 100%;
-      background: #ff9800;
-      color: white;
+
+    .counter-value {
+      min-width: 28px;
       text-align: center;
-      padding: 1em;
+      font-size: 1.3rem;
+    }
+
+    .add-row {
+      text-align: right;
+      padding: 10px 15px;
+    }
+
+    .add-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      color: white;
+      border: none;
+      font-size: 1.2rem;
+      cursor: pointer;
+    }
+
+    #veggies-add { background-color: var(--veggies-color); }
+    #grocery-add { background-color: var(--grocery-color); }
+    #indian-add  { background-color: var(--indian-color); }
+
+    .master-reset, .share-button {
+      position: fixed;
+      top: 10px;
+      width: 35px;
+      height: 35px;
+      border-radius: 50%;
+      background-color: var(--master-check-color);
+      color: white;
+      border: none;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+
+    .master-reset { right: 15px; }
+    .share-button { left: 15px; }
+
+    .undo-toast {
+      position: fixed;
+      bottom: 15px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #323232;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 6px;
       display: none;
+      align-items: center;
+      gap: 10px;
+      z-index: 999;
+    }
+
+    .undo-toast button {
+      background: none;
+      border: none;
+      color: #4caf50;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    @media (max-width: 600px) {
+      body {
+        padding-top: 60px;
+        font-size: 16px;
+      }
     }
   </style>
 </head>
 <body>
-  <header>
-    <h1>My Grocery List</h1>
-  </header>
-  <div class="controls">
-    <button onclick="resetAll()">🔁 Reset</button>
-    <button onclick="shareList()">📤 Share</button>
+
+  <button class="share-button" onclick="shareList()" title="Share">📤</button>
+  <button class="master-reset" onclick="resetAll()" title="Reset">♻️</button>
+  <h1>My Grocery Lists</h1>
+
+  <div id="toast" class="undo-toast">
+    <span>Item deleted</span>
+    <button onclick="undoDelete()">UNDO</button>
   </div>
 
-  <div class="table-container">
-    <div class="table-header" onclick="toggleCollapse('veggies')">
-      Veggies
-      <span id="veggies-toggle">[-]</span>
-    </div>
-    <table id="veggies-table">
-      <tbody id="veggies-items"></tbody>
-    </table>
-    <div style="padding: 0.5em; text-align: right;">
-      <button onclick="addItem('veggies')">➕ Add</button>
-    </div>
+  <div id="veggies" class="table-container">
+    <div class="table-header" onclick="toggleTable('veggies')">Veggies <span>▼</span></div>
+    <table><tbody id="veggies-items"></tbody></table>
+    <div class="add-row"><button class="add-btn" id="veggies-add" onclick="addRow('veggies')">+</button></div>
   </div>
 
-  <div class="table-container">
-    <div class="table-header" onclick="toggleCollapse('grocery')">
-      Grocery
-      <span id="grocery-toggle">[-]</span>
-    </div>
-    <table id="grocery-table">
-      <tbody id="grocery-items"></tbody>
-    </table>
-    <div style="padding: 0.5em; text-align: right;">
-      <button onclick="addItem('grocery')">➕ Add</button>
-    </div>
+  <div id="grocery" class="table-container">
+    <div class="table-header" onclick="toggleTable('grocery')">Grocery <span>▼</span></div>
+    <table><tbody id="grocery-items"></tbody></table>
+    <div class="add-row"><button class="add-btn" id="grocery-add" onclick="addRow('grocery')">+</button></div>
   </div>
 
-  <div class="table-container">
-    <div class="table-header" onclick="toggleCollapse('indian')">
-      Indian Store
-      <span id="indian-toggle">[-]</span>
-    </div>
-    <table id="indian-table">
-      <tbody id="indian-items"></tbody>
-    </table>
-    <div style="padding: 0.5em; text-align: right;">
-      <button onclick="addItem('indian')">➕ Add</button>
-    </div>
-  </div>
-
-  <div class="undo-banner" id="undo-banner">
-    Item deleted. <button onclick="undoDelete()">UNDO</button>
+  <div id="indian" class="table-container">
+    <div class="table-header" onclick="toggleTable('indian')">Indian Store <span>▼</span></div>
+    <table><tbody id="indian-items"></tbody></table>
+    <div class="add-row"><button class="add-btn" id="indian-add" onclick="addRow('indian')">+</button></div>
   </div>
 
   <script>
-    const defaultItems = {
-      veggies: ["टमाटर", "Avocado", "Pears", "अदरक"],
-      grocery: ["Bin bags", "Bread", "Eggs", "Milk"],
-      indian: ["आटा", "चावल", "दाल", "बेसन"]
+    const tables = {
+      veggies: 'veggies-items',
+      grocery: 'grocery-items',
+      indian: 'indian-items'
     };
 
-    const deletedItems = [];
+    const defaultItems = {
+      veggies: ["टमाटर", "Avocado", "Pears", "अदरक", "कद्दू"],
+      grocery: ["Bin bags", "Bread", "Chicken", "Eggs", "Pizza Cheese"],
+      indian: ["आटा", "चावल", "पोहा", "दाल:", "बेसन"]
+    };
 
-    function loadDefaults() {
-      for (const key in defaultItems) {
-        const tbody = document.getElementById(`${key}-items`);
-        defaultItems[key].forEach(name => {
-          const row = createRow(key, name);
-          tbody.appendChild(row);
-        });
+    let deletedItem = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      for (const tableName in tables) {
+        if (!localStorage.getItem(tableName)) {
+          localStorage.setItem(tableName, JSON.stringify(defaultItems[tableName].map(name => ({
+            name, checked: false, count: 0
+          }))));
+        }
+        loadTable(tableName);
       }
+    });
+
+    function addRow(table) {
+      const row = { name: '', checked: false, count: 0 };
+      const data = getData(table);
+      data.push(row);
+      saveData(table, data);
+      loadTable(table);
     }
 
-    function createRow(category, name, count = 0) {
-      const row = document.createElement('tr');
-      const td = document.createElement('td');
-      td.innerHTML = `
-        <div class="row-content">
-          <input type="checkbox" onchange="saveState()">
-          <input type="text" value="${name}" oninput="saveState()">
-          <div class="counter">
-            <button class="counter-btn" onclick="changeCount(this, -1)">-</button>
-            <span>${count}</span>
-            <button class="counter-btn" onclick="changeCount(this, 1)">+</button>
-          </div>
-        </div>
-      `;
-      row.appendChild(td);
-      row.setAttribute('draggable', true);
-      row.addEventListener('touchstart', handleTouchStart, {passive: true});
-      row.addEventListener('touchmove', handleTouchMove, {passive: true});
-      row.dataset.category = category;
-      return row;
+    function toggleRow(index, table) {
+      const data = getData(table);
+      data[index].checked = !data[index].checked;
+      saveData(table, data);
+      loadTable(table);
     }
 
-    function addItem(category) {
-      const tbody = document.getElementById(`${category}-items`);
-      const row = createRow(category, '');
-      tbody.appendChild(row);
+    function changeCount(index, table, delta) {
+      const data = getData(table);
+      data[index].count = Math.max(0, Math.min(50, data[index].count + delta));
+      saveData(table, data);
+      loadTable(table);
     }
 
-    function changeCount(button, delta) {
-      const span = button.parentElement.querySelector('span');
-      let count = parseInt(span.textContent);
-      count = Math.max(0, count + delta);
-      span.textContent = count;
-      saveState();
+    function deleteRow(index, table) {
+      const data = getData(table);
+      deletedItem = { table, item: data[index], index };
+      data.splice(index, 1);
+      saveData(table, data);
+      loadTable(table);
+      showToast();
     }
 
-    function toggleCollapse(section) {
-      const table = document.getElementById(`${section}-table`);
-      const toggle = document.getElementById(`${section}-toggle`);
-      const hidden = table.style.display === 'none';
-      table.style.display = hidden ? '' : 'none';
-      toggle.textContent = hidden ? '[-]' : '[+]';
+    function undoDelete() {
+      if (!deletedItem) return;
+      const data = getData(deletedItem.table);
+      data.splice(deletedItem.index, 0, deletedItem.item);
+      saveData(deletedItem.table, data);
+      loadTable(deletedItem.table);
+      deletedItem = null;
+      hideToast();
+    }
+
+    function toggleTable(table) {
+      const tbody = document.getElementById(tables[table]);
+      tbody.style.display = tbody.style.display === 'none' ? '' : 'none';
     }
 
     function resetAll() {
-      if (confirm('Reset all counters, checkboxes, and expand tables?')) {
-        document.querySelectorAll('input[type=checkbox]').forEach(cb => cb.checked = false);
-        document.querySelectorAll('.counter span').forEach(span => span.textContent = '0');
-        document.querySelectorAll('table').forEach(table => table.style.display = '');
-        document.querySelectorAll('[id$=-toggle]').forEach(toggle => toggle.textContent = '[-]');
-        saveState();
+      if (!confirm("Reset all counters and checkboxes?")) return;
+      for (const tableName in tables) {
+        const data = getData(tableName).map(item => ({ ...item, checked: false, count: 0 }));
+        saveData(tableName, data);
+        document.getElementById(tables[tableName]).style.display = '';
+        loadTable(tableName);
       }
     }
 
     function shareList() {
-      const text = [...document.querySelectorAll('table')].map(table => {
-        return [...table.querySelectorAll('tr')].map(row => {
-          const name = row.querySelector('input[type=text]').value;
-          const count = row.querySelector('.counter span').textContent;
-          const checked = row.querySelector('input[type=checkbox]').checked;
-          return `${checked ? '✅' : '⬜'} ${name} x${count}`;
-        }).join('\n');
-      }).join('\n\n');
-      const url = `mailto:?subject=My Grocery List&body=${encodeURIComponent(text)}`;
-      window.open(url);
-    }
-
-    function saveState() {
-      // optionally implement persistent storage
-    }
-
-    let xStart = null;
-    function handleTouchStart(e) {
-      xStart = e.touches[0].clientX;
-    }
-
-    function handleTouchMove(e) {
-      if (!xStart) return;
-      const xDiff = xStart - e.touches[0].clientX;
-      if (xDiff > 50) {
-        const row = e.target.closest('tr');
-        deletedItems.push({
-          category: row.dataset.category,
-          row: row.cloneNode(true)
+      let msg = "🛒 *My Grocery List*:\n\n";
+      for (const table in tables) {
+        msg += `*${table.charAt(0).toUpperCase() + table.slice(1)}:*\n`;
+        getData(table).forEach(item => {
+          if (item.count > 0 || item.checked)
+            msg += `- ${item.name} (${item.count}) ${item.checked ? '✔️' : ''}\n`;
         });
-        row.remove();
-        showUndo();
-        xStart = null;
-        saveState();
+        msg += "\n";
       }
+      const url = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+      window.open(url, '_blank');
     }
 
-    function showUndo() {
-      const banner = document.getElementById('undo-banner');
-      banner.style.display = 'block';
-      setTimeout(() => banner.style.display = 'none', 5000);
+    function getData(table) {
+      return JSON.parse(localStorage.getItem(table)) || [];
     }
 
-    function undoDelete() {
-      const last = deletedItems.pop();
-      if (last) {
-        document.getElementById(`${last.category}-items`).appendChild(last.row);
-        saveState();
-      }
-      document.getElementById('undo-banner').style.display = 'none';
+    function saveData(table, data) {
+      localStorage.setItem(table, JSON.stringify(data));
     }
 
-    window.onload = loadDefaults;
+    function loadTable(table) {
+      const data = getData(table);
+      const tbody = document.getElementById(tables[table]);
+      tbody.innerHTML = '';
+      data.forEach((item, i) => {
+        const row = document.createElement('tr');
+        if (item.checked) row.classList.add('checked');
+        row.innerHTML = `
+          <td>
+            <div class="row-content" ontouchstart="this.startX=event.touches[0].clientX" ontouchend="if(this.startX-event.changedTouches[0].clientX>50) deleteRow(${i}, '${table}')">
+              <div class="row-left">
+                <input type="checkbox" class="row-checkbox" ${item.checked ? 'checked' : ''} onchange="toggleRow(${i}, '${table}')">
+                <input type="text" class="item-name ${item.count > 0 ? 'highlight' : ''}" value="${item.name}" onchange="getData('${table}')[${i}].name=this.value;saveData('${table}', getData('${table}'));loadTable('${table}')">
+              </div>
+              <div class="counter">
+                <button onclick="changeCount(${i}, '${table}', -1)">-</button>
+                <span class="counter-value">${item.count}</span>
+                <button onclick="changeCount(${i}, '${table}', 1)">+</button>
+              </div>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    function showToast() {
+      const toast = document.getElementById("toast");
+      toast.style.display = "flex";
+      setTimeout(hideToast, 5000);
+    }
+
+    function hideToast() {
+      document.getElementById("toast").style.display = "none";
+    }
   </script>
 </body>
 </html>
