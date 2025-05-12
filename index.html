@@ -133,7 +133,7 @@
     .row-content {
       display: flex;
       align-items: center;
-      gap: 15px;
+      gap: 10px;
       position: relative;
     }
 
@@ -180,19 +180,21 @@
 
     .item-name {
       flex: 1;
+      min-width: 0;
       font-size: 1.6rem;
       padding: 8px;
       border: none;
       background: transparent;
       outline: none;
-      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .counter {
       display: flex;
       align-items: center;
-      gap: 8px;
-      margin-left: auto;
+      gap: 5px;
+      margin-left: 10px;
       flex-shrink: 0;
     }
 
@@ -331,12 +333,22 @@
         font-size: 1.4rem;
       }
 
-      .counter-btn {
-        width: 26px;
-        height: 26px;
+      .row-content {
+        gap: 8px;
       }
-
+      
+      .counter {
+        gap: 4px;
+        margin-left: 8px;
+      }
+      
+      .counter-btn {
+        width: 28px;
+        height: 28px;
+      }
+      
       .counter-value {
+        min-width: 25px;
         font-size: 1.1rem;
       }
     }
@@ -443,6 +455,7 @@
       // Set up swipe event listeners
       setupSwipeHandlers();
     });
+
     // Set up swipe event handlers for all rows
     function setupSwipeHandlers() {
       document.querySelectorAll('tr').forEach(row => {
