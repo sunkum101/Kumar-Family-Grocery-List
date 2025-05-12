@@ -108,14 +108,17 @@ Woolwash`.trim();
       position: absolute;
       top: 15px; left: 15px; right: 15px;
       display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
       gap: 12px;
+      justify-content: space-between;
+      /* Prevent wrapping so all four stay on one row */
+      flex-wrap: nowrap;
+      overflow-x: auto;
       z-index: 100;
     }
+    .action-buttons::-webkit-scrollbar { display: none; }
     .action-btn {
       flex: 1 1 auto;
-      padding: .5em 1em;
+      padding: .6em 1em;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -226,111 +229,57 @@ Woolwash`.trim();
     .counter { display:flex; align-items:center; gap:6px; flex-shrink:0; transition: background .3s ease; }
     .counter.active { background:var(--highlight); border-radius:20px; padding:2px 6px; }
     .counter.active .counter-btn, .counter.active .counter-value { background:var(--highlight)!important; color:#333!important; }
-    .counter-btn {
-      width:38px; height:38px;
-      border:none; border-radius:50%;
-      color:#fff; font-weight:bold; font-size:1.2rem;
-      display:flex; align-items:center; justify-content:center;
-      cursor:pointer; flex-shrink:0;
-    }
+    .counter-btn { width:38px; height:38px; border:none; border-radius:50%; color:#fff; font-weight:bold; font-size:1.2rem; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; }
     #veggies li .counter-btn { background:var(--veggies-color); }
     #grocery li .counter-btn { background:var(--grocery-color); }
     #indian  li .counter-btn { background:var(--indian-color); }
     .counter-btn:disabled { opacity:.5; cursor:not-allowed; }
-    .counter-value {
-      min-width:30px; text-align:center;
-      font-size:1.32rem; font-weight:normal;
-      transition: font-weight .3s ease;
-    }
+    .counter-value { min-width:30px; text-align:center; font-size:1.32rem; font-weight:normal; transition: font-weight .3s ease; }
 
     /* Add item button */
-    .add-btn {
-      width:48px; height:48px; margin:0 10px 10px;
-      border-radius:50%; background:var(--master-check);
-      color:#fff; border:none; font-size:1.8rem;
-      display:flex; align-items:center; justify-content:center;
-      cursor:pointer;
-    }
+    .add-btn { width:48px; height:48px; margin:0 10px 10px; border-radius:50%; background:var(--master-check); color:#fff; border:none; font-size:1.8rem; display:flex; align-items:center; justify-content:center; cursor:pointer; }
 
     /* Swipe delete indicator */
-    .swipe-delete-indicator {
-      position:absolute; right:-100px; top:0; bottom:0;
-      width:100px; background:#f44336; color:#fff;
-      display:flex; align-items:center; justify-content:center;
-      font-weight:bold; font-size:1.2rem;
-      transition:right .3s ease;
-    }
+    .swipe-delete-indicator { position:absolute; right:-100px; top:0; bottom:0; width:100px; background:#f44336; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:1.2rem; transition:right .3s ease; }
 
     /* Undo toast */
-    .undo-notification {
-      position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
-      background:#333; color:#fff;
-      padding:12px 24px; border-radius:6px;
-      display:flex; align-items:center; gap:12px;
-      font-size:1.2rem; z-index:1000;
-    }
-    .undo-btn {
-      background:var(--share-color); color:#fff;
-      border:none; padding:6px 12px; border-radius:3.6px;
-      cursor:pointer; font-size:1.2rem;
-    }
+    .undo-notification { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#333; color:#fff; padding:12px 24px; border-radius:6px; display:flex; align-items:center; gap:12px; font-size:1.2rem; z-index:1000; }
+    .undo-btn { background:var(--share-color); color:#fff; border:none; padding:6px 12px; border-radius:3.6px; cursor:pointer; font-size:1.2rem; }
     .undo-highlight { background:var(--undo-highlight)!important; }
 
-    @media(max-width:600px){
-      body { padding:70px 10px 80px; }
-      .action-btn { font-size:.85rem; padding:.4em .6em; }
-      .item-name { font-size:1.44rem; }
-      .counter-btn { width:36px; height:36px; }
-      .counter-value { font-size:1.2rem; }
-      .add-btn { width:42px; height:42px; font-size:1.6rem; }
-    }
+    @media(max-width:600px){ body { padding:70px 10px 80px; } .action-btn { font-size:.85rem; padding:.4em .6em; } .item-name { font-size:1.44rem; } .counter-btn { width:36px; height:36px; } .counter-value { font-size:1.2rem; } .add-btn { width:42px; height:42px; font-size:1.6rem; } }
   </style>
 </head>
 <body>
 
   <div class="action-buttons">
-    <button class="action-btn master-check" onclick="toggleAll()">
-      <span class="icon">✓</span> Toggle All
-    </button>
-    <button class="action-btn reset-btn" onclick="resetAll()">
-      <span class="icon">🔄</span> Reset
-    </button>
-    <button class="action-btn share-btn" onclick="shareList()">
-      <span class="icon">⤴</span> Share
-    </button>
-    <button class="action-btn reorder-btn" onclick="reorderAll()">
-      <span class="icon">🛒</span> Reorder & Cross Out Zeros
-    </button>
+    <button class="action-btn master-check" onclick="toggleAll()"><span class="icon">✓</span>Toggle All</button>
+    <button class="action-btn reset-btn" onclick="resetAll()"><span class="icon">🔄</span>Reset</button>
+    <button class="action-btn share-btn" onclick="shareList()"><span class="icon">⤴</span>Share</button>
+    <button class="action-btn reorder-btn" onclick="reorderAll()"><span class="icon">🛒</span>Reorder</button>
   </div>
 
   <h1>My Grocery Lists</h1>
 
   <div class="list-container">
-    <div class="list-header" id="veggies-header" onclick="toggleList('veggies')">
-      Veggies <button class="collapse-btn"></button>
-    </div>
+    <div class="list-header" id="veggies-header" onclick="toggleList('veggies')">Veggies <button class="collapse-btn"></button></div>
     <ul id="veggies" class="item-list"></ul>
     <button class="add-btn" onclick="addItem('veggies')">＋</button>
   </div>
 
   <div class="list-container">
-    <div class="list-header" id="grocery-header" onclick="toggleList('grocery')">
-      Grocery <button class="collapse-btn"></button>
-    </div>
+    <div class="list-header" id="grocery-header" onclick="toggleList('grocery')">Grocery <button class="collapse-btn"></button></div>
     <ul id="grocery" class="item-list"></ul>
     <button class="add-btn" onclick="addItem('grocery')">＋</button>
   </div>
 
   <div class="list-container">
-    <div class="list-header" id="indian-header" onclick="toggleList('indian')">
-      Indian Store <button class="collapse-btn"></button>
-    </div>
+    <div class="list-header" id="indian-header" onclick="toggleList('indian')">Indian Store <button class="collapse-btn"></button></div>
     <ul id="indian" class="item-list"></ul>
     <button class="add-btn" onclick="addItem('indian')">＋</button>
   </div>
 
   <script>
-    // Build lists from defaults
     const lists = {
       veggies: { id:'veggies', collapsed:false, default: defaultVeggiesText.split(/\r?\n/) },
       grocery:{ id:'grocery', collapsed:false, default: defaultGroceryText.split(/\r?\n/) },
@@ -341,248 +290,5 @@ Woolwash`.trim();
     document.addEventListener('DOMContentLoaded', () => {
       const saved = JSON.parse(localStorage.getItem('collapsedStates')||'{}');
       for (let name in lists) {
-        lists[name].collapsed = !!saved[name];
-        updateCollapse(name);
-        // init or load
-        let arr = JSON.parse(localStorage.getItem(name)||'[]');
-        const placeholder = arr.length && arr.every(i=>i.name.toLowerCase()===name);
-        if (!arr.length || placeholder) {
-          arr = lists[name].default.map(n=>({name:n, count:'0', checked:false}));
-          localStorage.setItem(name, JSON.stringify(arr));
-        }
-        loadList(name);
-      }
-      setupSwipe();
-    });
-
-    function toggleList(name) {
-      lists[name].collapsed = !lists[name].collapsed;
-      updateCollapse(name);
-      document.querySelector(`#${name}-header .collapse-btn`).classList.toggle('collapsed', lists[name].collapsed);
-      const out={}; for(let k in lists) out[k]=lists[k].collapsed;
-      localStorage.setItem('collapsedStates', JSON.stringify(out));
-    }
-    function updateCollapse(name) {
-      const ul = document.getElementById(name);
-      if (lists[name].collapsed) ul.style.display='none'; else ul.style.display='block';
-      document.querySelector(`#${name}-header .collapse-btn`).classList.toggle('collapsed', lists[name].collapsed);
-    }
-
-    function setupSwipe() {
-      document.body.addEventListener('touchstart', e => {
-        const li = e.target.closest('li');
-        if (li && !e.target.closest('.counter') && !e.target.matches('.row-checkbox') && !e.target.matches('.item-name')) {
-          touchStartX = e.changedTouches[0].screenX;
-          currentRow  = li;
-          if (!li.querySelector('.swipe-delete-indicator')) {
-            const ind = document.createElement('div');
-            ind.className = 'swipe-delete-indicator';
-            ind.textContent = 'DELETE';
-            li.style.position = 'relative';
-            li.appendChild(ind);
-          }
-        }
-      }, {passive:true});
-
-      document.body.addEventListener('touchmove', e => {
-        if (!currentRow) return;
-        touchEndX = e.changedTouches[0].screenX;
-        const diff = touchStartX - touchEndX;
-        const max = window.innerWidth * 0.5;
-        if (diff > 30) {
-          const tx = Math.min(diff, max);
-          currentRow.style.transform = `translateX(-${tx}px)`;
-          const ind = currentRow.querySelector('.swipe-delete-indicator');
-          if (ind) ind.style.right = `-${tx}px`;
-        }
-      }, {passive:true});
-
-      document.body.addEventListener('touchend', () => {
-        if (!currentRow) return;
-        const diff = touchStartX - touchEndX;
-        const threshold = window.innerWidth * 0.5;
-        if (diff > threshold) deleteWithUndo(currentRow);
-        else {
-          currentRow.style.transform = '';
-          const ind = currentRow.querySelector('.swipe-delete-indicator');
-          if (ind) ind.style.right = '-100px';
-        }
-        currentRow = null;
-      });
-    }
-
-    function deleteWithUndo(li) {
-      const listName = getListName(li);
-      li.classList.add('swipe-delete');
-      const rec = {id:li.id, html:li.innerHTML, list:listName, index:[...li.parentNode.children].indexOf(li)};
-      deleted.push(rec);
-      showUndo();
-      setTimeout(()=>{
-        if (!rec.undo) { li.remove(); saveList(listName); }
-      },300);
-    }
-    function showUndo() {
-      document.querySelectorAll('.undo-notification').forEach(x=>x.remove());
-      const n = document.createElement('div');
-      n.className = 'undo-notification';
-      n.innerHTML = `Item deleted <button class="undo-btn" onclick="undo()">UNDO</button>`;
-      document.body.appendChild(n);
-    }
-    function undo() {
-      document.querySelectorAll('.undo-notification').forEach(x=>x.remove());
-      if (!deleted.length) return;
-      const rec = deleted.pop(); rec.undo = true;
-      const ul = document.getElementById(rec.list);
-      let li = document.getElementById(rec.id);
-      if (li) {
-        li.classList.remove('swipe-delete');
-        li.style.transform = '';
-        li.classList.add('undo-highlight');
-        setTimeout(()=>li.classList.remove('undo-highlight'),2000);
-      } else {
-        li = document.createElement('li');
-        li.id = rec.id; li.innerHTML = rec.html;
-        if (rec.index < ul.children.length) ul.insertBefore(li, ul.children[rec.index]); else ul.appendChild(li);
-        li.classList.add('undo-highlight');
-        setTimeout(()=>li.classList.remove('undo-highlight'),2000);
-        wireRow(li);
-      }
-      saveList(rec.list);
-    }
-
-    function shareList() {
-      let text = '';
-      for (let key in lists) {
-        const arr = JSON.parse(localStorage.getItem(key)||'[]');
-        const pick = arr.filter(i=>parseInt(i.count,10)>0);
-        if (pick.length) text += `${key.toUpperCase()}:\n` + pick.map(i=>`${i.name} (${i.count})`).join('\n') + '\n\n';
-      }
-      text = text.trim();
-      if (!text) return alert('Nothing to share—no items above 0.');
-      if (navigator.share) navigator.share({title:'My Grocery List', text, url:location.href}).catch(()=>{copyToClipboard(text); alert('Copied!');});
-      else { copyToClipboard(text); alert('Copied!'); }
-    }
-    function copyToClipboard(s) { const ta=document.createElement('textarea'); ta.value=s; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
-
-    function resetAll() {
-      if (!confirm('Reset everything?')) return;
-      document.querySelectorAll('li').forEach(li=>{
-        const cb = li.querySelector('.row-checkbox'); cb.checked=false;
-        li.classList.remove('checked','undo-highlight');
-        const cv = li.querySelector('.counter-value'); cv.textContent='0';
-        li.querySelectorAll('.counter-btn').forEach(b=>b.disabled=(b.textContent==='-'));
-        li.querySelector('.item-name').classList.remove('active');
-        li.querySelector('.counter').classList.remove('active');
-      });
-      for (let k in lists) saveList(k);
-      localStorage.removeItem('collapsedStates');
-    }
-
-    function toggleAll() {
-      if (!confirm('Toggle all?')) return;
-      const boxes = [...document.querySelectorAll('.row-checkbox')];
-      const any = boxes.some(cb=>cb.checked);
-      boxes.forEach(cb=>{cb.checked=!any; cb.closest('li').classList.toggle('checked', cb.checked);});
-      for (let k in lists) saveList(k);
-    }
-
-    function reorderAll() {
-      for (let key in lists) {
-        const ul = document.getElementById(key);
-        const items = [...ul.children];
-        const have = items.filter(li=>parseInt(li.querySelector('.counter-value').textContent,10)>0);
-        const zero = items.filter(li=>parseInt(li.querySelector('.counter-value').textContent,10)===0);
-        zero.forEach(li=>{
-          const cb = li.querySelector('.row-checkbox'); cb.checked=true;
-          li.classList.add('checked');
-        });
-        have.concat(zero).forEach(li=>ul.appendChild(li));
-        saveList(key);
-      }
-    }
-
-    function addItem(listName) {
-      const ul = document.getElementById(listName);
-      const li = document.createElement('li'); li.id='li-'+Date.now();
-      li.innerHTML = `
-        <input type="checkbox" class="row-checkbox" onchange="toggleItem(this,'${listName}')">
-        <input type="text" class="item-name" placeholder="Item name" oninput="saveList('${listName}')">
-        <div class="counter">
-          <button class="counter-btn" onclick="change(this,-1)" disabled>-</button>
-          <span class="counter-value">0</span>
-          <button class="counter-btn" onclick="change(this,1)">+</button>
-        </div>`;
-      ul.appendChild(li);
-      wireRow(li);
-      saveList(listName);
-    }
-
-    function change(btn, delta) {
-      const li = btn.closest('li');
-      const cv = li.querySelector('.counter-value');
-      let v = parseInt(cv.textContent,10);
-      v = Math.max(0, Math.min(50, v + delta));
-      cv.textContent = v;
-      const [neg,pos] = li.querySelectorAll('.counter-btn');
-      neg.disabled = v<=0; pos.disabled = v>=50;
-      if (v>0) {
-        li.querySelector('.item-name').classList.add('active');
-        li.querySelector('.counter').classList.add('active');
-        cv.style.fontWeight = 'bold';
-      } else {
-        li.querySelector('.item-name').classList.remove('active');
-        li.querySelector('.counter').classList.remove('active');
-        cv.style.fontWeight = 'normal';
-      }
-      saveList(getListName(li));
-    }
-
-    function toggleItem(cb, listName) {
-      const li = cb.closest('li');
-      li.classList.toggle('checked', cb.checked);
-      saveList(listName);
-    }
-
-    function saveList(name) {
-      const data = [...document.getElementById(name).children].map(li=>({
-        name: li.querySelector('.item-name').value,
-        count: li.querySelector('.counter-value').textContent,
-        checked: li.querySelector('.row-checkbox').checked
-      }));
-      localStorage.setItem(name, JSON.stringify(data));
-    }
-
-    function loadList(name) {
-      const arr = JSON.parse(localStorage.getItem(name)||'[]');
-      const ul = document.getElementById(name);
-      ul.innerHTML = '';
-      arr.forEach(item => {
-        const li = document.createElement('li');
-        li.id = 'li-'+Date.now()+Math.random().toString(36).slice(2,5);
-        li.innerHTML = `
-          <input type="checkbox" class="row-checkbox" onchange="toggleItem(this,'${name}')" ${item.checked?'checked':''}>
-          <input type="text" class="item-name" oninput="saveList('${name}')" value="${item.name.replace(/"/g,'&quot;')}">
-          <div class="counter">
-            <button class="counter-btn" onclick="change(this,-1)" ${item.count<=0?'disabled':''}>-</button>
-            <span class="counter-value">${item.count}</span>
-            <button class="counter-btn" onclick="change(this,1)" ${item.count>=50?'disabled':''}>+</button>
-          </div>`;
-        ul.appendChild(li);
-        if (parseInt(item.count,10)>0) {
-          li.querySelector('.item-name').classList.add('active');
-          li.querySelector('.counter').classList.add('active');
-          li.querySelector('.counter-value').style.fontWeight='bold';
-        }
-        wireRow(li);
-      });
-    }
-
-    function wireRow(li) {
-      li.addEventListener('touchstart', e => handleTouchStart(e), {passive:true});
-      li.addEventListener('touchmove',  handleTouchMove,    {passive:true});
-      li.addEventListener('touchend',   handleTouchEnd);
-    }
-    function getListName(li) { return li.closest('ul').id; }
-  </script>
-</body>
-</html>
+        lists[name].collapsed = !!saved[name]; updateCollapse(name);
+        let ar
