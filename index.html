@@ -13,6 +13,7 @@
       --master-check-color: #673ab7;
       --reset-color: #f44336;
       --share-color: #4caf50;
+      --counter-highlight: #fff9c4;
     }
 
     body {
@@ -21,9 +22,9 @@
       padding: 15px;
       background-color: #f5f7fa;
       color: #333;
-      font-size: 18px;
+      font-size: 21.6px; /* Increased by 20% */
       padding-bottom: 80px;
-      padding-top: 100px;
+      padding-top: 70px; /* Reduced top padding */
       touch-action: pan-y;
     }
 
@@ -33,13 +34,14 @@
       left: 15px;
       right: 15px;
       display: flex;
-      justify-content: space-between;
+      justify-content: flex-start; /* Changed to flex-start */
+      gap: 10px; /* Added gap between buttons */
       z-index: 100;
     }
 
     .action-btn {
-      width: 40px;
-      height: 40px;
+      width: 36px; /* Reduced size */
+      height: 36px; /* Reduced size */
       border-radius: 50%;
       color: white;
       border: none;
@@ -51,19 +53,24 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.2);
     }
 
-    .share-btn {
-      background-color: var(--share-color);
+    .master-check {
+      background-color: var(--master-check-color);
     }
 
     .reset-btn {
       background-color: var(--reset-color);
     }
 
+    .share-btn {
+      background-color: var(--share-color);
+      font-size: 1rem; /* Smaller icon */
+    }
+
     h1 {
       text-align: center;
       color: #333;
       margin-bottom: 25px;
-      font-size: 1.8rem;
+      font-size: 2.16rem; /* Increased by 20% */
     }
 
     .table-container {
@@ -77,7 +84,7 @@
     .table-header {
       padding: 15px;
       font-weight: bold;
-      font-size: 1.3rem;
+      font-size: 1.56rem; /* Increased by 20% */
       color: white;
       display: flex;
       justify-content: space-between;
@@ -93,7 +100,7 @@
       background: none;
       border: none;
       color: white;
-      font-size: 1.5rem;
+      font-size: 1.8rem; /* Increased by 20% */
       cursor: pointer;
     }
 
@@ -139,8 +146,8 @@
     }
 
     .row-checkbox {
-      width: 26px;
-      height: 26px;
+      width: 31.2px; /* Increased by 20% */
+      height: 31.2px; /* Increased by 20% */
       appearance: none;
       border: 2px solid #666;
       border-radius: 4px;
@@ -157,7 +164,7 @@
     .row-checkbox:checked::after {
       content: "✓";
       color: white;
-      font-size: 18px;
+      font-size: 21.6px; /* Increased by 20% */
       position: absolute;
       top: 50%;
       left: 50%;
@@ -182,8 +189,8 @@
     .item-name {
       flex: 1;
       min-width: 0;
-      font-size: 1.4rem;
-      padding: 6px;
+      font-size: 1.92rem; /* Increased by 20% */
+      padding: 7.2px; /* Increased by 20% */
       border: none;
       background: transparent;
       outline: none;
@@ -195,19 +202,27 @@
     .counter {
       display: flex;
       align-items: center;
-      gap: 5px;
+      gap: 6px; /* Increased by 20% */
       margin-left: auto;
       flex-shrink: 0;
+      background-color: transparent;
+      transition: background-color 0.3s ease;
+    }
+
+    .counter.highlight {
+      background-color: var(--counter-highlight);
+      border-radius: 20px;
+      padding: 0 5px;
     }
 
     .counter-btn {
-      width: 32px;
-      height: 32px;
+      width: 38.4px; /* Increased by 20% */
+      height: 38.4px; /* Increased by 20% */
       border-radius: 50%;
       border: none;
       color: white;
       font-weight: bold;
-      font-size: 1rem;
+      font-size: 1.2rem; /* Increased by 20% */
       display: flex;
       align-items: center;
       justify-content: center;
@@ -233,25 +248,25 @@
     }
 
     .counter-value {
-      min-width: 25px;
+      min-width: 30px; /* Increased by 20% */
       text-align: center;
-      font-size: 1.1rem;
+      font-size: 1.32rem; /* Increased by 20% */
       flex-shrink: 0;
     }
 
     .add-row {
       display: flex;
       justify-content: flex-end;
-      padding: 10px 15px;
+      padding: 12px 15px;
     }
 
     .add-btn {
-      width: 40px;
-      height: 40px;
+      width: 48px; /* Increased by 20% */
+      height: 48px; /* Increased by 20% */
       border-radius: 50%;
       color: white;
       border: none;
-      font-size: 1.5rem;
+      font-size: 1.8rem; /* Increased by 20% */
       display: flex;
       align-items: center;
       justify-content: center;
@@ -261,49 +276,6 @@
     #veggies-add { background-color: var(--veggies-color); }
     #grocery-add { background-color: var(--grocery-color); }
     #indian-add  { background-color: var(--indian-color); }
-
-    .master-check {
-      position: fixed;
-      top: 70px;
-      right: 15px;
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      background-color: var(--master-check-color);
-      color: white;
-      border: none;
-      font-size: 1.2rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-      z-index: 100;
-    }
-
-    .undo-notification {
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background-color: #333;
-      color: white;
-      padding: 10px 20px;
-      border-radius: 5px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      z-index: 1000;
-    }
-
-    .undo-btn {
-      background-color: var(--share-color);
-      color: white;
-      border: none;
-      padding: 5px 10px;
-      border-radius: 3px;
-      cursor: pointer;
-    }
 
     .swipe-delete-indicator {
       position: absolute;
@@ -318,29 +290,50 @@
       justify-content: center;
       font-weight: bold;
       transition: right 0.3s ease;
+      font-size: 1.2rem; /* Increased by 20% */
+    }
+
+    .undo-notification {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: #333;
+      color: white;
+      padding: 12px 24px; /* Increased by 20% */
+      border-radius: 6px; /* Increased by 20% */
+      display: flex;
+      align-items: center;
+      gap: 12px; /* Increased by 20% */
+      z-index: 1000;
+      font-size: 1.2rem; /* Increased by 20% */
+    }
+
+    .undo-btn {
+      background-color: var(--share-color);
+      color: white;
+      border: none;
+      padding: 6px 12px; /* Increased by 20% */
+      border-radius: 3.6px; /* Increased by 20% */
+      cursor: pointer;
+      font-size: 1.2rem; /* Increased by 20% */
     }
 
     @media (max-width: 600px) {
       body {
-        font-size: 16px;
+        font-size: 19.2px; /* Increased by 20% */
         padding: 10px;
-        padding-top: 90px;
+        padding-top: 70px; /* Reduced top padding */
       }
 
       .action-btn {
-        width: 36px;
-        height: 36px;
+        width: 32px; /* Reduced size */
+        height: 32px; /* Reduced size */
         font-size: 1rem;
       }
 
-      .master-check {
-        top: 60px;
-        width: 36px;
-        height: 36px;
-      }
-
       .item-name {
-        font-size: 1.2rem;
+        font-size: 1.44rem; /* Increased by 20% */
         max-width: 150px;
       }
 
@@ -349,13 +342,13 @@
       }
 
       .counter-btn {
-        width: 30px;
-        height: 30px;
+        width: 36px; /* Increased by 20% */
+        height: 36px; /* Increased by 20% */
       }
 
       .counter-value {
-        min-width: 20px;
-        font-size: 1rem;
+        min-width: 24px; /* Increased by 20% */
+        font-size: 1.2rem; /* Increased by 20% */
       }
     }
 
@@ -363,16 +356,25 @@
       .item-name {
         max-width: 120px;
       }
+      
+      .action-buttons {
+        gap: 8px;
+      }
+      
+      .action-btn {
+        width: 30px;
+        height: 30px;
+        font-size: 0.9rem;
+      }
     }
   </style>
 </head>
 <body>
   <div class="action-buttons">
-    <button class="action-btn share-btn" onclick="shareList()">↗️</button>
+    <button class="action-btn master-check" onclick="toggleAllCheckboxes()" title="Toggle all checkboxes">✓</button>
     <button class="action-btn reset-btn" onclick="resetAll()">🔄</button>
+    <button class="action-btn share-btn" onclick="shareList()">⤴</button>
   </div>
-
-  <button class="master-check" onclick="toggleAllCheckboxes()" title="Toggle all checkboxes">✓</button>
   
   <h1>My Grocery Lists</h1>
 
@@ -705,6 +707,11 @@
           btn.disabled = isMinus;
         });
         
+        // Remove all highlights
+        document.querySelectorAll('.counter').forEach(counter => {
+          counter.classList.remove('highlight');
+        });
+        
         // Expand all tables
         for (const tableName in tables) {
           tables[tableName].collapsed = false;
@@ -772,6 +779,14 @@
       const plusBtn = counter.querySelector('.counter-btn:last-child');
       minusBtn.disabled = value <= 0;
       plusBtn.disabled = value >= 50;
+
+      // Highlight counter when value changes
+      if (change !== 0) {
+        counter.classList.add('highlight');
+        setTimeout(() => {
+          counter.classList.remove('highlight');
+        }, 2000);
+      }
 
       saveTable(getTableNameFromRow(button.closest('tr')));
     }
