@@ -7,7 +7,7 @@
 
   <!--
     === Default Lists ===
-    Edit these multiline blocks at the top of the file to add or remove items.
+    Edit these multiline blocks to change your default items (one per line).
   -->
   <script>
     // Veggies list: one item per line
@@ -103,7 +103,6 @@ Woolwash
       font:21.6px 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background:#f5f7fa; touch-action:pan-y;
     }
-    /* Top control buttons */
     .action-buttons {
       position:absolute; top:15px; left:15px; right:15px;
       display:flex; gap:30px; z-index:100;
@@ -119,13 +118,10 @@ Woolwash
     .reset-btn     { background:var(--reset-color); }
     .share-btn     { background:var(--share-color); }
     .reorder-btn   { background:var(--reorder-color); }
-
     h1 {
       text-align:center; margin-bottom:25px;
       font-size:2.16rem; color:#333;
     }
-
-    /* Containers for each category */
     .list-container {
       margin-bottom:30px;
       background:#fff; border-radius:12px;
@@ -140,23 +136,20 @@ Woolwash
     #veggies-header { background:var(--veggies-color); }
     #grocery-header { background:var(--grocery-color); }
     #indian-header  { background:var(--indian-color); }
-n    .collapse-btn { background:none; border:none; color:#fff; font-size:1.8rem; }
-
-    /* List styling */
+    .collapse-btn { background:none; border:none; color:#fff; font-size:1.8rem; }
     ul.item-list { list-style:none; margin:0; padding:0; }
     ul.item-list li {
       display:flex; align-items:center; gap:8px;
       padding:12px 10px; border-bottom:1px solid #eee;
       position:relative; overflow:hidden;
-      background:#fff; transition:transform .3s ease,opacity .3s ease;
+      background:#fff;
+      transition:transform .3s ease,opacity .3s ease;
     }
     ul.item-list li.swipe-delete { transform:translateX(-100%); opacity:0; }
     ul.item-list li.checked {
       background:var(--checked-color)!important; color:#6c757d;
     }
     ul.item-list li.checked .item-name { text-decoration:line-through; opacity:.7; }
-
-    /* Checkbox */
     .row-checkbox {
       width:31px; height:31px; appearance:none;
       border:2px solid #666; border-radius:4px;
@@ -172,19 +165,16 @@ n    .collapse-btn { background:none; border:none; color:#fff; font-size:1.8rem;
     #veggies .row-checkbox:checked { background:var(--veggies-color); border-color:var(--veggies-color); }
     #grocery .row-checkbox:checked { background:var(--grocery-color); border-color:var(--grocery-color); }
     #indian .row-checkbox:checked  { background:var(--indian-color); border-color:var(--indian-color); }
-
-    /* Item name and highlight when count>0 */
     .item-name {
       flex:1; min-width:0; font-size:1.92rem;
-      padding:7px; border:none; background:transparent; outline:none;
-      overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+      padding:7px; border:none; background:transparent;
+      outline:none; overflow:hidden;
+      text-overflow:ellipsis; white-space:nowrap;
       transition:background .3s, font-weight .3s;
     }
     .item-name.active {
       background:var(--highlight); font-weight:bold; border-radius:4px;
     }
-
-    /* Counter styling */
     .counter {
       display:flex; align-items:center; gap:6px;
       flex-shrink:0; transition:background .3s ease;
@@ -210,16 +200,13 @@ n    .collapse-btn { background:none; border:none; color:#fff; font-size:1.8rem;
       min-width:30px; text-align:center; font-size:1.32rem;
       font-weight:normal; transition:font-weight .3s ease;
     }
-
-    /* Add‑item button */
     .add-btn {
       width:48px; height:48px; margin:0 10px 10px;
       border-radius:50%; background:var(--master-check-color);
       color:#fff; border:none; font-size:1.8rem;
-      display:flex; align-items:center; justify-content:center; cursor:pointer;
+      display:flex; align-items:center; justify-content:center;
+      cursor:pointer;
     }
-
-    /* Delete indicator + Undo popup */
     .swipe-delete-indicator {
       position:absolute; right:-100px; top:0; bottom:0;
       width:100px; background:#f44336; color:#fff;
@@ -241,43 +228,35 @@ n    .collapse-btn { background:none; border:none; color:#fff; font-size:1.8rem;
   </style>
 </head>
 <body>
-
   <div class="action-buttons">
     <button class="action-btn master-check" onclick="toggleAll()"><span class="icon">✓</span>Toggle All</button>
     <button class="action-btn reset-btn" onclick="resetAll()"><span class="icon">🔄</span>Reset</button>
     <button class="action-btn share-btn" onclick="shareList()"><span class="icon">⤴</span>Share</button>
     <button class="action-btn reorder-btn" onclick="reorderAll()"><span class="icon">🛒</span>Reorder</button>
   </div>
-
   <h1>My Grocery Lists</h1>
-
   <div class="list-container">
     <div class="list-header" id="veggies-header" onclick="toggleList('veggies')">Veggies <button class="collapse-btn">▼</button></div>
     <ul id="veggies" class="item-list"></ul>
     <button class="add-btn" onclick="addItem('veggies')">＋</button>
   </div>
-
   <div class="list-container">
     <div class="list-header" id="grocery-header" onclick="toggleList('grocery')">Grocery <button class="collapse-btn">▼</button></div>
     <ul id="grocery" class="item-list"></ul>
     <button class="add-btn" onclick="addItem('grocery')">＋</button>
   </div>
-
   <div class="list-container">
     <div class="list-header" id="indian-header" onclick="toggleList('indian')">Indian Store <button class="collapse-btn">▼</button></div>
     <ul id="indian" class="item-list"></ul>
     <button class="add-btn" onclick="addItem('indian')">＋</button>
   </div>
-
   <script>
-    // Multiline defaults now declared at the top in <head>
     const lists = {
       veggies: { id:'veggies', collapsed:false, default: defaultVeggiesText.trim().split('\n') },
       grocery:{ id:'grocery', collapsed:false, default: defaultGroceryText.trim().split('\n') },
       indian: { id:'indian', collapsed:false, default: defaultIndianText.trim().split('\n') }
     };
     let touchStartX=0, touchEndX=0, current=null, deleted=[];
-
     document.addEventListener('DOMContentLoaded', ()=>{
       const savedStates = JSON.parse(localStorage.getItem('collapsedStates')||'{}');
       for(let name in lists){
@@ -293,8 +272,7 @@ n    .collapse-btn { background:none; border:none; color:#fff; font-size:1.8rem;
       }
       setupSwipe();
     });
-
-    // ... (rest of script unchanged) ...
+    // ... full JS implementation continues unchanged ...
   </script>
 </body>
 </html>
