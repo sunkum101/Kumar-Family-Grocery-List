@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-  <title>My Grocery Lists</title>
+  <title>The Great Grocery Gala</title>
 
   <!-- Default lists: one item per line -->
   <script>
@@ -68,7 +68,7 @@ Woolwash`.trim();
     const defaultIndianText = `
 आटा
 चावल
-पोहा
+पो�हा
 दाल:
 राई
 दलिया
@@ -83,177 +83,241 @@ BigW`.trim();
 
   <style>
     :root {
-      --veg:#4caf50; --gro:#2196f3; --ind:#ff9800;
-      --oth:#9c27b0; /* color for Others */
-      --check:#e9ecef;
-      --btn2:#f44336; --btn3:#4caf50; --btn4:#ff5722;
-      --h:#fff9c4;
+      --veg: #4caf50; --gro: #2196f3; --ind: #ff9800; --oth: #9c27b0;
+      --check: #e9ecef;
+      --btn2: #f44336; --btn3: #4caf50; --btn4: #ff5722;
+      --h: #fff9c4;
     }
-    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    body{font:21.6px 'Segoe UI',sans-serif;background:#f5f7fa;
-      padding:70px 15px 80px;touch-action:pan-y;}
-    h1{text-align:center;margin-bottom:25px;font-size:2.16rem;color:#333}
-    .actions{position:absolute;top:15px;left:15px;right:15px;
-      display:flex;gap:12px;justify-content:space-between;overflow-x:auto}
-    .actions::-webkit-scrollbar{display:none}
-    .actions button{flex:1 1 auto;padding:.6em 1em;display:flex;
-      align-items:center;justify-content:center;gap:.3em;border:none;
-      border-radius:8px;color:#fff;font-size:1rem;white-space:nowrap;cursor:pointer}
-    .reset-btn{background:var(--btn2)}.share-btn{background:var(--btn3)}.reorder-btn{background:var(--btn4)}
-    .container{margin-bottom:30px;background:#fff;border-radius:8px;
-      box-shadow:0 4px 12px rgba(0,0,0,0.05)}
-    .header{display:flex;justify-content:space-between;
-      align-items:center;padding:12px;font-size:1.4rem;font-weight:bold;color:#fff;
-      cursor:pointer}
-    #veggies-header{background:var(--veg)}#grocery-header{background:var(--gro)}
-    #indian-header{background:var(--ind)}#others-header{background:var(--oth)}
-    .collapse-btn{width:28px;height:28px;background:rgba(255,255,255,0.3);
-      border:none;border-radius:50%;display:flex;align-items:center;
-      justify-content:center;font-size:1.2rem;color:#fff;transition:transform .2s}
-    .collapse-btn.collapsed{transform:rotate(-90deg)}
-    ul{list-style:none;padding:0;margin:0}
-    li{display:flex;align-items:center;gap:8px;padding:10px;
-      border-bottom:1px solid #eee;background:#fff;transition:background .3s}
-    li.checked{background:var(--check);color:#666}
-    li.checked .name{text-decoration:line-through;opacity:.7}
-    input[type=checkbox]{width:28px;height:28px;cursor:pointer}
-    .name{flex:1;min-width:0;font-size:1.6rem;border:none;
-      background:transparent;overflow:hidden;text-overflow:ellipsis;
-      white-space:nowrap;transition:background .3s,font-weight .3s}
-    .name.active{background:var(--h);font-weight:bold;border-radius:4px}
-    .counter{display:flex;align-items:center;gap:6px;transition:background .3s}
-    .counter.active{background:var(--h);border-radius:20px;padding:2px 6px}
-    .counter.active .count{font-weight:bold;color:#000}
-    .counter button{width:30px;height:30px;border:none;border-radius:50%;
-      color:#fff;font-size:1.2rem;cursor:pointer}
-    .counter span.count{min-width:24px;text-align:center;font-size:1.2rem}
-    .add-btn{width:36px;height:36px;margin:8px;border-radius:50%;
-      background:var(--btn1);color:#fff;font-size:1.5rem;cursor:pointer}
-    @media(max-width:600px){.name{font-size:1.4rem}.counter button{width:28px;height:28px}
-      .counter span.count{font-size:1rem}.add-btn{width:32px;height:32px;font-size:1.2rem}}
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font: 22px 'Segoe UI', sans-serif;
+      background: #f5f7fa;
+      padding: 80px 20px 100px;
+      position: relative;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 2.5rem;
+      color: #333;
+    }
+    .actions {
+      position: fixed;
+      top: 20px; left: 20px; right: 20px;
+      display: flex; gap: 12px; justify-content: flex-end;
+      z-index: 100;
+    }
+    .actions button {
+      padding: 10px 14px;
+      border: none; border-radius: 12px;
+      color: #fff; font-size: 1rem;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+    .reset-btn     { background: var(--btn2); }
+    .share-btn     { background: var(--btn3); }
+    .reorder-btn   { background: var(--btn4); }
+
+    .container {
+      margin-bottom: 30px;
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      overflow: hidden;
+    }
+    .header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 16px; font-size: 1.6rem; font-weight: bold; color: #fff;
+      cursor: pointer;
+    }
+    #veggies-header { background: var(--veg); }
+    #grocery-header { background: var(--gro); }
+    #indian-header  { background: var(--ind); }
+    #others-header  { background: var(--oth); }
+    .collapse-btn {
+      width: 32px; height: 32px;
+      background: rgba(255,255,255,0.3);
+      border: none; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem; color: #fff;
+      transition: transform .3s ease;
+    }
+    .collapse-btn::before { content: '▾'; }
+    .header.collapsed .collapse-btn { transform: rotate(-90deg); }
+
+    ul { list-style: none; margin: 0; padding: 0; }
+    li {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 16px; border-bottom: 1px solid #eee;
+      background: #fff; transition: background .3s;
+    }
+    li:last-child { border-bottom: none; }
+    li.checked { background: var(--check); color: #666; }
+    li.checked .name { text-decoration: line-through; opacity: .7; }
+
+    input[type="checkbox"] {
+      width: 28px; height: 28px; cursor: pointer;
+    }
+    .name {
+      flex: 1; min-width: 0;
+      font-size: 1.8rem;   /* larger text */
+      border: none; background: transparent;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      transition: background .3s, font-weight .3s;
+    }
+    .name.active { background: var(--h); font-weight: bold; border-radius: 4px; }
+
+    .counter {
+      display: flex; align-items: center; gap: 8px; 
+      transition: background .3s;
+    }
+    .counter.active { background: var(--h); border-radius: 20px; padding: 4px 8px; }
+    .counter button {
+      width: 32px; height: 32px;
+      border: none; border-radius: 50%;
+      color: #fff; font-size: 1.2rem; cursor: pointer;
+    }
+    .counter span.count {
+      font-size: 1.8rem;  /* same size as name */
+      min-width: 32px; text-align: center;
+    }
+
+    .add-btn {
+      display: block; margin: 12px auto;
+      width: 40px; height: 40px;
+      border-radius: 50%; background: var(--btn1);
+      color: #fff; font-size: 1.6rem; cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+
+    /* Floating 'go to top' arrow */
+    #toTop {
+      position: fixed; bottom: 20px; right: 20px;
+      width: 36px; height: 36px;
+      background: rgba(0,0,0,0.6);
+      color: #fff; border: none; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 1.2rem;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+
+    @media (max-width: 600px) {
+      body { padding: 80px 8px 100px; }
+      .name, .counter span.count { font-size: 1.6rem; }
+      .counter button { width: 28px; height: 28px; }
+      .add-btn { width: 36px; height: 36px; font-size: 1.4rem; }
+    }
   </style>
 </head>
 <body>
+
   <div class="actions">
     <button class="reset-btn" onclick="resetAll()">🔄 Reset</button>
     <button class="share-btn" onclick="shareList()">⤴ Share</button>
     <button class="reorder-btn" onclick="reorderAll()">🛒 Reorder</button>
   </div>
-  <h1>My Grocery Lists</h1>
 
-  <!-- Veggies -->
+  <h1>The Great Grocery Gala</h1>
+
+  <!-- Sections -->
   <div class="container">
     <div id="veggies-header" class="header" onclick="toggle('veggies')">
       Veggies <button class="collapse-btn"></button>
     </div>
     <ul id="veggies"></ul>
-    <div style="text-align:right"><span class="add-btn" onclick="addItem('veggies')">＋</span></div>
+    <span class="add-btn" onclick="addItem('veggies')">＋</span>
   </div>
-  <!-- Grocery -->
+
   <div class="container">
     <div id="grocery-header" class="header" onclick="toggle('grocery')">
       Grocery <button class="collapse-btn"></button>
     </div>
     <ul id="grocery"></ul>
-    <div style="text-align:right"><span class="add-btn" onclick="addItem('grocery')">＋</span></div>
+    <span class="add-btn" onclick="addItem('grocery')">＋</span>
   </div>
-  <!-- Indian -->
+
   <div class="container">
     <div id="indian-header" class="header" onclick="toggle('indian')">
       Indian Store <button class="collapse-btn"></button>
     </div>
     <ul id="indian"></ul>
-    <div style="text-align:right"><span class="add-btn" onclick="addItem('indian')">＋</span></div>
+    <span class="add-btn" onclick="addItem('indian')">＋</span>
   </div>
-  <!-- Others -->
+
   <div class="container">
     <div id="others-header" class="header" onclick="toggle('others')">
       Others <button class="collapse-btn"></button>
     </div>
     <ul id="others"></ul>
-    <div style="text-align:right"><span class="add-btn" onclick="addItem('others')">＋</span></div>
+    <span class="add-btn" onclick="addItem('others')">＋</span>
   </div>
 
+  <button id="toTop" onclick="window.scrollTo({ top: 0, behavior: 'smooth' })">↑</button>
+
   <script>
-    const lists={
-      veggies:{el:'veggies',hdr:'veggies-header',def:defaultVeggiesText.split(/\r?\n/),color:'veg'},
-      grocery:{el:'grocery',hdr:'grocery-header',def:defaultGroceryText.split(/\r?\n/),color:'gro'},
-      indian:{el:'indian',hdr:'indian-header',def:defaultIndianText.split(/\r?\n/),color:'ind'},
-      others:{el:'others',hdr:'others-header',def:defaultOthersText.split(/\r?\n/),color:'oth'}
+    const lists = {
+      veggies: { el:'veggies',  hdr:'veggies-header',  def:defaultVeggiesText.split(/\r?\n/) },
+      grocery:{ el:'grocery',  hdr:'grocery-header',  def:defaultGroceryText.split(/\r?\n/) },
+      indian: { el:'indian',   hdr:'indian-header',   def:defaultIndianText.split(/\r?\n/) },
+      others: { el:'others',   hdr:'others-header',   def:defaultOthersText.split(/\r?\n/) }
     };
 
-    document.addEventListener('DOMContentLoaded',()=>{
+    document.addEventListener('DOMContentLoaded', ()=>{
       for(let k in lists){
-        // seed only if no data
         if(localStorage.getItem(k)===null){
-          localStorage.setItem(k,JSON.stringify(
-            lists[k].def.map(n=>({name:n,count:0,checked:false}))
-          ));
+          localStorage.setItem(k,JSON.stringify(lists[k].def.map(n=>({name:n,count:0,checked:false}))));
         }
         load(k); restore(k);
       }
     });
 
     function load(key){
-      const arr=JSON.parse(localStorage.getItem(key)), ul=document.getElementById(key);
+      const arr=JSON.parse(localStorage.getItem(key)||'[]'), ul=document.getElementById(key);
       ul.innerHTML='';
       arr.forEach((it,i)=>{
         const li=document.createElement('li');
-        li.innerHTML=
-          `<input type="checkbox" ${it.checked?'checked':''}
-            onchange="rowToggle('${key}',${i},this.checked)">
-           <input class="name" value="${it.name.replace(/"/g,'&quot;')}" 
-            oninput="editName('${key}',${i},this.value)">
-           <div class="counter">
-             <button onclick="change('${key}',${i},-1)">-</button>
-             <span class="count">${it.count}</span>
-             <button onclick="change('${key}',${i},1)">+</button>
-           </div>`;
+        li.innerHTML=`
+          <input type="checkbox" ${it.checked?'checked':''} onchange="rowToggle('${key}',${i},this.checked)">
+          <input class="name ${it.count>0?'active':''}" value="${it.name.replace(/"/g,'&quot;')}" oninput="editName('${key}',${i},this.value)">
+          <div class="counter ${it.count>0?'active':''}">
+            <button onclick="change('${key}',${i},-1)">-</button>
+            <span class="count">${it.count}</span>
+            <button onclick="change('${key}',${i},1)">+</button>
+          </div>`;
         if(it.checked) li.classList.add('checked');
-        if(it.count>0){
-          li.querySelector('.name').classList.add('active');
-          li.querySelector('.counter').classList.add('active');
-          li.querySelector('.count').classList.add('count');
-        }
         ul.appendChild(li);
       });
     }
-    function save(key,arr){localStorage.setItem(key,JSON.stringify(arr));}
-    function rowToggle(k,i,v){
-      const a=JSON.parse(localStorage.getItem(k)); a[i].checked=v; save(k,a); load(k);
-    }
-    function editName(k,i,v){const a=JSON.parse(localStorage.getItem(k)); a[i].name=v; save(k,a)}
+    function save(k,a){localStorage.setItem(k,JSON.stringify(a));}
+    function rowToggle(k,i,v){const a=JSON.parse(localStorage.getItem(k));a[i].checked=v;save(k,a);load(k);}    
+    function editName(k,i,v){const a=JSON.parse(localStorage.getItem(k));a[i].name=v;save(k,a);}    
     function change(k,i,d){
       const a=JSON.parse(localStorage.getItem(k));
       let v=a[i].count+d; v=Math.max(0,Math.min(50,v));
-      a[i].count=v; save(k,a); load(k);
+      a[i].count=v;save(k,a);load(k);
     }
-    function restore(key){
-      const st=localStorage.getItem(key+'-col')==='true',ul=document.getElementById(key),btn=document.getElementById(lists[key].hdr).querySelector('button');
-      if(st){ul.style.display='none';btn.classList.add('collapsed');}
+    function restore(k){
+      const state=localStorage.getItem(k+'-col')==='true';
+      const ul=document.getElementById(k),hdr=document.getElementById(lists[k].hdr);
+      ul.style.display=state?'none':'block';hdr.classList.toggle('collapsed',state);
     }
-    function toggle(key){
-      const ul=document.getElementById(key),btn=document.getElementById(lists[key].hdr).querySelector('button');
-      const hide=ul.style.display!=='none'; ul.style.display=hide?'none':'block';
-      btn.classList.toggle('collapsed',hide);
-      localStorage.setItem(key+'-col',hide);
+    function toggle(k){
+      const ul=document.getElementById(k),hdr=document.getElementById(lists[k].hdr);
+      const hide=ul.style.display!=='none';ul.style.display=hide?'none':'block';
+      hdr.classList.toggle('collapsed',hide);localStorage.setItem(k+'-col',hide);
     }
-    function resetAll(){if(!confirm('Reset all?'))return;
+    function resetAll(){if(!confirm('Reset everything?'))return;
       for(let k in lists){
-        const a=lists[k].def.map(n=>({name:n,count:0,checked:false})); save(k,a); load(k);
-        localStorage.removeItem(k+'-col'); restore(k);
+        const a=lists[k].def.map(n=>({name:n,count:0,checked:false}));save(k,a);load(k);
+        localStorage.removeItem(k+'-col');restore(k);
       }}
-    function shareList(){let t='';for(let k in lists){
-      const a=JSON.parse(localStorage.getItem(k)).filter(x=>x.count>0);
+    function shareList(){let t='';for(let k in lists){const a=JSON.parse(localStorage.getItem(k)).filter(x=>x.count>0);
       if(a.length)t+=k.toUpperCase()+':\n'+a.map(x=>`${x.name} (${x.count})`).join('\n')+'\n\n';}
       t=t.trim();if(!t)return alert('Nothing to share');navigator.share?navigator.share({text:t}):prompt('Copy',t);
     }
-    function reorderAll(){for(let k in lists){
-      const a=JSON.parse(localStorage.getItem(k)),h=a.filter(x=>x.count>0),z=a.filter(x=>x.count===0);
-      z.forEach(x=>x.checked=true);const o=h.concat(z);save(k,o);load(k);} }
-    function addItem(key){
-      const a=JSON.parse(localStorage.getItem(key));a.push({name:'',count:0,checked:false});save(key,a);load(key);
-    }
+    function reorderAll(){for(let k in lists){const a=JSON.parse(localStorage.getItem(k)),h=a.filter(x=>x.count>0),z=a.filter(x=>x.count===0);
+        z.forEach(x=>x.checked=true);const o=h.concat(z);save(k,o);load(k);} }
+    function addItem(k){const a=JSON.parse(localStorage.getItem(k));a.push({name:'',count:0,checked:false});save(k,a);load(k);}
   </script>
 </body>
 </html>
