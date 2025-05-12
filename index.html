@@ -3,12 +3,9 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-  <title>Kumar Family Grocery List</title>
+  <title>Kumar Family Grocery</title>
 
-  <!--
-    === Default lists ===
-    One item per line. Edit here if you need to add/remove defaults.
-  -->
+  <!-- Default lists: one item per line -->
   <script>
     const defaultVeggiesText = `
 टमाटर
@@ -96,160 +93,103 @@ BigW`.trim();
       --btn4: #ff5722;
       --h: #fff9c4;
     }
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0 }
-    body {
-      font: 20px 'Segoe UI', sans-serif;
-      background: #f5f7fa;
-      padding: 20px;
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{
+      font:20px 'Segoe UI',sans-serif;
+      background:#f5f7fa;
+      padding:20px;
     }
-    h1 {
-      text-align: center;
-      margin: 20px 0;
-      font-size: 2rem;
-      color: #333;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+    h1{
+      text-align:center;
+      margin:20px 0;
+      font-size:2rem;
+      color:#333;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
     }
-    .actions {
-      display: flex;
-      justify-content: center;
-      gap: 12px;
-      margin-bottom: 20px;
+    .actions{
+      display:flex;justify-content:center;gap:12px;margin-bottom:20px;
     }
-    .actions button {
-      padding: 10px 14px;
-      border: none;
-      border-radius: 12px;
-      color: #fff;
-      font-size: 1rem;
-      cursor: pointer;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    .actions button{
+      padding:10px 14px;border:none;border-radius:12px;
+      color:#fff;font-size:1rem;cursor:pointer;
+      box-shadow:0 2px 6px rgba(0,0,0,0.2);
     }
-    .reset-btn  { background: var(--btn2) }
-    .share-btn  { background: var(--btn3) }
-    .reorder-btn{ background: var(--btn4) }
+    .reset-btn{background:var(--btn2)}
+    .share-btn{background:var(--btn3)}
+    .reorder-btn{background:var(--btn4)}
 
-    .container {
-      margin-bottom: 30px;
-      background: #fff;
-      border-radius: 20px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-      overflow: hidden;
-      position: relative;
+    .container{
+      margin-bottom:30px;
+      background:#fff;
+      border-radius:8px;
+      box-shadow:0 4px 12px rgba(0,0,0,0.05);
+      overflow:hidden;
+      position:relative;
     }
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 16px;
-      font-size: 1.6rem;
-      font-weight: bold;
-      color: #fff;
-      cursor: pointer;
+    .header{
+      display:flex;justify-content:space-between;align-items:center;
+      padding:16px;font-size:1.6rem;font-weight:bold;color:#fff;
+      cursor:pointer;
     }
-    #veggies-header { background: var(--veg) }
-    #grocery-header { background: var(--gro) }
-    #indian-header  { background: var(--ind) }
-    #others-header  { background: var(--oth) }
-    .collapse-btn {
-      font-size: 1.6rem;
-      transition: transform .3s ease;
-      user-select: none;
+    #veggies-header{background:var(--veg)}
+    #grocery-header{background:var(--gro)}
+    #indian-header{background:var(--ind)}
+    #others-header{background:var(--oth)}
+    .collapse-btn{
+      font-size:2rem;
+      transition:transform .3s ease;
+      user-select:none;
     }
-    .header.collapsed .collapse-btn {
-      transform: rotate(-90deg);
-    }
+    .header.collapsed .collapse-btn{transform:rotate(-90deg)}
 
-    ul {
-      list-style: none;
-      margin: 0;
-      padding: 0;
+    ul{list-style:none;margin:0;padding:0}
+    li{
+      display:flex;align-items:center;gap:12px;
+      padding:14px 16px;border-bottom:1px solid #eee;
+      background:#fff;font-size:1.8rem;
+      transition:background .3s;
     }
-    li {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 14px 16px;
-      border-bottom: 1px solid #eee;
-      background: #fff;
-      font-size: 1.8rem;
-      transition: background .3s;
+    li:last-child{border-bottom:none}
+    li.checked{background:var(--check);color:#666}
+    li.checked .name{text-decoration:line-through;opacity:.7}
+
+    input[type="checkbox"]{width:28px;height:28px;cursor:pointer}
+    .name{
+      flex:1;min-width:0;font-size:1.8rem;
+      border:none;background:transparent;
+      overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+      transition:background .3s,font-weight .3s;
     }
-    li:last-child { border-bottom: none }
-    li.checked {
-      background: var(--check);
-      color: #666;
+    .name.active{background:var(--h);font-weight:bold;border-radius:4px}
+
+    .counter{
+      display:flex;align-items:center;gap:8px;
+      transition:background .3s;
     }
-    li.checked .name {
-      text-decoration: line-through;
-      opacity: .7;
+    .counter.active{background:var(--h);border-radius:20px;padding:4px 8px}
+    .counter button{
+      width:32px;height:32px;border:none;border-radius:50%;
+      color:#fff;font-size:1.2rem;cursor:pointer;
+    }
+    .counter span.count{
+      min-width:32px;text-align:center;
+      font-weight:bold;
     }
 
-    input[type="checkbox"] {
-      width: 28px;
-      height: 28px;
-      cursor: pointer;
+    .add-btn{
+      display:block;
+      margin:12px 16px;
+      width:40px;height:40px;
+      border-radius:50%;
+      background:var(--veg); /* default, will override by JS per section */
+      color:#fff;
+      font-size:1.6rem;
+      cursor:pointer;
+      box-shadow:0 2px 6px rgba(0,0,0,0.2);
     }
-    .name {
-      flex: 1;
-      min-width: 0;
-      font-size: 1.8rem;
-      border: none;
-      background: transparent;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      transition: background .3s, font-weight .3s;
-    }
-    .name.active {
-      background: var(--h);
-      font-weight: bold;
-      border-radius: 4px;
-    }
-
-    .counter {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      transition: background .3s;
-    }
-    .counter.active {
-      background: var(--h);
-      border-radius: 20px;
-      padding: 4px 8px;
-    }
-    .counter button {
-      width: 32px;
-      height: 32px;
-      border: none;
-      border-radius: 50%;
-      color: #fff;
-      font-size: 1.2rem;
-      cursor: pointer;
-    }
-    .counter span.count {
-      min-width: 32px;
-      text-align: center;
-    }
-
-    .add-btn {
-      display: block;
-      margin: 12px 16px;
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      background: var(--veg);
-      color: #fff;
-      font-size: 1.6rem;
-      cursor: pointer;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-    }
-    @media(max-width:600px) {
-      li, .name, .counter span.count { font-size: 1.6rem }
-      .counter button { width: 28px; height: 28px }
-      .add-btn { width: 36px; height: 36px; font-size: 1.4rem; margin: 12px 12px }
-    }
+    @media(max-width:600px){li,.name,.counter span.count{font-size:1.6rem}
+      .counter button{width:28px;height:28px}
+      .add-btn{width:36px;height:36px;font-size:1.4rem;margin:12px 12px}}
   </style>
 </head>
 <body>
@@ -260,10 +200,10 @@ BigW`.trim();
     <button class="reorder-btn" onclick="reorderAll()">🛒 Reorder</button>
   </div>
 
-  <h1>Kumar Family Grocery List</h1>
+  <h1>Kumar Family Grocery</h1>
 
-  <!-- Veggies -->
-  <div class="container">
+  <!-- Sections -->
+  <div class="container" data-color="veg">
     <div id="veggies-header" class="header" onclick="toggle('veggies')">
       Veggies <span class="collapse-btn">▾</span>
     </div>
@@ -271,8 +211,7 @@ BigW`.trim();
     <button class="add-btn" onclick="addItem('veggies')">＋</button>
   </div>
 
-  <!-- Grocery -->
-  <div class="container">
+  <div class="container" data-color="gro">
     <div id="grocery-header" class="header" onclick="toggle('grocery')">
       Grocery <span class="collapse-btn">▾</span>
     </div>
@@ -280,8 +219,7 @@ BigW`.trim();
     <button class="add-btn" onclick="addItem('grocery')">＋</button>
   </div>
 
-  <!-- Indian Store -->
-  <div class="container">
+  <div class="container" data-color="ind">
     <div id="indian-header" class="header" onclick="toggle('indian')">
       Indian Store <span class="collapse-btn">▾</span>
     </div>
@@ -289,8 +227,7 @@ BigW`.trim();
     <button class="add-btn" onclick="addItem('indian')">＋</button>
   </div>
 
-  <!-- Others -->
-  <div class="container">
+  <div class="container" data-color="oth">
     <div id="others-header" class="header" onclick="toggle('others')">
       Others <span class="collapse-btn">▾</span>
     </div>
@@ -300,135 +237,111 @@ BigW`.trim();
 
   <script>
     const lists = {
-      veggies: { el:'veggies',  hdr:'veggies-header',  def: defaultVeggiesText.split(/\r?\n/) },
-      grocery:{ el:'grocery',  hdr:'grocery-header',  def: defaultGroceryText.split(/\r?\n/) },
-      indian: { el:'indian',   hdr:'indian-header',   def: defaultIndianText.split(/\r?\n/) },
-      others: { el:'others',   hdr:'others-header',   def: defaultOthersText.split(/\r?\n/) }
+      veggies: { el:'veggies', hdr:'veggies-header', def: defaultVeggiesText.split(/\r?\n/) },
+      grocery:{ el:'grocery', hdr:'grocery-header', def: defaultGroceryText.split(/\r?\n/) },
+      indian: { el:'indian',  hdr:'indian-header',  def: defaultIndianText.split(/\r?\n/) },
+      others: { el:'others',  hdr:'others-header',  def: defaultOthersText.split(/\r?\n/) }
     };
 
-    document.addEventListener('DOMContentLoaded', () => {
-      for (let key in lists) {
-        if (localStorage.getItem(key) === null) {
-          const init = lists[key].def.map(name => ({ name, count:0, checked:false }));
-          localStorage.setItem(key, JSON.stringify(init));
+    document.addEventListener('DOMContentLoaded', ()=>{
+      document.querySelectorAll('.container').forEach(div=>{
+        const clr = div.getAttribute('data-color');
+        const btn = div.querySelector('.add-btn');
+        btn.style.background = getComputedStyle(document.documentElement)
+          .getPropertyValue(`--${clr}`).trim();
+      });
+      for(let k in lists){
+        if(localStorage.getItem(k)===null){
+          localStorage.setItem(k,
+            JSON.stringify(lists[k].def.map(name=>({name,count:0,checked:false})))
+          );
         }
-        loadList(key);
-        restoreCollapse(key);
+        loadList(k);
+        restoreCollapse(k);
       }
     });
 
-    function loadList(key) {
-      const arr = JSON.parse(localStorage.getItem(key) || '[]');
-      const ul  = document.getElementById(key);
-      ul.innerHTML = '';
-      arr.forEach((it, i) => {
-        const li = document.createElement('li');
-        li.innerHTML = `
+    function loadList(key){
+      const arr=JSON.parse(localStorage.getItem(key)||'[]');
+      const ul=document.getElementById(key);
+      ul.innerHTML='';
+      arr.forEach((it,i)=>{
+        const li=document.createElement('li');
+        li.innerHTML=`
           <input type="checkbox" ${it.checked?'checked':''}
             onchange="toggleItem('${key}',${i},this.checked)">
-          <input class="name ${it.count>0?'active':''}"
-            value="${it.name.replace(/"/g,'&quot;')}"
+          <input class="name ${it.count>0?'active':''}" value="${it.name.replace(/"/g,'&quot;')}"
             oninput="editName('${key}',${i},this.value)">
           <div class="counter ${it.count>0?'active':''}">
             <button onclick="changeCount('${key}',${i},-1)">-</button>
             <span class="count">${it.count}</span>
             <button onclick="changeCount('${key}',${i},1)">+</button>
           </div>`;
-        if (it.checked) li.classList.add('checked');
+        if(it.checked) li.classList.add('checked');
         ul.appendChild(li);
       });
     }
-
-    function saveList(key, arr) {
-      localStorage.setItem(key, JSON.stringify(arr));
+    function saveList(k,a){localStorage.setItem(k,JSON.stringify(a))}
+    function toggleItem(k,i,v){const a=JSON.parse(localStorage.getItem(k));a[i].checked=v;saveList(k,a);loadList(k)}
+    function editName(k,i,v){const a=JSON.parse(localStorage.getItem(k));a[i].name=v;saveList(k,a)}
+    function changeCount(k,i,d){
+      const a=JSON.parse(localStorage.getItem(k));
+      let v=a[i].count+d; v=Math.max(0,Math.min(50,v));
+      a[i].count=v; saveList(k,a); loadList(k);
     }
-
-    function toggleItem(key, idx, val) {
-      const arr = JSON.parse(localStorage.getItem(key));
-      arr[idx].checked = val;
-      saveList(key, arr);
-      loadList(key);
+    function restoreCollapse(k){
+      const hidden=localStorage.getItem(k+'-col')==='true';
+      document.getElementById(k).style.display=hidden?'none':'';
+      document.getElementById(lists[k].hdr)
+        .classList.toggle('collapsed',hidden);
     }
-
-    function editName(key, idx, val) {
-      const arr = JSON.parse(localStorage.getItem(key));
-      arr[idx].name = val;
-      saveList(key, arr);
+    function toggle(k){
+      const ul=document.getElementById(k);
+      const hd=document.getElementById(lists[k].hdr);
+      const hidden=ul.style.display!=='none';
+      ul.style.display=hidden?'none':'';
+      hd.classList.toggle('collapsed',hidden);
+      localStorage.setItem(k+'-col',hidden);
     }
-
-    function changeCount(key, idx, delta) {
-      const arr = JSON.parse(localStorage.getItem(key));
-      let v = arr[idx].count + delta;
-      v = Math.max(0, Math.min(50, v));
-      arr[idx].count = v;
-      saveList(key, arr);
-      loadList(key);
-    }
-
-    function restoreCollapse(key) {
-      const hidden = localStorage.getItem(key+'-col') === 'true';
-      document.getElementById(key).style.display =
-        hidden ? 'none' : '';
-      document.getElementById(lists[key].hdr)
-        .classList.toggle('collapsed', hidden);
-    }
-
-    function toggle(key) {
-      const ul = document.getElementById(key);
-      const hdr = document.getElementById(lists[key].hdr);
-      const hidden = ul.style.display !== 'none';
-      ul.style.display = hidden ? 'none' : '';
-      hdr.classList.toggle('collapsed', hidden);
-      localStorage.setItem(key+'-col', hidden);
-    }
-
-    function resetAll() {
-      if (!confirm('Reset everything?')) return;
-      for (let key in lists) {
-        const arr = lists[key].def.map(name => ({ name, count:0, checked:false }));
-        saveList(key, arr);
-        loadList(key);
-        localStorage.removeItem(key+'-col');
-        restoreCollapse(key);
+    function resetAll(){
+      if(!confirm('Reset everything?'))return;
+      for(let k in lists){
+        const a=lists[k].def.map(n=>({name:n,count:0,checked:false}));
+        saveList(k,a); loadList(k);
+        localStorage.removeItem(k+'-col'); restoreCollapse(k);
       }
     }
-
-    function shareList() {
-      let text = '';
-      for (let key in lists) {
-        const arr = JSON.parse(localStorage.getItem(key))
-                      .filter(x => x.count > 0);
-        if (arr.length) {
-          text += `${key.toUpperCase()}:\n` +
-                  arr.map(x=>`${x.name} (${x.count})`).join('\n')
-                  + '\n\n';
+    function shareList(){
+      const now=new Date();
+      const header=`${now.toLocaleDateString(undefined, { weekday:'long', year:'numeric', month:'short', day:'numeric'})} `+
+                   `${now.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'})}`;
+      let text=header+"\n\n";
+      for(let k in lists){
+        const a=JSON.parse(localStorage.getItem(k)).filter(x=>x.count>0);
+        if(a.length){
+          text+=`${k.toUpperCase()}:\n`+
+                a.map(x=>`${x.name} (${x.count})`).join('\n')+"\n\n";
         }
       }
-      text = text.trim();
-      if (!text) return alert('Nothing to share');
-      if (navigator.share) navigator.share({ text });
-      else prompt('Copy:', text);
+      text=text.trim();
+      if(!text) return alert('Nothing to share');
+      if(navigator.share) navigator.share({text});
+      else prompt('Copy to clipboard:',text);
     }
-
-    function reorderAll() {
-      for (let key in lists) {
-        const arr = JSON.parse(localStorage.getItem(key));
-        const have = arr.filter(x=>x.count>0);
-        const zero = arr.filter(x=>x.count===0)
-                        .map(x=> (x.checked=true,x) );
-        const out = have.concat(zero);
-        saveList(key, out);
-        loadList(key);
+    function reorderAll(){
+      for(let k in lists){
+        const a=JSON.parse(localStorage.getItem(k));
+        const have=a.filter(x=>x.count>0);
+        const zero=a.filter(x=>x.count===0).map(x=>(x.checked=true,x));
+        const out=have.concat(zero);
+        saveList(k,out); loadList(k);
       }
     }
-
-    function addItem(key) {
-      const arr = JSON.parse(localStorage.getItem(key));
-      arr.push({ name:'', count:0, checked:false });
-      saveList(key, arr);
-      loadList(key);
+    function addItem(k){
+      const a=JSON.parse(localStorage.getItem(k));
+      a.push({name:'',count:0,checked:false});
+      saveList(k,a); loadList(k);
     }
   </script>
-
 </body>
 </html>
