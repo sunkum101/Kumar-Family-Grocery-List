@@ -14,6 +14,7 @@
       --reset-color: #f44336;
       --share-color: #4caf50;
       --counter-highlight: #fff9c4;
+      --undo-highlight: #e3f2fd;
     }
 
     body {
@@ -22,9 +23,9 @@
       padding: 15px;
       background-color: #f5f7fa;
       color: #333;
-      font-size: 21.6px; /* Increased by 20% */
+      font-size: 21.6px;
       padding-bottom: 80px;
-      padding-top: 70px; /* Reduced top padding */
+      padding-top: 70px;
       touch-action: pan-y;
     }
 
@@ -34,14 +35,14 @@
       left: 15px;
       right: 15px;
       display: flex;
-      justify-content: flex-start; /* Changed to flex-start */
-      gap: 10px; /* Added gap between buttons */
+      justify-content: flex-start;
+      gap: 20px; /* Increased gap between buttons */
       z-index: 100;
     }
 
     .action-btn {
-      width: 36px; /* Reduced size */
-      height: 36px; /* Reduced size */
+      width: 36px;
+      height: 36px;
       border-radius: 50%;
       color: white;
       border: none;
@@ -63,14 +64,14 @@
 
     .share-btn {
       background-color: var(--share-color);
-      font-size: 1rem; /* Smaller icon */
+      font-size: 1rem;
     }
 
     h1 {
       text-align: center;
       color: #333;
       margin-bottom: 25px;
-      font-size: 2.16rem; /* Increased by 20% */
+      font-size: 2.16rem;
     }
 
     .table-container {
@@ -84,7 +85,7 @@
     .table-header {
       padding: 15px;
       font-weight: bold;
-      font-size: 1.56rem; /* Increased by 20% */
+      font-size: 1.56rem;
       color: white;
       display: flex;
       justify-content: space-between;
@@ -100,7 +101,7 @@
       background: none;
       border: none;
       color: white;
-      font-size: 1.8rem; /* Increased by 20% */
+      font-size: 1.8rem;
       cursor: pointer;
     }
 
@@ -146,8 +147,8 @@
     }
 
     .row-checkbox {
-      width: 31.2px; /* Increased by 20% */
-      height: 31.2px; /* Increased by 20% */
+      width: 31.2px;
+      height: 31.2px;
       appearance: none;
       border: 2px solid #666;
       border-radius: 4px;
@@ -164,7 +165,7 @@
     .row-checkbox:checked::after {
       content: "✓";
       color: white;
-      font-size: 21.6px; /* Increased by 20% */
+      font-size: 21.6px;
       position: absolute;
       top: 50%;
       left: 50%;
@@ -189,24 +190,26 @@
     .item-name {
       flex: 1;
       min-width: 0;
-      font-size: 1.92rem; /* Increased by 20% */
-      padding: 7.2px; /* Increased by 20% */
+      font-size: 1.92rem;
+      padding: 7.2px;
       border: none;
       background: transparent;
       outline: none;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+      font-weight: normal;
+      transition: all 0.3s ease;
     }
 
     .counter {
       display: flex;
       align-items: center;
-      gap: 6px; /* Increased by 20% */
+      gap: 6px;
       margin-left: auto;
       flex-shrink: 0;
       background-color: transparent;
-      transition: background-color 0.3s ease;
+      transition: all 0.3s ease;
     }
 
     .counter.highlight {
@@ -215,14 +218,23 @@
       padding: 0 5px;
     }
 
+    .counter-value {
+      min-width: 30px;
+      text-align: center;
+      font-size: 1.32rem;
+      flex-shrink: 0;
+      font-weight: normal;
+      transition: all 0.3s ease;
+    }
+
     .counter-btn {
-      width: 38.4px; /* Increased by 20% */
-      height: 38.4px; /* Increased by 20% */
+      width: 38.4px;
+      height: 38.4px;
       border-radius: 50%;
       border: none;
       color: white;
       font-weight: bold;
-      font-size: 1.2rem; /* Increased by 20% */
+      font-size: 1.2rem;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -247,13 +259,6 @@
       cursor: not-allowed;
     }
 
-    .counter-value {
-      min-width: 30px; /* Increased by 20% */
-      text-align: center;
-      font-size: 1.32rem; /* Increased by 20% */
-      flex-shrink: 0;
-    }
-
     .add-row {
       display: flex;
       justify-content: flex-end;
@@ -261,12 +266,12 @@
     }
 
     .add-btn {
-      width: 48px; /* Increased by 20% */
-      height: 48px; /* Increased by 20% */
+      width: 48px;
+      height: 48px;
       border-radius: 50%;
       color: white;
       border: none;
-      font-size: 1.8rem; /* Increased by 20% */
+      font-size: 1.8rem;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -290,7 +295,7 @@
       justify-content: center;
       font-weight: bold;
       transition: right 0.3s ease;
-      font-size: 1.2rem; /* Increased by 20% */
+      font-size: 1.2rem;
     }
 
     .undo-notification {
@@ -300,40 +305,53 @@
       transform: translateX(-50%);
       background-color: #333;
       color: white;
-      padding: 12px 24px; /* Increased by 20% */
-      border-radius: 6px; /* Increased by 20% */
+      padding: 12px 24px;
+      border-radius: 6px;
       display: flex;
       align-items: center;
-      gap: 12px; /* Increased by 20% */
+      gap: 12px;
       z-index: 1000;
-      font-size: 1.2rem; /* Increased by 20% */
+      font-size: 1.2rem;
     }
 
     .undo-btn {
       background-color: var(--share-color);
       color: white;
       border: none;
-      padding: 6px 12px; /* Increased by 20% */
-      border-radius: 3.6px; /* Increased by 20% */
+      padding: 6px 12px;
+      border-radius: 3.6px;
       cursor: pointer;
-      font-size: 1.2rem; /* Increased by 20% */
+      font-size: 1.2rem;
+    }
+
+    /* Highlight for undo items */
+    .undo-highlight {
+      background-color: var(--undo-highlight) !important;
+    }
+    .undo-highlight .item-name,
+    .undo-highlight .counter-value {
+      font-weight: bold !important;
     }
 
     @media (max-width: 600px) {
       body {
-        font-size: 19.2px; /* Increased by 20% */
+        font-size: 19.2px;
         padding: 10px;
-        padding-top: 70px; /* Reduced top padding */
+        padding-top: 70px;
+      }
+
+      .action-buttons {
+        gap: 15px; /* Slightly reduced gap on mobile */
       }
 
       .action-btn {
-        width: 32px; /* Reduced size */
-        height: 32px; /* Reduced size */
+        width: 32px;
+        height: 32px;
         font-size: 1rem;
       }
 
       .item-name {
-        font-size: 1.44rem; /* Increased by 20% */
+        font-size: 1.44rem;
         max-width: 150px;
       }
 
@@ -342,13 +360,13 @@
       }
 
       .counter-btn {
-        width: 36px; /* Increased by 20% */
-        height: 36px; /* Increased by 20% */
+        width: 36px;
+        height: 36px;
       }
 
       .counter-value {
-        min-width: 24px; /* Increased by 20% */
-        font-size: 1.2rem; /* Increased by 20% */
+        min-width: 24px;
+        font-size: 1.2rem;
       }
     }
 
@@ -358,7 +376,7 @@
       }
       
       .action-buttons {
-        gap: 8px;
+        gap: 10px;
       }
       
       .action-btn {
@@ -548,7 +566,8 @@
       const rowData = {
         id: row.id,
         html: row.innerHTML,
-        tableName: tableName
+        tableName: tableName,
+        index: Array.from(row.parentNode.children).indexOf(row)
       };
       deletedRows.push(rowData);
       
@@ -592,17 +611,37 @@
         const row = document.getElementById(rowData.id);
         
         if (row) {
+          // Row still exists (animation not complete)
           row.classList.remove('swipe-delete');
           row.style.transform = '';
           const indicator = row.querySelector('.swipe-delete-indicator');
           if (indicator) {
             indicator.style.right = '-100px';
           }
+          
+          // Add highlight to restored row
+          row.classList.add('undo-highlight');
+          setTimeout(() => {
+            row.classList.remove('undo-highlight');
+          }, 2000);
         } else {
+          // Need to recreate row
           const newRow = document.createElement('tr');
           newRow.id = rowData.id;
           newRow.innerHTML = rowData.html;
-          tbody.appendChild(newRow);
+          
+          // Insert at original position
+          if (rowData.index >= 0 && rowData.index < tbody.children.length) {
+            tbody.insertBefore(newRow, tbody.children[rowData.index]);
+          } else {
+            tbody.appendChild(newRow);
+          }
+          
+          // Add highlight to restored row
+          newRow.classList.add('undo-highlight');
+          setTimeout(() => {
+            newRow.classList.remove('undo-highlight');
+          }, 2000);
           
           // Reattach event listeners
           newRow.querySelector('.row-checkbox').addEventListener('change', function() {
@@ -783,8 +822,11 @@
       // Highlight counter when value changes
       if (change !== 0) {
         counter.classList.add('highlight');
+        const row = button.closest('tr');
+        row.classList.add('undo-highlight');
         setTimeout(() => {
           counter.classList.remove('highlight');
+          row.classList.remove('undo-highlight');
         }, 2000);
       }
 
