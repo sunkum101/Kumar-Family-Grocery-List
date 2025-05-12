@@ -111,7 +111,7 @@
     }
 
     tr.swipe-delete {
-      transform: translateX(-100px);
+      transform: translateX(-100%);
       opacity: 0;
       transition: transform 0.3s ease, opacity 0.3s ease;
     }
@@ -305,6 +305,21 @@
       cursor: pointer;
     }
 
+    .swipe-delete-indicator {
+      position: absolute;
+      right: -100px;
+      top: 0;
+      bottom: 0;
+      width: 100px;
+      background-color: #f44336;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      transition: right 0.3s ease;
+    }
+
     @media (max-width: 600px) {
       body {
         font-size: 16px;
@@ -463,26 +478,61 @@
     }
 
     function handleTouchStart(e) {
+      // Don't start swipe if clicking on counter buttons or checkbox
+      if (e.target.classList.contains('counter-btn') || 
+          e.target.classList.contains('row-checkbox') ||
+          e.target.classList.contains('item-name')) {
+        return;
+      }
+      
       touchStartX = e.changedTouches[0].screenX;
       currentRow = e.target.closest('tr');
+      
+      // Create delete indicator if it doesn't exist
+      if (!currentRow.querySelector('.swipe-delete-indicator')) {
+        const indicator = document.createElement('div');
+        indicator.className = 'swipe-delete-indicator';
+        indicator.textContent = 'DELETE';
+        currentRow.style.position = 'relative';
+        currentRow.appendChild(indicator);
+      }
     }
 
     function handleTouchMove(e) {
+      if (!currentRow) return;
+      
       touchEndX = e.changedTouches[0].screenX;
       const diff = touchStartX - touchEndX;
+      const threshold = window.innerWidth * 0.5; // 50% of screen width
       
-      if (diff > 30 && currentRow) {
-        currentRow.style.transform = `translateX(-${Math.min(diff, 100)}px)`;
+      if (diff > 30) {
+        const translateX = Math.min(diff, threshold);
+        currentRow.style.transform = `translateX(-${translateX}px)`;
+        
+        // Show delete indicator when reaching 30% of threshold
+        const indicator = currentRow.querySelector('.swipe-delete-indicator');
+        if (indicator) {
+          indicator.style.right = `${-translateX}px`;
+        }
       }
     }
 
     function handleTouchEnd() {
-      const diff = touchStartX - touchEndX;
+      if (!currentRow) return;
       
-      if (diff > 100 && currentRow) {
+      const diff = touchStartX - touchEndX;
+      const threshold = window.innerWidth * 0.5; // 50% of screen width
+      
+      // Only delete if swiped at least 50% of screen width
+      if (diff > threshold) {
         deleteRowWithUndo(currentRow);
-      } else if (currentRow) {
+      } else {
+        // Return to original position
         currentRow.style.transform = '';
+        const indicator = currentRow.querySelector('.swipe-delete-indicator');
+        if (indicator) {
+          indicator.style.right = '-100px';
+        }
       }
       
       currentRow = null;
@@ -542,6 +592,10 @@
         if (row) {
           row.classList.remove('swipe-delete');
           row.style.transform = '';
+          const indicator = row.querySelector('.swipe-delete-indicator');
+          if (indicator) {
+            indicator.style.right = '-100px';
+          }
         } else {
           const newRow = document.createElement('tr');
           newRow.id = rowData.id;
@@ -560,6 +614,11 @@
           counterBtns[1].addEventListener('click', function() {
             changeCounter(this, 1);
           });
+          
+          // Set up swipe events for new row
+          newRow.addEventListener('touchstart', handleTouchStart, { passive: true });
+          newRow.addEventListener('touchmove', handleTouchMove, { passive: true });
+          newRow.addEventListener('touchend', handleTouchEnd);
         }
       }
     }
