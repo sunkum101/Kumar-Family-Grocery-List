@@ -30,7 +30,7 @@
     }
 
     .action-buttons {
-      position: absolute;    /* now scrolls with content */
+      position: absolute; /* scrolls with the page */
       top: 15px;
       left: 15px;
       right: 15px;
@@ -39,7 +39,6 @@
       gap: 20px;
       z-index: 100;
     }
-
     .action-btn {
       width: 36px;
       height: 36px;
@@ -71,7 +70,6 @@
       box-shadow: 0 4px 12px rgba(0,0,0,0.05);
       overflow: hidden;
     }
-
     .table-header {
       padding: 15px;
       font-weight: bold;
@@ -85,7 +83,6 @@
     #veggies-header { background-color: var(--veggies-color); }
     #grocery-header { background-color: var(--grocery-color); }
     #indian-header  { background-color: var(--indian-color); }
-
     .collapse-btn {
       background: none;
       border: none;
@@ -99,7 +96,6 @@
       border-collapse: collapse;
       transition: all 0.3s ease;
     }
-
     tr {
       transition: all 0.3s ease;
       border-bottom: 1px solid #eee;
@@ -120,9 +116,7 @@
       opacity: 0.7;
     }
 
-    td {
-      padding: 12px 10px;
-    }
+    td { padding: 12px 10px; }
 
     .row-content {
       display: flex;
@@ -189,7 +183,6 @@
       flex-shrink: 0;
       transition: all 0.3s ease;
     }
-
     .counter.highlight {
       background-color: var(--counter-highlight);
       border-radius: 20px;
@@ -219,8 +212,8 @@
       flex-shrink: 0;
     }
     #veggies-items .counter-btn { background-color: var(--veggies-color); }
-    #grocery-items .counter-btn { background-color: var(--grocery-color); }
-    #indian-items .counter-btn { background-color: var(--indian-color); }
+    #grocery-items .counter-btn  { background-color: var(--grocery-color); }
+    #indian-items .counter-btn   { background-color: var(--indian-color); }
     .counter-btn:disabled {
       opacity: 0.5;
       cursor: not-allowed;
@@ -278,7 +271,6 @@
       z-index: 1000;
       font-size: 1.2rem;
     }
-
     .undo-btn {
       background-color: var(--share-color);
       color: white;
@@ -320,7 +312,7 @@
     <button class="action-btn reset-btn" onclick="resetAll()">🔄</button>
     <button class="action-btn share-btn" onclick="shareList()">⤴</button>
   </div>
-  
+
   <h1>My Grocery Lists</h1>
 
   <div class="table-container">
@@ -328,7 +320,9 @@
       Veggies <button class="collapse-btn">▼</button>
     </div>
     <table id="veggies-table"><tbody id="veggies-items"></tbody></table>
-    <div class="add-row"><button class="add-btn" id="veggies-add" onclick="addRow('veggies')">+</button></div>
+    <div class="add-row">
+      <button class="add-btn" id="veggies-add" onclick="addRow('veggies')">+</button>
+    </div>
   </div>
 
   <div class="table-container">
@@ -336,7 +330,9 @@
       Grocery <button class="collapse-btn">▼</button>
     </div>
     <table id="grocery-table"><tbody id="grocery-items"></tbody></table>
-    <div class="add-row"><button class="add-btn" id="grocery-add" onclick="addRow('grocery')">+</button></div>
+    <div class="add-row">
+      <button class="add-btn" id="grocery-add" onclick="addRow('grocery')">+</button>
+    </div>
   </div>
 
   <div class="table-container">
@@ -344,11 +340,13 @@
       Indian Store <button class="collapse-btn">▼</button>
     </div>
     <table id="indian-table"><tbody id="indian-items"></tbody></table>
-    <div class="add-row"><button class="add-btn" id="indian-add" onclick="addRow('indian')">+</button></div>
+    <div class="add-row">
+      <button class="add-btn" id="indian-add" onclick="addRow('indian')">+</button>
+    </div>
   </div>
 
   <script>
-    // === your original data & state ===
+    // === Data & state ===
     const tables = {
       veggies: { id: 'veggies-items', collapsed: false },
       grocery: { id: 'grocery-items', collapsed: false },
@@ -361,195 +359,237 @@
       indian:  ["आटा","चावल","पोहा","दाल:","राई","दलिया","बेसन","सरसों तेल"]
     };
 
-    let touchStartX=0, touchEndX=0, currentRow=null, deletedRows=[];
+    let touchStartX = 0, touchEndX = 0, currentRow = null, deletedRows = [];
 
     document.addEventListener('DOMContentLoaded', () => {
-      // load collapsed state
-      const collapsedStates = JSON.parse(localStorage.getItem('collapsedStates'))||{};
+      // restore collapsed state & data
+      const collapsedStates = JSON.parse(localStorage.getItem('collapsedStates')) || {};
       for (let name in tables) {
-        tables[name].collapsed = collapsedStates[name]||false;
+        tables[name].collapsed = collapsedStates[name] || false;
         updateCollapseUI(name);
-        // load or init data
         if (!localStorage.getItem(name)) {
-          const data = defaultItems[name].map(item=>({checked:false,count:"0",name}));
-          localStorage.setItem(name, JSON.stringify(data));
+          const init = defaultItems[name].map(item => ({ checked:false, count:"0", name }));
+          localStorage.setItem(name, JSON.stringify(init));
         }
         loadTable(name);
       }
-      setupSwipeHandlers();
     });
 
-    function setupSwipeHandlers() {
-      document.querySelectorAll('tr').forEach(row=>{
-        row.addEventListener('touchstart', handleTouchStart,{passive:true});
-        row.addEventListener('touchmove',  handleTouchMove,{passive:true});
-        row.addEventListener('touchend',   handleTouchEnd);
-      });
+    // COLLAPSE
+    function toggleCollapse(name) {
+      tables[name].collapsed = !tables[name].collapsed;
+      updateCollapseUI(name);
+      const s = {};
+      for (let k in tables) s[k] = tables[k].collapsed;
+      localStorage.setItem('collapsedStates', JSON.stringify(s));
     }
-    function handleTouchStart(e){
-      if (e.target.classList.contains('counter-btn')||
-          e.target.classList.contains('row-checkbox')||
+    function updateCollapseUI(name) {
+      const tbl = document.getElementById(`${name}-table`);
+      const btn = document.querySelector(`#${name}-header .collapse-btn`);
+      if (tables[name].collapsed) {
+        tbl.style.display = 'none'; btn.textContent = '▶';
+      } else {
+        tbl.style.display = 'table'; btn.textContent = '▼';
+      }
+    }
+
+    // SWIPE TO DELETE + UNDO
+    function handleTouchStart(e) {
+      if (e.target.classList.contains('counter-btn') ||
+          e.target.classList.contains('row-checkbox') ||
           e.target.classList.contains('item-name')) return;
-      touchStartX=e.changedTouches[0].screenX;
-      currentRow=e.target.closest('tr');
+      touchStartX = e.changedTouches[0].screenX;
+      currentRow = e.target.closest('tr');
       if (!currentRow.querySelector('.swipe-delete-indicator')) {
-        const ind=document.createElement('div');
-        ind.className='swipe-delete-indicator';
-        ind.textContent='DELETE';
-        currentRow.style.position='relative';
+        const ind = document.createElement('div');
+        ind.className = 'swipe-delete-indicator';
+        ind.textContent = 'DELETE';
+        currentRow.style.position = 'relative';
         currentRow.appendChild(ind);
       }
     }
-    function handleTouchMove(e){
-      if(!currentRow) return;
-      touchEndX=e.changedTouches[0].screenX;
-      const diff=touchStartX-touchEndX, thr=window.innerWidth*0.5;
-      if(diff>30){
-        const tx=Math.min(diff,thr);
-        currentRow.style.transform=`translateX(-${tx}px)`;
-        const ind=currentRow.querySelector('.swipe-delete-indicator');
-        if(ind) ind.style.right=`-${tx}px`;
+    function handleTouchMove(e) {
+      if (!currentRow) return;
+      touchEndX = e.changedTouches[0].screenX;
+      const diff = touchStartX - touchEndX, thr = window.innerWidth * 0.5;
+      if (diff > 30) {
+        const tx = Math.min(diff, thr);
+        currentRow.style.transform = `translateX(-${tx}px)`;
+        const ind = currentRow.querySelector('.swipe-delete-indicator');
+        if (ind) ind.style.right = `-${tx}px`;
       }
     }
-    function handleTouchEnd(){
-      if(!currentRow) return;
-      const diff=touchStartX-touchEndX, thr=window.innerWidth*0.5;
-      if(diff>thr) deleteRowWithUndo(currentRow);
+    function handleTouchEnd() {
+      if (!currentRow) return;
+      const diff = touchStartX - touchEndX, thr = window.innerWidth * 0.5;
+      if (diff > thr) deleteRowWithUndo(currentRow);
       else {
-        currentRow.style.transform='';
-        const ind=currentRow.querySelector('.swipe-delete-indicator');
-        if(ind) ind.style.right='-100px';
+        currentRow.style.transform = '';
+        const ind = currentRow.querySelector('.swipe-delete-indicator');
+        if (ind) ind.style.right = '-100px';
       }
-      currentRow=null;
+      currentRow = null;
     }
-    function deleteRowWithUndo(row){
-      const tableName=getTableNameFromRow(row);
+    function deleteRowWithUndo(row) {
+      const tableName = getTableNameFromRow(row);
       row.classList.add('swipe-delete');
-      const rowData={id:row.id,html:row.innerHTML,tableName,index:Array.from(row.parentNode.children).indexOf(row)};
-      deletedRows.push(rowData);
+      const data = {
+        id: row.id,
+        html: row.innerHTML,
+        tableName,
+        index: Array.from(row.parentNode.children).indexOf(row)
+      };
+      deletedRows.push(data);
       showUndoNotification();
-      setTimeout(()=>{
-        if(!rowData.undo){
+      setTimeout(() => {
+        if (!data.undo) {
           row.remove();
           saveTable(tableName);
         }
-      },300);
+      }, 300);
     }
-    function showUndoNotification(){
-      const n=document.createElement('div');
-      n.className='undo-notification';
-      n.innerHTML=`Item deleted <button class="undo-btn" onclick="undoLastDelete()">UNDO</button>`;
+    function showUndoNotification() {
+      const n = document.createElement('div');
+      n.className = 'undo-notification';
+      n.innerHTML = `Item deleted <button class="undo-btn" onclick="undoLastDelete()">UNDO</button>`;
       document.body.appendChild(n);
-      setTimeout(()=>{
+      setTimeout(() => {
         n.remove();
-        if(deletedRows.length>0 && !deletedRows[deletedRows.length-1].undo){
-          const d=deletedRows.pop();
-          const r=document.getElementById(d.id);
-          if(r) r.remove();
+        if (deletedRows.length && !deletedRows[deletedRows.length-1].undo) {
+          const d = deletedRows.pop();
+          const r = document.getElementById(d.id);
+          if (r) r.remove();
         }
-      },5000);
+      }, 5000);
     }
-    function undoLastDelete(){
-      if(!deletedRows.length) return;
-      const d=deletedRows.pop();
-      d.undo=true;
-      const tbody=document.getElementById(tables[d.tableName].id);
-      let row=document.getElementById(d.id);
-      if(row){
+    function undoLastDelete() {
+      if (!deletedRows.length) return;
+      const d = deletedRows.pop();
+      d.undo = true;
+      const tbody = document.getElementById(tables[d.tableName].id);
+      let row = document.getElementById(d.id);
+      if (row) {
         row.classList.remove('swipe-delete');
-        row.style.transform='';
-        const ind=row.querySelector('.swipe-delete-indicator');
-        if(ind) ind.style.right='-100px';
+        row.style.transform = '';
+        const ind = row.querySelector('.swipe-delete-indicator');
+        if (ind) ind.style.right = '-100px';
         row.classList.add('undo-highlight');
-        setTimeout(()=>row.classList.remove('undo-highlight'),2000);
+        setTimeout(() => row.classList.remove('undo-highlight'), 2000);
       } else {
-        const newRow=document.createElement('tr');
-        newRow.id=d.id; newRow.innerHTML=d.html;
-        if(d.index>=0 && d.index<tbody.children.length) tbody.insertBefore(newRow,tbody.children[d.index]);
-        else tbody.appendChild(newRow);
+        const newRow = document.createElement('tr');
+        newRow.id = d.id;
+        newRow.innerHTML = d.html;
+        if (d.index >= 0 && d.index < tbody.children.length)
+          tbody.insertBefore(newRow, tbody.children[d.index]);
+        else
+          tbody.appendChild(newRow);
         newRow.classList.add('undo-highlight');
-        setTimeout(()=>newRow.classList.remove('undo-highlight'),2000);
-        // reattach events
-        newRow.querySelector('.row-checkbox').addEventListener('change',function(){ toggleRow(this,d.tableName); });
-        const btns=newRow.querySelectorAll('.counter-btn');
-        btns[0].addEventListener('click',function(){ changeCounter(this,-1); });
-        btns[1].addEventListener('click',function(){ changeCounter(this, 1); });
-        newRow.addEventListener('touchstart',handleTouchStart,{passive:true});
-        newRow.addEventListener('touchmove', handleTouchMove,{passive:true});
-        newRow.addEventListener('touchend',  handleTouchEnd);
+        setTimeout(() => newRow.classList.remove('undo-highlight'), 2000);
+
+        // reattach listeners
+        newRow.querySelector('.row-checkbox')
+              .addEventListener('change', function(){ toggleRow(this, d.tableName); });
+        const btns = newRow.querySelectorAll('.counter-btn');
+        btns[0].addEventListener('click', function(){ changeCounter(this, -1); });
+        btns[1].addEventListener('click', function(){ changeCounter(this,  1); });
+        newRow.addEventListener('touchstart', handleTouchStart, {passive:true});
+        newRow.addEventListener('touchmove',  handleTouchMove, {passive:true});
+        newRow.addEventListener('touchend',   handleTouchEnd);
       }
     }
 
-    function toggleCollapse(name){
-      tables[name].collapsed = !tables[name].collapsed;
-      updateCollapseUI(name);
-      const s={};
-      for(let k in tables) s[k]=tables[k].collapsed;
-      localStorage.setItem('collapsedStates',JSON.stringify(s));
-    }
-    function updateCollapseUI(name){
-      const tbl=document.getElementById(`${name}-table`);
-      const btn=document.querySelector(`#${name}-header .collapse-btn`);
-      if(tables[name].collapsed){
-        tbl.style.display='none';
-        btn.textContent='▶';
+    // SHARING (WhatsApp / native) — only count>0
+    function shareList() {
+      let shareText = '';
+      for (const tableName in tables) {
+        const items = JSON.parse(localStorage.getItem(tableName)) || [];
+        const toBuy = items.filter(i => parseInt(i.count, 10) > 0);
+        if (toBuy.length) {
+          shareText += `${tableName.toUpperCase()}:\n`;
+          shareText += toBuy.map(i => `${i.name} (${i.count})`).join('\n');
+          shareText += '\n\n';
+        }
+      }
+      shareText = shareText.trim();
+      if (!shareText) {
+        alert('Nothing to share—no items have quantities above 0.');
+        return;
+      }
+      if (navigator.share) {
+        navigator.share({
+          title: 'My Grocery List',
+          text: shareText,
+          url: window.location.href
+        }).catch(() => {
+          copyToClipboard(shareText);
+          alert('Couldn’t invoke native share, list copied to clipboard.');
+        });
       } else {
-        tbl.style.display='table';
-        btn.textContent='▼';
+        copyToClipboard(shareText);
+        alert('List copied to clipboard!');
       }
     }
-
-    function shareList(){
-      const all={};
-      for(let t in tables) all[t]=JSON.parse(localStorage.getItem(t))||[];
-      const txt=Object.entries(all).map(([n,arr])=>{
-        return `${n.toUpperCase()}:\n`+arr.map(i=>`${i.checked?'✓':'◻'} ${i.name} (${i.count})`).join('\n');
-      }).join('\n\n');
-      if(navigator.share){
-        navigator.share({title:'My Grocery List',text:txt,url:window.location.href})
-          .catch(()=>copyToClipboard(txt));
-      } else copyToClipboard(txt);
-    }
-    function copyToClipboard(txt){
-      const ta=document.createElement('textarea');
-      ta.value=txt; document.body.appendChild(ta);
-      ta.select(); document.execCommand('copy'); ta.remove();
-      alert('List copied to clipboard!');
+    function copyToClipboard(text) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
     }
 
-    function resetAll(){
-      if(!confirm('Are you sure you want to reset everything? This will:\n\n- Set all counters to 0\n- Uncheck all items\n- Expand all tables')) return;
-      document.querySelectorAll('.row-checkbox').forEach(cb=>{ cb.checked=false; cb.closest('tr').classList.remove('checked'); });
-      document.querySelectorAll('.counter-value').forEach(sp=>sp.textContent='0');
-      document.querySelectorAll('.counter-btn').forEach(btn=>btn.disabled=(btn.textContent==='-'));
-      document.querySelectorAll('.counter').forEach(c=>c.classList.remove('highlight'));
-      for(let t in tables){
-        tables[t].collapsed=false;
+    // RESET EVERYTHING
+    function resetAll() {
+      if (!confirm(
+        'Are you sure you want to reset everything? This will:\n\n' +
+        '- Set all counters to 0\n' +
+        '- Uncheck all items\n' +
+        '- Expand all tables'
+      )) return;
+
+      document.querySelectorAll('.row-checkbox').forEach(cb => {
+        cb.checked = false;
+        cb.closest('tr').classList.remove('checked');
+      });
+      document.querySelectorAll('.counter-value').forEach(sp => sp.textContent = '0');
+      document.querySelectorAll('.counter-btn').forEach(btn => {
+        btn.disabled = (btn.textContent === '-');
+      });
+      document.querySelectorAll('.counter').forEach(c => c.classList.remove('highlight'));
+
+      for (let t in tables) {
+        tables[t].collapsed = false;
         updateCollapseUI(t);
       }
-      for(let t in tables){
-        const rows=document.getElementById(tables[t].id).querySelectorAll('tr');
-        const data=Array.from(rows).map(r=>({
-          checked:false,
-          count:r.querySelector('.counter-value').textContent,
-          name:r.querySelector('.item-name').value
+
+      for (let t in tables) {
+        const rows = document.getElementById(tables[t].id).querySelectorAll('tr');
+        const data = Array.from(rows).map(r => ({
+          checked: false,
+          count:   r.querySelector('.counter-value').textContent,
+          name:    r.querySelector('.item-name').value
         }));
-        localStorage.setItem(t,JSON.stringify(data));
+        localStorage.setItem(t, JSON.stringify(data));
       }
-      const cs={}; for(let k in tables) cs[k]=false;
-      localStorage.setItem('collapsedStates',JSON.stringify(cs));
+
+      const cs = {};
+      for (let k in tables) cs[k] = false;
+      localStorage.setItem('collapsedStates', JSON.stringify(cs));
     }
 
-    function addRow(tableName){
-      const tbody=document.getElementById(tables[tableName].id);
-      const rowId='row-'+Date.now();
-      const row=document.createElement('tr');
-      row.id=rowId;
-      row.innerHTML=`
+    // ADD A NEW ROW
+    function addRow(tableName) {
+      const tbody = document.getElementById(tables[tableName].id);
+      const rowId = 'row-' + Date.now() + Math.random().toString(36).substr(2,9);
+      const row = document.createElement('tr');
+      row.id = rowId;
+      row.innerHTML = `
         <td>
           <div class="row-content">
-            <input type="checkbox" class="row-checkbox" onchange="toggleRow(this,'${tableName}')">
-            <input type="text" class="item-name" placeholder="Item name" oninput="saveTable('${tableName}')">
+            <input type="checkbox" class="row-checkbox"
+                   onchange="toggleRow(this,'${tableName}')">
+            <input type="text" class="item-name" placeholder="Item name"
+                   oninput="saveTable('${tableName}')">
             <div class="counter">
               <button class="counter-btn" onclick="changeCounter(this,-1)" disabled>-</button>
               <span class="counter-value">0</span>
@@ -558,31 +598,29 @@
           </div>
         </td>`;
       tbody.appendChild(row);
-      row.addEventListener('touchstart', handleTouchStart,{passive:true});
-      row.addEventListener('touchmove',  handleTouchMove,{passive:true});
+      row.addEventListener('touchstart', handleTouchStart, {passive:true});
+      row.addEventListener('touchmove',  handleTouchMove, {passive:true});
       row.addEventListener('touchend',   handleTouchEnd);
       saveTable(tableName);
     }
 
+    // INCREMENT / DECREMENT
     function changeCounter(button, change) {
-      const counter    = button.parentElement;
-      const valueSpan  = counter.querySelector('.counter-value');
-      let   value      = parseInt(valueSpan.textContent);
+      const counter   = button.parentElement;
+      const valueSpan = counter.querySelector('.counter-value');
+      let   value     = parseInt(valueSpan.textContent, 10);
       value = Math.max(0, Math.min(50, value + change));
       valueSpan.textContent = value;
 
-      // enable/disable minus/plus
       const [minusBtn, plusBtn] = counter.querySelectorAll('.counter-btn');
-      minusBtn.disabled = value <= 0;
-      plusBtn.disabled  = value >= 50;
+      minusBtn.disabled = (value <= 0);
+      plusBtn.disabled  = (value >= 50);
 
-      // highlight
       if (change !== 0) {
         counter.classList.add('highlight');
         setTimeout(() => counter.classList.remove('highlight'), 2000);
       }
 
-      // distinctive style when >0
       const row      = button.closest('tr');
       const itemName = row.querySelector('.item-name');
       if (value > 0) {
@@ -596,26 +634,29 @@
       saveTable(getTableNameFromRow(row));
     }
 
+    // CHECK / UNCHECK A ROW
     function toggleRow(cb, tableName) {
       const row = cb.closest('tr');
       row.classList.toggle('checked', cb.checked);
       saveTable(tableName);
     }
 
+    // TOGGLE ALL
     function toggleAllCheckboxes() {
       if (!confirm('Do you want to toggle all checkboxes? Press Cancel to keep current state.')) return;
       const boxes = document.querySelectorAll('.row-checkbox');
-      const anyChecked = Array.from(boxes).some(cb=>cb.checked);
-      boxes.forEach(cb=>{
+      const anyChecked = Array.from(boxes).some(cb => cb.checked);
+      boxes.forEach(cb => {
         cb.checked = !anyChecked;
         cb.closest('tr').classList.toggle('checked', cb.checked);
       });
       for (let t in tables) saveTable(t);
     }
 
+    // SAVE / LOAD
     function saveTable(tableName) {
       const rows = document.getElementById(tables[tableName].id).querySelectorAll('tr');
-      const data = Array.from(rows).map(r=>({
+      const data = Array.from(rows).map(r => ({
         checked: r.querySelector('.row-checkbox').checked,
         count:   r.querySelector('.counter-value').textContent,
         name:    r.querySelector('.item-name').value
@@ -624,35 +665,41 @@
     }
 
     function loadTable(tableName) {
-      const data = JSON.parse(localStorage.getItem(tableName)) || [];
+      const data  = JSON.parse(localStorage.getItem(tableName)) || [];
       const tbody = document.getElementById(tables[tableName].id);
       tbody.innerHTML = '';
-      data.forEach(item=>{
+      data.forEach(item => {
         const row = document.createElement('tr');
-        row.id = 'row-'+Date.now()+Math.random().toString(36).substr(2,9);
-        if(item.checked) row.classList.add('checked');
-        row.innerHTML=`
+        row.id = 'row-' + Date.now() + Math.random().toString(36).substr(2,9);
+        if (item.checked) row.classList.add('checked');
+        row.innerHTML = `
           <td>
             <div class="row-content">
-              <input type="checkbox" class="row-checkbox" onchange="toggleRow(this,'${tableName}')" ${item.checked?'checked':''}>
-              <input type="text" class="item-name" value="${item.name}" oninput="saveTable('${tableName}')">
+              <input type="checkbox" class="row-checkbox"
+                     onchange="toggleRow(this,'${tableName}')"
+                     ${item.checked ? 'checked' : ''}>
+              <input type="text" class="item-name"
+                     value="${item.name}"
+                     oninput="saveTable('${tableName}')">
               <div class="counter">
-                <button class="counter-btn" onclick="changeCounter(this,-1)" ${item.count<=0?'disabled':''}>-</button>
+                <button class="counter-btn" onclick="changeCounter(this,-1)"
+                        ${item.count <= 0 ? 'disabled' : ''}>-</button>
                 <span class="counter-value">${item.count}</span>
-                <button class="counter-btn" onclick="changeCounter(this,1)" ${item.count>=50?'disabled':''}>+</button>
+                <button class="counter-btn" onclick="changeCounter(this,1)"
+                        ${item.count >= 50 ? 'disabled' : ''}>+</button>
               </div>
             </div>
           </td>`;
         tbody.appendChild(row);
-        row.addEventListener('touchstart', handleTouchStart,{passive:true});
-        row.addEventListener('touchmove',  handleTouchMove,{passive:true});
+        row.addEventListener('touchstart', handleTouchStart, {passive:true});
+        row.addEventListener('touchmove',  handleTouchMove, {passive:true});
         row.addEventListener('touchend',   handleTouchEnd);
       });
     }
 
     function getTableNameFromRow(row) {
       const tid = row.closest('tbody').id;
-      return Object.keys(tables).find(k=>tables[k].id===tid);
+      return Object.keys(tables).find(k => tables[k].id === tid);
     }
   </script>
 </body>
