@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
   <title>My Grocery Lists</title>
 
-  <!-- Default lists: edit these multiline blocks (one item per line) -->
+  <!-- Default lists: one item per line -->
   <script>
     const defaultVeggiesText = `
 टमाटर
@@ -74,184 +74,124 @@ Woolwash`.trim();
 दलिया
 बेसन
 सरसों तेल`.trim();
+
+    const defaultOthersText = `
+Bunnings
+Kmart
+BigW`.trim();
   </script>
 
   <style>
-    /* =============
-       -- COLORS & BASIC RESET --
-       ============= */
-    :root{
+    :root {
       --veg:#4caf50; --gro:#2196f3; --ind:#ff9800;
-      --check:#e9ecef; --btn1:#673ab7; --btn2:#f44336;
-      --btn3:#4caf50; --btn4:#ff5722; --h:#fff9c4;
-      --uh:#e3f2fd;
+      --oth:#9c27b0; /* color for Others */
+      --check:#e9ecef;
+      --btn2:#f44336; --btn3:#4caf50; --btn4:#ff5722;
+      --h:#fff9c4;
     }
-    *{box-sizing:border-box;margin:0;padding:0;}
-    body{
-      font:21.6px 'Segoe UI',sans-serif;
-      background:#f5f7fa;
-      padding:70px 15px 80px;
-      touch-action:pan-y;
-    }
-    h1{
-      text-align:center;
-      margin-bottom:25px;
-      font-size:2.16rem;
-      color:#333;
-    }
-    /* Top Buttons */
-    .actions{
-      position:absolute;top:15px;left:15px;right:15px;
-      display:flex;gap:10px;overflow-x:auto;
-    }
-    .actions::-webkit-scrollbar{display:none;}
-    .actions button{
-      flex:1 0 auto;
-      display:flex;align-items:center;justify-content:center;
-      gap:5px;padding:8px 12px;
-      border:none;border-radius:8px;
-      color:#fff;font-size:1rem;
-      white-space:nowrap;cursor:pointer;
-    }
-    .btn1{background:var(--btn1);} .btn2{background:var(--btn2);}
-    .btn3{background:var(--btn3);} .btn4{background:var(--btn4);}
-
-    /* List Containers */
-    .container{
-      margin-bottom:30px;
-      background:#fff;border-radius:8px;
-      box-shadow:0 4px 12px rgba(0,0,0,0.05);
-    }
-    .header{
-      display:flex;justify-content:space-between;align-items:center;
-      padding:12px;font-size:1.4rem;color:#fff;cursor:pointer;
-    }
-    .header.ve{background:var(--veg);}
-    .header.gr{background:var(--gro);}
-    .header.in{background:var(--ind);}
-    .header button{
-      background:rgba(255,255,255,0.3);
-      border:none;border-radius:50%;
-      width:28px;height:28px;
-      display:flex;align-items:center;justify-content:center;
-      font-size:1.2rem;color:#fff;
-      transform:rotate(0deg);
-      transition:transform .2s;
-    }
-    .header.collapsed button{transform:rotate(-90deg);}
-
-    ul{list-style:none;}
-    li{
-      display:flex;align-items:center;gap:8px;
-      padding:10px;border-bottom:1px solid #eee;
-      transition:transform .3s,opacity .3s;
-      background:#fff;
-    }
-    li.swipe-del{transform:translateX(-100%);opacity:0;}
-    li.checked{background:var(--check);color:#666;}
-    li.checked .name{text-decoration:line-through;opacity:.7;}
-
-    input[type="checkbox"]{
-      width:28px;height:28px;
-      margin:0;padding:0;
-      accent-color:#666;
-      cursor:pointer;
-    }
-    .name{
-      flex:1;min-width:0;
-      border:none;background:transparent;
-      font-size:1.6rem;
-      overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-    }
-    .name.active{background:var(--h);font-weight:bold;border-radius:4px;}
-
-    .counter{
-      display:flex;align-items:center;gap:6px;
-      padding:2px;border-radius:20px;
-      transition:background .3s;
-    }
-    .counter.active{background:var(--h);}
-    .counter button{
-      width:30px;height:30px;border:none;border-radius:50%;
-      color:#fff;font-size:1.2rem;cursor:pointer;
-    }
-    .counter span{
-      min-width:24px;text-align:center;font-size:1.2rem;
-    }
-    .add{
-      width:40px;height:40px;
-      border-radius:50%;
-      background:var(--btn1);
-      color:#fff;font-size:1.5rem;
-      display:flex;align-items:center;justify-content:center;
-      margin:8px;
-      cursor:pointer;
-    }
-    @media(max-width:600px){
-      body{padding:70px 8px 80px;}
-      h1{font-size:1.8rem;}
-      .name{font-size:1.4rem;}
-      .counter span{font-size:1rem;}
-      .counter button{width:28px;height:28px;}
-      .add{width:36px;height:36px;font-size:1.2rem;}
-    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{font:21.6px 'Segoe UI',sans-serif;background:#f5f7fa;
+      padding:70px 15px 80px;touch-action:pan-y;}
+    h1{text-align:center;margin-bottom:25px;font-size:2.16rem;color:#333}
+    .actions{position:absolute;top:15px;left:15px;right:15px;
+      display:flex;gap:12px;justify-content:space-between;overflow-x:auto}
+    .actions::-webkit-scrollbar{display:none}
+    .actions button{flex:1 1 auto;padding:.6em 1em;display:flex;
+      align-items:center;justify-content:center;gap:.3em;border:none;
+      border-radius:8px;color:#fff;font-size:1rem;white-space:nowrap;cursor:pointer}
+    .reset-btn{background:var(--btn2)}.share-btn{background:var(--btn3)}.reorder-btn{background:var(--btn4)}
+    .container{margin-bottom:30px;background:#fff;border-radius:8px;
+      box-shadow:0 4px 12px rgba(0,0,0,0.05)}
+    .header{display:flex;justify-content:space-between;
+      align-items:center;padding:12px;font-size:1.4rem;font-weight:bold;color:#fff;
+      cursor:pointer}
+    #veggies-header{background:var(--veg)}#grocery-header{background:var(--gro)}
+    #indian-header{background:var(--ind)}#others-header{background:var(--oth)}
+    .collapse-btn{width:28px;height:28px;background:rgba(255,255,255,0.3);
+      border:none;border-radius:50%;display:flex;align-items:center;
+      justify-content:center;font-size:1.2rem;color:#fff;transition:transform .2s}
+    .collapse-btn.collapsed{transform:rotate(-90deg)}
+    ul{list-style:none;padding:0;margin:0}
+    li{display:flex;align-items:center;gap:8px;padding:10px;
+      border-bottom:1px solid #eee;background:#fff;transition:background .3s}
+    li.checked{background:var(--check);color:#666}
+    li.checked .name{text-decoration:line-through;opacity:.7}
+    input[type=checkbox]{width:28px;height:28px;cursor:pointer}
+    .name{flex:1;min-width:0;font-size:1.6rem;border:none;
+      background:transparent;overflow:hidden;text-overflow:ellipsis;
+      white-space:nowrap;transition:background .3s,font-weight .3s}
+    .name.active{background:var(--h);font-weight:bold;border-radius:4px}
+    .counter{display:flex;align-items:center;gap:6px;transition:background .3s}
+    .counter.active{background:var(--h);border-radius:20px;padding:2px 6px}
+    .counter.active .count{font-weight:bold;color:#000}
+    .counter button{width:30px;height:30px;border:none;border-radius:50%;
+      color:#fff;font-size:1.2rem;cursor:pointer}
+    .counter span.count{min-width:24px;text-align:center;font-size:1.2rem}
+    .add-btn{width:36px;height:36px;margin:8px;border-radius:50%;
+      background:var(--btn1);color:#fff;font-size:1.5rem;cursor:pointer}
+    @media(max-width:600px){.name{font-size:1.4rem}.counter button{width:28px;height:28px}
+      .counter span.count{font-size:1rem}.add-btn{width:32px;height:32px;font-size:1.2rem}}
   </style>
 </head>
 <body>
-
   <div class="actions">
-    <button class="btn1" onclick="toggleAll()"><span>✓</span> All</button>
-    <button class="btn2" onclick="resetAll()"><span>🔄</span> Reset</button>
-    <button class="btn3" onclick="shareList()"><span>⤴</span> Share</button>
-    <button class="btn4" onclick="reorderAll()"><span>🛒</span> Reorder</button>
+    <button class="reset-btn" onclick="resetAll()">🔄 Reset</button>
+    <button class="share-btn" onclick="shareList()">⤴ Share</button>
+    <button class="reorder-btn" onclick="reorderAll()">🛒 Reorder</button>
   </div>
-
   <h1>My Grocery Lists</h1>
 
+  <!-- Veggies -->
   <div class="container">
-    <div id="veggies-header" class="header ve" onclick="toggle('veggies')">
-      Veggies <button></button>
+    <div id="veggies-header" class="header" onclick="toggle('veggies')">
+      Veggies <button class="collapse-btn"></button>
     </div>
     <ul id="veggies"></ul>
-    <div style="text-align:right"><span class="add" onclick="addItem('veggies')">＋</span></div>
+    <div style="text-align:right"><span class="add-btn" onclick="addItem('veggies')">＋</span></div>
   </div>
-
+  <!-- Grocery -->
   <div class="container">
-    <div id="grocery-header" class="header gr" onclick="toggle('grocery')">
-      Grocery <button></button>
+    <div id="grocery-header" class="header" onclick="toggle('grocery')">
+      Grocery <button class="collapse-btn"></button>
     </div>
     <ul id="grocery"></ul>
-    <div style="text-align:right"><span class="add" onclick="addItem('grocery')">＋</span></div>
+    <div style="text-align:right"><span class="add-btn" onclick="addItem('grocery')">＋</span></div>
   </div>
-
+  <!-- Indian -->
   <div class="container">
-    <div id="indian-header" class="header in" onclick="toggle('indian')">
-      Indian Store <button></button>
+    <div id="indian-header" class="header" onclick="toggle('indian')">
+      Indian Store <button class="collapse-btn"></button>
     </div>
     <ul id="indian"></ul>
-    <div style="text-align:right"><span class="add" onclick="addItem('indian')">＋</span></div>
+    <div style="text-align:right"><span class="add-btn" onclick="addItem('indian')">＋</span></div>
+  </div>
+  <!-- Others -->
+  <div class="container">
+    <div id="others-header" class="header" onclick="toggle('others')">
+      Others <button class="collapse-btn"></button>
+    </div>
+    <ul id="others"></ul>
+    <div style="text-align:right"><span class="add-btn" onclick="addItem('others')">＋</span></div>
   </div>
 
   <script>
-    // Build lists
-    const lists = {
-      veggies: { el: 'veggies', hdr: 'veggies-header', def: defaultVeggiesText.split(/\r?\n/) },
-      grocery:{ el: 'grocery', hdr: 'grocery-header', def: defaultGroceryText.split(/\r?\n/) },
-      indian: { el: 'indian',  hdr: 'indian-header',  def: defaultIndianText.split(/\r?\n/) }
+    const lists={
+      veggies:{el:'veggies',hdr:'veggies-header',def:defaultVeggiesText.split(/\r?\n/),color:'veg'},
+      grocery:{el:'grocery',hdr:'grocery-header',def:defaultGroceryText.split(/\r?\n/),color:'gro'},
+      indian:{el:'indian',hdr:'indian-header',def:defaultIndianText.split(/\r?\n/),color:'ind'},
+      others:{el:'others',hdr:'others-header',def:defaultOthersText.split(/\r?\n/),color:'oth'}
     };
-    let del=[];
 
     document.addEventListener('DOMContentLoaded',()=>{
-      // Seed defaults on first-ever load
       for(let k in lists){
+        // seed only if no data
         if(localStorage.getItem(k)===null){
-          localStorage.setItem(k, JSON.stringify(
+          localStorage.setItem(k,JSON.stringify(
             lists[k].def.map(n=>({name:n,count:0,checked:false}))
           ));
         }
-        load(k); restore(lists[k].hdr);
+        load(k); restore(k);
       }
-      setupSwipe();
     });
 
     function load(key){
@@ -259,122 +199,60 @@ Woolwash`.trim();
       ul.innerHTML='';
       arr.forEach((it,i)=>{
         const li=document.createElement('li');
-        li.id=`${key}-${i}`;
-        li.innerHTML=`
-          <input type="checkbox" ${it.checked?'checked':''}
+        li.innerHTML=
+          `<input type="checkbox" ${it.checked?'checked':''}
             onchange="rowToggle('${key}',${i},this.checked)">
-          <input type="text" class="name" value="${it.name.replace(/"/g,'&quot;')}"
+           <input class="name" value="${it.name.replace(/"/g,'&quot;')}" 
             oninput="editName('${key}',${i},this.value)">
-          <div class="counter">
-            <button onclick="change('${key}',${i},-1)">-</button>
-            <span>${it.count}</span>
-            <button onclick="change('${key}',${i},1)">+</button>
-          </div>`;
+           <div class="counter">
+             <button onclick="change('${key}',${i},-1)">-</button>
+             <span class="count">${it.count}</span>
+             <button onclick="change('${key}',${i},1)">+</button>
+           </div>`;
         if(it.checked) li.classList.add('checked');
-        if(it.count>0) li.querySelector('.name').classList.add('active');
-        wire(li);
+        if(it.count>0){
+          li.querySelector('.name').classList.add('active');
+          li.querySelector('.counter').classList.add('active');
+          li.querySelector('.count').classList.add('count');
+        }
         ul.appendChild(li);
       });
     }
-
-    function save(key,arr){ localStorage.setItem(key,JSON.stringify(arr)); }
-
-    function rowToggle(k,i,val){
-      const arr=JSON.parse(localStorage.getItem(k));
-      arr[i].checked=val; save(k,arr); document.getElementById(`${k}-${i}`)
-        .classList.toggle('checked',val);
+    function save(key,arr){localStorage.setItem(key,JSON.stringify(arr));}
+    function rowToggle(k,i,v){
+      const a=JSON.parse(localStorage.getItem(k)); a[i].checked=v; save(k,a); load(k);
     }
-    function editName(k,i,val){
-      const arr=JSON.parse(localStorage.getItem(k));
-      arr[i].name=val; save(k,arr);
+    function editName(k,i,v){const a=JSON.parse(localStorage.getItem(k)); a[i].name=v; save(k,a)}
+    function change(k,i,d){
+      const a=JSON.parse(localStorage.getItem(k));
+      let v=a[i].count+d; v=Math.max(0,Math.min(50,v));
+      a[i].count=v; save(k,a); load(k);
     }
-    function change(k,i,delta){
-      const arr=JSON.parse(localStorage.getItem(k));
-      let v=arr[i].count+delta;
-      v=Math.max(0,Math.min(50,v));
-      arr[i].count=v; save(k,arr); load(k);
-    }
-
-    function restore(id){
-      const btn=document.getElementById(id).querySelector('button');
-      const key=id.replace('-header','');
-      const st=localStorage.getItem(id);
-      if(st==='true'){ document.getElementById(key).style.display='none'; btn.classList.add('collapsed'); }
-      else{ document.getElementById(key).style.display='block'; }
+    function restore(key){
+      const st=localStorage.getItem(key+'-col')==='true',ul=document.getElementById(key),btn=document.getElementById(lists[key].hdr).querySelector('button');
+      if(st){ul.style.display='none';btn.classList.add('collapsed');}
     }
     function toggle(key){
-      const hdr=document.getElementById(key+'-header'),
-            ul=document.getElementById(key),
-            btn=hdr.querySelector('button'),
-            cur=ul.style.display!=='none';
-      ul.style.display=cur?'none':'block';
-      btn.classList.toggle('collapsed',cur);
-      localStorage.setItem(key+'-header', !cur);
+      const ul=document.getElementById(key),btn=document.getElementById(lists[key].hdr).querySelector('button');
+      const hide=ul.style.display!=='none'; ul.style.display=hide?'none':'block';
+      btn.classList.toggle('collapsed',hide);
+      localStorage.setItem(key+'-col',hide);
     }
-
-    function toggleAll(){
-      const all=confirm('Toggle all?');
-      Object.keys(lists).forEach(k=>{
-        const arr=JSON.parse(localStorage.getItem(k));
-        const any=arr.some(x=>x.checked);
-        arr.forEach(x=>x.checked=!any);
-        save(k,arr); load(k);
-      });
+    function resetAll(){if(!confirm('Reset all?'))return;
+      for(let k in lists){
+        const a=lists[k].def.map(n=>({name:n,count:0,checked:false})); save(k,a); load(k);
+        localStorage.removeItem(k+'-col'); restore(k);
+      }}
+    function shareList(){let t='';for(let k in lists){
+      const a=JSON.parse(localStorage.getItem(k)).filter(x=>x.count>0);
+      if(a.length)t+=k.toUpperCase()+':\n'+a.map(x=>`${x.name} (${x.count})`).join('\n')+'\n\n';}
+      t=t.trim();if(!t)return alert('Nothing to share');navigator.share?navigator.share({text:t}):prompt('Copy',t);
     }
-    function resetAll(){
-      if(!confirm('Reset everything?'))return;
-      Object.keys(lists).forEach(k=>{
-        const arr=lists[k].def.map(n=>({name:n,count:0,checked:false}));
-        save(k,arr); load(k);
-      });
-      ['veggies','grocery','indian'].forEach(id=>{
-        localStorage.removeItem(id+'-header');
-        restore(id+'-header');
-      });
-    }
-    function shareList(){
-      let txt='';
-      Object.keys(lists).forEach(k=>{
-        const arr=JSON.parse(localStorage.getItem(k)).filter(x=>x.count>0);
-        if(arr.length){
-          txt+=`${k.toUpperCase()}:\n`+arr.map(x=>`${x.name} (${x.count})`).join('\n')+'\n\n';
-        }
-      });
-      if(!txt) return alert('Nothing to share');
-      navigator.share?navigator.share({text:txt}):prompt('Copy:',txt);
-    }
-    function reorderAll(){
-      Object.keys(lists).forEach(k=>{
-        let arr=JSON.parse(localStorage.getItem(k));
-        const have=arr.filter(x=>x.count>0), zero=arr.filter(x=>x.count===0);
-        zero.forEach(x=>x.checked=true);
-        arr=have.concat(zero);
-        save(k,arr); load(k);
-      });
-    }
-
-    // swipe-to-delete minimal:
-    function setupSwipe(){
-      let startX,cur;
-      document.addEventListener('touchstart',e=>{
-        const li=e.target.closest('li');
-        if(li){startX=e.touches[0].clientX;cur=li;}
-      });
-      document.addEventListener('touchmove',e=>{
-        if(!cur)return;
-        const dx=startX-e.touches[0].clientX;
-        if(dx>20)cur.style.transform=`translateX(-${dx}px)`;
-      });
-      document.addEventListener('touchend',()=>{
-        if(cur){
-          cur.style.transform='';
-          cur=null;
-        }
-      });
-    }
-    function wire(li){
-      ['touchstart','touchmove','touchend'].forEach(evt=>
-        li.addEventListener(evt, ()=>{}, {passive:true}));
+    function reorderAll(){for(let k in lists){
+      const a=JSON.parse(localStorage.getItem(k)),h=a.filter(x=>x.count>0),z=a.filter(x=>x.count===0);
+      z.forEach(x=>x.checked=true);const o=h.concat(z);save(k,o);load(k);} }
+    function addItem(key){
+      const a=JSON.parse(localStorage.getItem(key));a.push({name:'',count:0,checked:false});save(key,a);load(key);
     }
   </script>
 </body>
