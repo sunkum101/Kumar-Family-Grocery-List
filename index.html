@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-  <title>The Great Grocery Gala</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kumar Family Grocery List</title>
 
   <!-- Default lists: one item per line -->
   <script>
@@ -95,15 +95,18 @@ BigW`.trim();
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font: 22px 'Segoe UI', sans-serif;
+      font: 20px 'Segoe UI', sans-serif;
       background: #f5f7fa;
       padding: 20px;
     }
     h1 {
       text-align: center;
       margin: 20px 0;
-      font-size: 2.5rem;
+      font-size: 2rem;
       color: #333;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .actions {
       display: flex;
@@ -127,7 +130,7 @@ BigW`.trim();
     .container {
       margin-bottom: 30px;
       background: #fff;
-      border-radius: 16px;
+      border-radius: 20px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.05);
       overflow: hidden;
     }
@@ -146,21 +149,14 @@ BigW`.trim();
     #indian-header  { background: var(--ind); }
     #others-header  { background: var(--oth); }
     .collapse-btn {
-      display: inline-block;
-      font-size: 1.2rem;
+      font-size: 1.6rem;
       color: #fff;
-      transform: rotate(0deg);
       transition: transform .3s ease;
+      user-select: none;
     }
-    .header.collapsed .collapse-btn {
-      transform: rotate(-90deg);
-    }
+    .header.collapsed .collapse-btn { transform: rotate(-90deg); }
 
-    ul {
-      list-style: none;
-      margin: 0;
-      padding: 0;
-    }
+    ul { list-style: none; margin: 0; padding: 0; }
     li {
       display: flex;
       align-items: center;
@@ -189,11 +185,13 @@ BigW`.trim();
     .name {
       flex: 1;
       min-width: 0;
+      font-size: 1.8rem;
       border: none;
       background: transparent;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+      transition: background .3s, font-weight .3s;
     }
     .name.active {
       background: var(--h);
@@ -227,8 +225,9 @@ BigW`.trim();
     }
 
     .add-btn {
-      display: block;
-      margin: 12px auto;
+      position: absolute;
+      left: 16px;
+      bottom: 16px;
       width: 40px;
       height: 40px;
       border-radius: 50%;
@@ -242,7 +241,7 @@ BigW`.trim();
     @media (max-width: 600px) {
       li, .name, .counter span.count { font-size: 1.6rem; }
       .counter button { width: 28px; height: 28px; }
-      .add-btn { width: 36px; height: 36px; font-size: 1.4rem; }
+      .add-btn { width: 36px; height: 36px; font-size: 1.4rem; left: 12px; bottom: 12px; }
     }
   </style>
 </head>
@@ -254,7 +253,7 @@ BigW`.trim();
     <button class="reorder-btn" onclick="reorderAll()">🛒 Reorder</button>
   </div>
 
-  <h1>The Great Grocery Gala</h1>
+  <h1>Kumar Family Grocery List</h1>
 
   <!-- Veggies -->
   <div class="container">
