@@ -93,155 +93,122 @@ BigW`.trim();
       --btn4: #ff5722;
       --h: #fff9c4;
     }
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font: 20px 'Segoe UI', sans-serif;
-      background: #f5f7fa;
-      padding: 20px;
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{
+      font:20px 'Segoe UI',sans-serif;
+      background:#f5f7fa;
+      padding:20px;
     }
-    h1 {
-      text-align: center;
-      margin: 20px 0;
-      font-size: 2rem;
-      color: #333;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+    h1{
+      text-align:center;
+      margin:20px 0;
+      font-size:2rem;
+      color:#333;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
     }
-    .actions {
-      display: flex;
-      gap: 12px;
-      justify-content: flex-end;
-      margin-bottom: 20px;
+    .actions{
+      display:flex;
+      gap:12px;
+      justify-content:center;
+      margin-bottom:20px;
     }
-    .actions button {
-      padding: 10px 14px;
-      border: none;
-      border-radius: 12px;
-      color: #fff;
-      font-size: 1rem;
-      cursor: pointer;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    .actions button{
+      padding:10px 14px;
+      border:none;
+      border-radius:12px;
+      color:#fff;
+      font-size:1rem;
+      cursor:pointer;
+      box-shadow:0 2px 6px rgba(0,0,0,0.2);
     }
-    .reset-btn     { background: var(--btn2); }
-    .share-btn     { background: var(--btn3); }
-    .reorder-btn   { background: var(--btn4); }
+    .reset-btn{background:var(--btn2)}
+    .share-btn{background:var(--btn3)}
+    .reorder-btn{background:var(--btn4)}
 
-    .container {
-      margin-bottom: 30px;
-      background: #fff;
-      border-radius: 20px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-      overflow: hidden;
+    .container{
+      margin-bottom:30px;
+      background:#fff;
+      border-radius:20px;
+      box-shadow:0 4px 12px rgba(0,0,0,0.05);
+      position:relative;
     }
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 16px;
-      font-size: 1.6rem;
-      font-weight: bold;
-      color: #fff;
-      cursor: pointer;
+    .header{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      padding:16px;
+      font-size:1.6rem;
+      font-weight:bold;
+      color:#fff;
+      cursor:pointer;
     }
-    #veggies-header { background: var(--veg); }
-    #grocery-header { background: var(--gro); }
-    #indian-header  { background: var(--ind); }
-    #others-header  { background: var(--oth); }
-    .collapse-btn {
-      font-size: 1.6rem;
-      color: #fff;
-      transition: transform .3s ease;
-      user-select: none;
+    #veggies-header{background:var(--veg)}
+    #grocery-header{background:var(--gro)}
+    #indian-header{background:var(--ind)}
+    #others-header{background:var(--oth)}
+    .collapse-btn{
+      font-size:1.6rem;
+      color:#fff;
+      transition:transform .3s ease;
+      user-select:none;
     }
-    .header.collapsed .collapse-btn { transform: rotate(-90deg); }
+    .header.collapsed .collapse-btn{transform:rotate(-90deg)}
 
-    ul { list-style: none; margin: 0; padding: 0; }
-    li {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 14px 16px;
-      border-bottom: 1px solid #eee;
-      background: #fff;
-      transition: background .3s;
-      font-size: 1.8rem;
+    ul{list-style:none;margin:0;padding:0}
+    li{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      padding:14px 16px;
+      border-bottom:1px solid #eee;
+      background:#fff;
+      transition:background .3s;
+      font-size:1.8rem;
     }
-    li:last-child { border-bottom: none; }
-    li.checked {
-      background: var(--check);
-      color: #666;
-    }
-    li.checked .name {
-      text-decoration: line-through;
-      opacity: .7;
-    }
+    li:last-child{border-bottom:none}
+    li.checked{background:var(--check);color:#666}
+    li.checked .name{text-decoration:line-through;opacity:.7}
 
-    input[type="checkbox"] {
-      width: 28px;
-      height: 28px;
-      cursor: pointer;
+    input[type="checkbox"]{width:28px;height:28px;cursor:pointer}
+    .name{
+      flex:1;min-width:0;
+      font-size:1.8rem;
+      border:none;background:transparent;
+      overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+      transition:background .3s,font-weight .3s;
     }
-    .name {
-      flex: 1;
-      min-width: 0;
-      font-size: 1.8rem;
-      border: none;
-      background: transparent;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      transition: background .3s, font-weight .3s;
-    }
-    .name.active {
-      background: var(--h);
-      font-weight: bold;
-      border-radius: 4px;
-    }
+    .name.active{background:var(--h);font-weight:bold;border-radius:4px}
 
-    .counter {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      transition: background .3s;
+    .counter{
+      display:flex;align-items:center;gap:8px;
+      transition:background .3s;
     }
-    .counter.active {
-      background: var(--h);
-      border-radius: 20px;
-      padding: 4px 8px;
+    .counter.active{background:var(--h);border-radius:20px;padding:4px 8px}
+    .counter button{
+      width:32px;height:32px;border:none;border-radius:50%;
+      color:#fff;font-size:1.2rem;cursor:pointer;
     }
-    .counter button {
-      width: 32px;
-      height: 32px;
-      border: none;
-      border-radius: 50%;
-      color: #fff;
-      font-size: 1.2rem;
-      cursor: pointer;
-    }
-    .counter span.count {
-      min-width: 32px;
-      text-align: center;
+    .counter span.count{min-width:32px;text-align:center}
+
+    .add-btn{
+      position:absolute;
+      left:16px;
+      bottom:16px;
+      width:40px;height:40px;
+      border-radius:50%;
+      background:var(--veg);
+      color:#fff;
+      font-size:1.6rem;
+      cursor:pointer;
+      box-shadow:0 2px 6px rgba(0,0,0,0.2);
     }
 
-    .add-btn {
-      position: absolute;
-      left: 16px;
-      bottom: 16px;
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      background: var(--veg);
-      color: #fff;
-      font-size: 1.6rem;
-      cursor: pointer;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-    }
-
-    @media (max-width: 600px) {
-      li, .name, .counter span.count { font-size: 1.6rem; }
-      .counter button { width: 28px; height: 28px; }
-      .add-btn { width: 36px; height: 36px; font-size: 1.4rem; left: 12px; bottom: 12px; }
+    @media(max-width:600px){
+      li,.name,.counter span.count{font-size:1.6rem}
+      .counter button{width:28px;height:28px}
+      .add-btn{width:36px;height:36px;font-size:1.4rem;left:12px;bottom:12px}
     }
   </style>
 </head>
@@ -292,115 +259,23 @@ BigW`.trim();
   </div>
 
   <script>
-    const lists = {
-      veggies: { el: 'veggies', hdr: 'veggies-header', def: defaultVeggiesText.split(/\r?\n/) },
-      grocery:{ el: 'grocery', hdr: 'grocery-header', def: defaultGroceryText.split(/\r?\n/) },
-      indian: { el: 'indian',  hdr: 'indian-header',  def: defaultIndianText.split(/\r?\n/) },
-      others: { el: 'others',  hdr: 'others-header',  def: defaultOthersText.split(/\r?\n/) }
+    const lists={
+      veggies:{el:'veggies',hdr:'veggies-header',def:defaultVeggiesText.split(/\r?\n/)},
+      grocery:{el:'grocery',hdr:'grocery-header',def:defaultGroceryText.split(/\r?\n/)},
+      indian:{el:'indian',hdr:'indian-header',def:defaultIndianText.split(/\r?\n/)},
+      others:{el:'others',hdr:'others-header',def:defaultOthersText.split(/\r?\n/)}
     };
+    document.addEventListener('DOMContentLoaded',()=>{
+      for(let k in lists){
+        if(localStorage.getItem(k)===null)
+          localStorage.setItem(k,JSON.stringify(lists[k].def.map(n=>({name:n,count:0,checked:false}))));
+        load(k);restore(k);
+      }});
+    function load(k){const a=JSON.parse(localStorage.getItem(k)||'[]'),ul=document.getElementById(k);ul.innerHTML='';a.forEach((it,i)=>{const li=document.createElement('li');li.innerHTML=`<input type="checkbox"${it.checked?' checked':''} onchange="rowToggle('${k}',${i},this.checked)"><input class="name${it.count>0?' active':''}" value="${it.name.replace(/"/g,'&quot;')}" oninput="editName('${k}',${i},this.value)"><div class="counter${it.count>0?' active':''}"><button onclick="change('${k}',${i},-1)">-</button><span class="count">${it.count}</span><button onclick="change('${k}',${i},1)">+</button></div>`;if(it.checked)li.classList.add('checked');ul.appendChild(li)});}function save(k,a){localStorage.setItem(k,JSON.stringify(a))}function rowToggle(k,i,v){const a=JSON.parse(localStorage.getItem(k));a[i].checked=v;save(k,a);load(k)}function editName(k,i,v){const a=JSON.parse(localStorage.getItem(k));a[i].name=v;save(k,a)}function change(k,i,d){const a=JSON.parse(localStorage.getItem(k));let v=a[i].count+d;v=Math.max(0,Math.min(50,v));a[i].count=v;save(k,a);load(k)}function restore(k){const h=localStorage.getItem(k+'-col')==='true',ul=document.getElementById(k),hd=document.getElementById(lists[k].hdr);ul.style.display=h?'none':'';hd.classList.toggle('collapsed',h)}function toggle(k){const ul=document.getElementById(k),hd=document.getElementById(lists[k].hdr),h=ul.style.display!=='none';ul.style.display=h?'none':'';hd.classList.toggle('collapsed',h);localStorage.setItem(k+'-col',h)}function resetAll(){if(!confirm('Reset everything?'))return;for(let k in lists){const a=lists[k].def.map(n=>({name:n,count:0,checked:false}));save(k,a);load(k);localStorage.removeItem(k+'-col');restore(k)}}function shareList(){let t='';for(let k in lists){const a=JSON.parse(localStorage.getItem(k)).filter(x=>x.count>0);if(a.length)t+=k.toUpperCase()+':
+'+a.map(x=>`${x.name} (${x.count})`).join('
+')+'
 
-    document.addEventListener('DOMContentLoaded', () => {
-      for (let key in lists) {
-        if (localStorage.getItem(key) === null) {
-          localStorage.setItem(
-            key,
-            JSON.stringify(lists[key].def.map(name => ({ name, count: 0, checked: false })))
-          );
-        }
-        load(key);
-        restore(key);
-      }
-    });
-
-    function load(key) {
-      const arr = JSON.parse(localStorage.getItem(key) || '[]');
-      const ul = document.getElementById(key);
-      ul.innerHTML = '';
-      arr.forEach((it, i) => {
-        const li = document.createElement('li');
-        li.innerHTML = `
-          <input type="checkbox" ${it.checked ? 'checked' : ''} onchange="rowToggle('${key}',${i},this.checked)">
-          <input class="name ${it.count > 0 ? 'active' : ''}" value="${it.name.replace(/"/g,'&quot;')}" oninput="editName('${key}',${i},this.value)">
-          <div class="counter ${it.count > 0 ? 'active' : ''}">
-            <button onclick="change('${key}',${i},-1)">-</button>
-            <span class="count">${it.count}</span>
-            <button onclick="change('${key}',${i},1)">+</button>
-          </div>`;
-        if (it.checked) li.classList.add('checked');
-        ul.appendChild(li);
-      });
-    }
-    function save(key, arr) { localStorage.setItem(key, JSON.stringify(arr)); }
-    function rowToggle(key, idx, val) {
-      const arr = JSON.parse(localStorage.getItem(key));
-      arr[idx].checked = val;
-      save(key, arr);
-      load(key);
-    }
-    function editName(key, idx, val) {
-      const arr = JSON.parse(localStorage.getItem(key));
-      arr[idx].name = val;
-      save(key, arr);
-    }
-    function change(key, idx, delta) {
-      const arr = JSON.parse(localStorage.getItem(key));
-      let v = arr[idx].count + delta;
-      v = Math.max(0, Math.min(50, v));
-      arr[idx].count = v;
-      save(key, arr);
-      load(key);
-    }
-    function restore(key) {
-      const hidden = localStorage.getItem(key + '-col') === 'true';
-      document.getElementById(key).style.display = hidden ? 'none' : '';
-      document.getElementById(lists[key].hdr).classList.toggle('collapsed', hidden);
-    }
-    function toggle(key) {
-      const ul = document.getElementById(key);
-      const hidden = ul.style.display !== 'none';
-      ul.style.display = hidden ? 'none' : '';
-      document.getElementById(lists[key].hdr).classList.toggle('collapsed', hidden);
-      localStorage.setItem(key + '-col', hidden);
-    }
-    function resetAll() {
-      if (!confirm('Reset everything?')) return;
-      for (let key in lists) {
-        const arr = lists[key].def.map(name => ({ name, count: 0, checked: false }));
-        save(key, arr);
-        load(key);
-        localStorage.removeItem(key + '-col');
-        restore(key);
-      }
-    }
-    function shareList() {
-      let txt = '';
-      for (let key in lists) {
-        const arr = JSON.parse(localStorage.getItem(key)).filter(x => x.count > 0);
-        if (arr.length) {
-          txt += `${key.toUpperCase()}:\n` + arr.map(x => `${x.name} (${x.count})`).join('\n') + '\n\n';
-        }
-      }
-      txt = txt.trim();
-      if (!txt) return alert('Nothing to share');
-      if (navigator.share) navigator.share({ text: txt });
-      else prompt('Copy to clipboard:', txt);
-    }
-    function reorderAll() {
-      for (let key in lists) {
-        const arr = JSON.parse(localStorage.getItem(key));
-        const have = arr.filter(x => x.count > 0);
-        const zero = arr.filter(x => x.count === 0).map(x => (x.checked = true, x));
-        const combined = have.concat(zero);
-        save(key, combined);
-        load(key);
-      }
-    }
-    function addItem(key) {
-      const arr = JSON.parse(localStorage.getItem(key));
-      arr.push({ name: '', count: 0, checked: false });
-      save(key, arr);
-      load(key);
-    }
+'}t=t.trim();if(!t)return alert('Nothing to share');navigator.share?navigator.share({text:t}):prompt('Copy to clipboard:',t)}function reorderAll(){for(let k in lists){const a=JSON.parse(localStorage.getItem(k)),h=a.filter(x=>x.count>0),z=a.filter(x=>x.count===0).map(x=>(x.checked=true,x)),o=h.concat(z);save(k,o);load(k)}}function addItem(k){const a=JSON.parse(localStorage.getItem(k));a.push({name:'',count:0,checked:false});save(k,a);load(k)}
   </script>
 </body>
 </html>
