@@ -6,259 +6,329 @@
   <title>My Grocery Lists</title>
   <style>
     :root {
-      --veggies-color:   #4caf50;
-      --grocery-color:   #2196f3;
-      --indian-color:    #ff9800;
-      --checked-color:   #e9ecef;
-      --master-check-color:#673ab7;
-      --reset-color:      #f44336;
-      --share-color:      #4caf50;
-      --counter-highlight:#fff9c4;
-      --undo-highlight:   #e3f2fd;
-    }
-    body {
-      margin:0;
-      padding:15px 15px 80px;
-      padding-top:70px;
-      font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;
-      background:#f5f7fa;
-      color:#333;
-      font-size:21.6px;
-      touch-action:pan-y;
+      --veggies-color:    #4caf50;
+      --grocery-color:    #2196f3;
+      --indian-color:     #ff9800;
+      --checked-color:    #e9ecef;
+      --master-check-color: #673ab7;
+      --reset-color:        #f44336;
+      --share-color:        #4caf50;
+      --counter-highlight:  #fff9c4;
+      --undo-highlight:     #e3f2fd;
     }
 
-    /* ===== top buttons ===== */
+    body {
+      margin: 0;
+      padding: 70px 15px 80px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f5f7fa;
+      color: #333;
+      font-size: 21.6px;
+      touch-action: pan-y;
+    }
+
+    /* Top buttons: bigger gap + icon+text pills */
     .action-buttons {
-      position:absolute;
-      top:15px; left:15px; right:15px;
-      display:flex;
-      gap:30px;            /* ← bigger gap */
-      z-index:100;
+      position: absolute;
+      top: 15px; left: 15px; right: 15px;
+      display: flex;
+      gap: 30px; /* increased spacing */
+      z-index: 100;
     }
     .action-btn {
-      width:36px; height:36px;
-      border-radius:50%;
-      color:white; border:none;
-      font-size:1.2rem;
-      display:flex; align-items:center; justify-content:center;
-      cursor:pointer;
-      box-shadow:0 2px 8px rgba(0,0,0,0.2);
+      display: flex;
+      align-items: center;
+      gap: 0.5em;
+      padding: 0.6em 1em;
+      border: none;
+      border-radius: 12px;
+      color: white;
+      font-size: 1rem;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
     }
-    .master-check { background:var(--master-check-color); }
-    .reset-btn     { background:var(--reset-color); }
-    .share-btn     { background:var(--share-color); font-size:1rem; }
+    .action-btn .icon {
+      font-size: 1.2rem;
+    }
+    .master-check { background: var(--master-check-color); }
+    .reset-btn     { background: var(--reset-color); }
+    .share-btn     { background: var(--share-color); }
 
     h1 {
-      text-align:center;
-      margin-bottom:25px;
-      font-size:2.16rem;
+      text-align: center;
+      margin-bottom: 25px;
+      font-size: 2.16rem;
     }
 
-    /* ===== table styling ===== */
     .table-container {
-      margin-bottom:30px;
-      background:white;
-      border-radius:12px;
-      box-shadow:0 4px 12px rgba(0,0,0,0.05);
-      overflow:hidden;
+      margin-bottom: 30px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      overflow: hidden;
     }
+
     .table-header {
-      padding:15px;
-      font-weight:bold;
-      font-size:1.56rem;
-      color:white;
-      display:flex; justify-content:space-between; align-items:center;
-      cursor:pointer;
+      padding: 15px;
+      font-weight: bold;
+      font-size: 1.56rem;
+      color: white;
+      display: flex; justify-content: space-between; align-items: center;
+      cursor: pointer;
     }
-    #veggies-header { background:var(--veggies-color); }
-    #grocery-header { background:var(--grocery-color); }
-    #indian-header  { background:var(--indian-color); }
+    #veggies-header { background: var(--veggies-color); }
+    #grocery-header { background: var(--grocery-color); }
+    #indian-header  { background: var(--indian-color); }
     .collapse-btn {
-      background:none; border:none;
-      color:white; font-size:1.8rem; cursor:pointer;
+      background: none;
+      border: none;
+      color: white;
+      font-size: 1.8rem;
+      cursor: pointer;
     }
 
     table {
-      width:100%; border-collapse:collapse;
-      transition:all 0.3s ease;
+      width: 100%;
+      border-collapse: collapse;
+      transition: all 0.3s ease;
     }
     tr {
-      position:relative; overflow:hidden;
-      border-bottom:1px solid #eee;
-      transition:all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+      border-bottom: 1px solid #eee;
+      transition: all 0.3s ease;
     }
     tr.swipe-delete {
-      transform:translateX(-100%);
-      opacity:0;
-      transition:transform 0.3s ease, opacity 0.3s ease;
+      transform: translateX(-100%);
+      opacity: 0;
+      transition: transform 0.3s ease, opacity 0.3s ease;
     }
     tr.checked {
-      background:var(--checked-color) !important;
-      color:#6c757d;
+      background: var(--checked-color) !important;
+      color: #6c757d;
     }
     tr.checked .item-name {
-      text-decoration:line-through;
-      opacity:0.7;
+      text-decoration: line-through;
+      opacity: 0.7;
     }
 
-    td { padding:12px 10px; }
+    td {
+      padding: 12px 10px;
+    }
 
     .row-content {
-      display:flex; align-items:center; gap:8px;
-      width:100%;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
     }
+
     .row-checkbox {
-      width:31.2px; height:31.2px;
-      appearance:none; border:2px solid #666;
-      border-radius:4px; position:relative;
-      cursor:pointer; flex-shrink:0;
+      width: 31.2px; height: 31.2px;
+      appearance: none;
+      border: 2px solid #666;
+      border-radius: 4px;
+      position: relative;
+      cursor: pointer;
+      flex-shrink: 0;
     }
     .row-checkbox:checked {
-      background:#666; border-color:#666;
+      background: #666;
+      border-color: #666;
     }
     .row-checkbox:checked::after {
-      content:"✓"; color:white; font-size:21.6px;
-      position:absolute; top:50%; left:50%;
-      transform:translate(-50%,-50%);
+      content: "✓";
+      color: white;
+      font-size: 21.6px;
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
     }
     #veggies-items .row-checkbox:checked {
-      background:var(--veggies-color);
-      border-color:var(--veggies-color);
+      background: var(--veggies-color);
+      border-color: var(--veggies-color);
     }
     #grocery-items .row-checkbox:checked {
-      background:var(--grocery-color);
-      border-color:var(--grocery-color);
+      background: var(--grocery-color);
+      border-color: var(--grocery-color);
     }
     #indian-items .row-checkbox:checked {
-      background:var(--indian-color);
-      border-color:var(--indian-color);
+      background: var(--indian-color);
+      border-color: var(--indian-color);
     }
 
     .item-name {
-      flex:1; min-width:0;
-      font-size:1.92rem; padding:7.2px;
-      border:none; background:transparent;
-      outline:none;
-      overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
-      transition:all 0.3s ease;
+      flex: 1; min-width: 0;
+      font-size: 1.92rem;
+      padding: 7.2px;
+      border: none;
+      background: transparent;
+      outline: none;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      transition: all 0.3s ease;
     }
-    /* persistent highlight on name */
     .item-name.active {
-      background-color:var(--counter-highlight);
-      font-weight:bold;
-      border-radius:4px;
+      background: var(--counter-highlight);
+      font-weight: bold;
+      border-radius: 4px;
     }
 
     .counter {
-      display:flex; align-items:center; gap:6px;
-      margin-left:auto; flex-shrink:0;
-      transition:all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-left: auto;
+      flex-shrink: 0;
+      transition: all 0.3s ease;
     }
-    /* persistent highlight on counter group */
     .counter.active {
-      background-color:var(--counter-highlight);
-      border-radius:20px;
+      background: var(--counter-highlight);
+      border-radius: 20px;
     }
-    /* make the – + buttons and number match */
     .counter.active .counter-btn,
     .counter.active .counter-value {
-      background-color:var(--counter-highlight) !important;
-      color:#333 !important;
+      background: var(--counter-highlight) !important;
+      color: #333 !important;
     }
 
     .counter-value {
-      min-width:30px; text-align:center;
-      font-size:1.32rem; flex-shrink:0;
-      transition:all 0.3s ease;
+      min-width: 30px;
+      text-align: center;
+      font-size: 1.32rem;
+      flex-shrink: 0;
+      transition: all 0.3s ease;
     }
+
     .counter-btn {
-      width:38.4px; height:38.4px;
-      border-radius:50%; border:none; color:white;
-      font-weight:bold; font-size:1.2rem;
-      display:flex; align-items:center; justify-content:center;
-      cursor:pointer; flex-shrink:0;
+      width: 38.4px; height: 38.4px;
+      border-radius: 50%;
+      border: none;
+      color: white;
+      font-weight: bold;
+      font-size: 1.2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
     }
-    #veggies-items .counter-btn { background:var(--veggies-color); }
-    #grocery-items .counter-btn { background:var(--grocery-color); }
-    #indian-items .counter-btn  { background:var(--indian-color); }
+    #veggies-items .counter-btn { background: var(--veggies-color); }
+    #grocery-items .counter-btn { background: var(--grocery-color); }
+    #indian-items .counter-btn  { background: var(--indian-color); }
     .counter-btn:disabled {
-      opacity:0.5; cursor:not-allowed;
+      opacity: 0.5;
+      cursor: not-allowed;
     }
 
     .add-row {
-      display:flex; justify-content:flex-end; padding:12px 15px;
+      display: flex;
+      justify-content: flex-end;
+      padding: 12px 15px;
     }
     .add-btn {
-      width:48px; height:48px; border-radius:50%;
-      color:white; border:none; font-size:1.8rem;
-      display:flex; align-items:center; justify-content:center;
-      cursor:pointer;
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      color: white;
+      border: none;
+      font-size: 1.8rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
     }
-    #veggies-add { background:var(--veggies-color); }
-    #grocery-add { background:var(--grocery-color); }
-    #indian-add  { background:var(--indian-color); }
+    #veggies-add { background: var(--veggies-color); }
+    #grocery-add { background: var(--grocery-color); }
+    #indian-add  { background: var(--indian-color); }
 
     .swipe-delete-indicator {
-      position:absolute; right:-100px; top:0; bottom:0;
-      width:100px; background:#f44336; color:white;
-      display:flex; align-items:center; justify-content:center;
-      font-weight:bold; font-size:1.2rem;
-      transition:right 0.3s ease;
+      position: absolute;
+      right: -100px;
+      top: 0; bottom: 0;
+      width: 100px;
+      background: #f44336;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 1.2rem;
+      transition: right 0.3s ease;
     }
+
     .undo-notification {
-      position:fixed; bottom:20px; left:50%;
-      transform:translateX(-50%);
-      background:#333; color:white;
-      padding:12px 24px; border-radius:6px;
-      display:flex; align-items:center; gap:12px;
-      font-size:1.2rem; z-index:1000;
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #333;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 1.2rem;
+      z-index: 1000;
     }
     .undo-btn {
-      background:var(--share-color); color:white;
-      border:none; padding:6px 12px; cursor:pointer;
-      border-radius:3.6px; font-size:1.2rem;
+      background: var(--share-color);
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 3.6px;
+      cursor: pointer;
+      font-size: 1.2rem;
     }
     .undo-highlight {
-      background:var(--undo-highlight) !important;
+      background: var(--undo-highlight) !important;
     }
     .undo-highlight .item-name,
     .undo-highlight .counter-value {
-      font-weight:bold !important;
+      font-weight: bold !important;
     }
 
-    @media(max-width:600px){
-      body{font-size:19.2px;padding:10px;padding-top:70px;}
-      .action-buttons{gap:20px;}
-      .action-btn{width:32px;height:32px;font-size:1rem;}
-      .item-name{font-size:1.44rem;max-width:150px;}
-      td{padding:10px 8px;}
-      .counter-btn{width:36px;height:36px;}
-      .counter-value{min-width:24px;font-size:1.2rem;}
+    @media (max-width: 600px) {
+      body { font-size: 19.2px; padding: 70px 10px 80px; }
+      .action-buttons { gap: 20px; }
+      .action-btn { font-size: 0.9rem; padding: 0.5em 0.8em; }
+      .item-name { font-size: 1.44rem; max-width: 150px; }
+      td { padding: 10px 8px; }
+      .counter-btn { width: 36px; height: 36px; }
+      .counter-value { min-width: 24px; font-size: 1.2rem; }
     }
-    @media(max-width:400px){
-      .item-name{max-width:120px;}
-      .action-buttons{gap:15px;}
-      .action-btn{width:30px;height:30px;font-size:0.9rem;}
+    @media (max-width: 400px) {
+      .item-name { max-width: 120px; }
+      .action-buttons { gap: 15px; }
+      .action-btn { font-size: 0.8rem; padding: 0.4em 0.6em; }
     }
   </style>
 </head>
 <body>
 
   <div class="action-buttons">
-    <button class="action-btn master-check" onclick="toggleAllCheckboxes()">✓</button>
-    <button class="action-btn reset-btn"     onclick="resetAll()">🔄</button>
-    <button class="action-btn share-btn"     onclick="shareList()">⤴</button>
+    <button class="action-btn master-check" onclick="toggleAllCheckboxes()">
+      <span class="icon">✓</span><span class="btn-text">Toggle All</span>
+    </button>
+    <button class="action-btn reset-btn" onclick="resetAll()">
+      <span class="icon">🔄</span><span class="btn-text">Reset All</span>
+    </button>
+    <button class="action-btn share-btn" onclick="shareList()">
+      <span class="icon">⤴</span><span class="btn-text">Share</span>
+    </button>
   </div>
 
   <h1>My Grocery Lists</h1>
 
-  <!-- three categories -->
   <div class="table-container">
     <div class="table-header" id="veggies-header" onclick="toggleCollapse('veggies')">
       Veggies <button class="collapse-btn">▼</button>
     </div>
     <table id="veggies-table"><tbody id="veggies-items"></tbody></table>
-    <div class="add-row"><button class="add-btn" onclick="addRow('veggies')">+</button></div>
+    <div class="add-row">
+      <button class="add-btn" onclick="addRow('veggies')">+</button>
+    </div>
   </div>
 
   <div class="table-container">
@@ -266,7 +336,9 @@
       Grocery <button class="collapse-btn">▼</button>
     </div>
     <table id="grocery-table"><tbody id="grocery-items"></tbody></table>
-    <div class="add-row"><button class="add-btn" onclick="addRow('grocery')">+</button></div>
+    <div class="add-row">
+      <button class="add-btn" onclick="addRow('grocery')">+</button>
+    </div>
   </div>
 
   <div class="table-container">
@@ -274,215 +346,281 @@
       Indian Store <button class="collapse-btn">▼</button>
     </div>
     <table id="indian-table"><tbody id="indian-items"></tbody></table>
-    <div class="add-row"><button class="add-btn" onclick="addRow('indian')">+</button></div>
+    <div class="add-row">
+      <button class="add-btn" onclick="addRow('indian')">+</button>
+    </div>
   </div>
 
   <script>
-    // — state & defaults —
+    // — Data & state —
     const tables = {
-      veggies:{id:'veggies-items',collapsed:false},
-      grocery:{id:'grocery-items',collapsed:false},
-      indian: {id:'indian-items',collapsed:false}
+      veggies: { id: 'veggies-items', collapsed: false },
+      grocery: { id: 'grocery-items', collapsed: false },
+      indian:  { id: 'indian-items',  collapsed: false },
     };
+
     const defaultItems = {
-      veggies:[
+      veggies: [
         "टमाटर","Avocado","Pears","अदरक","कद्दू","केले","नींबू","पालक","पुदीना",
         "प्याज","बैंगन","भिंडी","मेथी","लाल सेब","शकरकंदी","हरा धनिया","हरे सेब",
         "खीरा","Avocado","Beans","Beetroot","Broccoli","Corn","Kiwi","अंगूर",
         "गाजर","तरबूज","पपीता","प्याज","लहसुन","लोकी","शिमला मिर्च",
         "संतरे (Kunal)","संतरे for जूस"
       ],
-      grocery:[
+      grocery: [
         "Bin bags","Bread","Buns","Chicken","Chicken Ng.","Detergent",
         "Dish Tablets","Dish. Liquid","Dish. Ringe.","Eggs","Full Cr. Milk",
         "Hard Butter","Kids Snack","Pizza Base","Pizza Cheese","Potato",
         "Pre-wash","Soft Butter","Sugar","Woolwash"
       ],
-      indian:["आटा","चावल","पोहा","दाल:","राई","दलिया","बेसन","सरसों तेल"]
+      indian: [
+        "आटा","चावल","पोहा","दाल:","राई","दलिया","बेसन","सरसों तेल"
+      ]
     };
-    let touchStartX=0, touchEndX=0, currentRow=null, deletedRows=[];
 
-    // — on load: restore or init —
-    document.addEventListener('DOMContentLoaded',()=>{
-      const storeStates = JSON.parse(localStorage.getItem('collapsedStates'))||{};
-      for(let name in tables){
-        tables[name].collapsed = storeStates[name]||false;
+    let touchStartX = 0,
+        touchEndX   = 0,
+        currentRow  = null,
+        deletedRows = [];
+
+    // — Attach swipe handlers to every <tr> on demand —
+    function setupSwipeHandlers() {
+      document.querySelectorAll('tr').forEach(row => {
+        row.addEventListener('touchstart', handleTouchStart, { passive: true });
+        row.addEventListener('touchmove',  handleTouchMove,  { passive: true });
+        row.addEventListener('touchend',   handleTouchEnd);
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      // Restore collapse states & data
+      const savedStates = JSON.parse(localStorage.getItem('collapsedStates')) || {};
+      for (let name in tables) {
+        tables[name].collapsed = savedStates[name] || false;
         updateCollapseUI(name);
 
-        let arr = JSON.parse(localStorage.getItem(name)||'[]');
-        const allPlaceholder = arr.length>0 && arr.every(i=>i.name.trim().toLowerCase()===name);
-        if(!arr.length||allPlaceholder){
-          arr = defaultItems[name].map(item=>({checked:false,count:"0",name:item}));
+        // If localStorage empty or only placeholder names, reinitialize defaults
+        let arr = JSON.parse(localStorage.getItem(name) || '[]');
+        const allPlaceholder = Array.isArray(arr) &&
+          arr.length > 0 &&
+          arr.every(i => i.name.trim().toLowerCase() === name);
+        if (!arr.length || allPlaceholder) {
+          arr = defaultItems[name].map(item => ({
+            checked: false,
+            count:   "0",
+            name:    item
+          }));
           localStorage.setItem(name, JSON.stringify(arr));
         }
         loadTable(name);
       }
+
+      // Now that all rows are in the DOM, wire up swipe
+      setupSwipeHandlers();
     });
 
-    // — collapse/expand —
-    function toggleCollapse(n){
-      tables[n].collapsed = !tables[n].collapsed;
-      updateCollapseUI(n);
-      const o={};
-      for(let k in tables) o[k]=tables[k].collapsed;
-      localStorage.setItem('collapsedStates', JSON.stringify(o));
+    // — Collapse / expand —
+    function toggleCollapse(name) {
+      tables[name].collapsed = !tables[name].collapsed;
+      updateCollapseUI(name);
+      const out = {};
+      for (let k in tables) out[k] = tables[k].collapsed;
+      localStorage.setItem('collapsedStates', JSON.stringify(out));
     }
-    function updateCollapseUI(n){
-      const tbl = document.getElementById(`${n}-table`);
-      const btn = document.querySelector(`#${n}-header .collapse-btn`);
-      if(tables[n].collapsed){
-        tbl.style.display='none'; btn.textContent='▶';
+    function updateCollapseUI(name) {
+      const tbl = document.getElementById(`${name}-table`);
+      const btn = document.querySelector(`#${name}-header .collapse-btn`);
+      if (tables[name].collapsed) {
+        tbl.style.display = 'none';
+        btn.textContent   = '▶';
       } else {
-        tbl.style.display='table'; btn.textContent='▼';
+        tbl.style.display = 'table';
+        btn.textContent   = '▼';
       }
     }
 
-    // — swipe delete & undo —
-    function handleTouchStart(e){
-      if(e.target.matches('.counter-btn, .row-checkbox, .item-name')) return;
-      touchStartX=e.changedTouches[0].screenX;
-      currentRow=e.target.closest('tr');
-      if(!currentRow.querySelector('.swipe-delete-indicator')){
-        const ind=document.createElement('div');
-        ind.className='swipe-delete-indicator'; ind.textContent='DELETE';
-        currentRow.style.position='relative';
+    // — Swipe to delete & undo —
+    function handleTouchStart(e) {
+      if (e.target.matches('.counter-btn, .row-checkbox, .item-name')) return;
+      touchStartX = e.changedTouches[0].screenX;
+      currentRow  = e.target.closest('tr');
+      if (!currentRow.querySelector('.swipe-delete-indicator')) {
+        const ind = document.createElement('div');
+        ind.className   = 'swipe-delete-indicator';
+        ind.textContent = 'DELETE';
+        currentRow.style.position = 'relative';
         currentRow.appendChild(ind);
       }
     }
-    function handleTouchMove(e){
-      if(!currentRow) return;
-      touchEndX=e.changedTouches[0].screenX;
-      const diff=touchStartX-touchEndX,thr=window.innerWidth*0.5;
-      if(diff>30){
-        const tx=Math.min(diff,thr);
-        currentRow.style.transform=`translateX(-${tx}px)`;
-        const ind=currentRow.querySelector('.swipe-delete-indicator');
-        if(ind) ind.style.right=`-${tx}px`;
+    function handleTouchMove(e) {
+      if (!currentRow) return;
+      touchEndX = e.changedTouches[0].screenX;
+      const diff  = touchStartX - touchEndX,
+            thr   = window.innerWidth * 0.5;
+      if (diff > 30) {
+        const tx = Math.min(diff, thr);
+        currentRow.style.transform = `translateX(-${tx}px)`;
+        const ind = currentRow.querySelector('.swipe-delete-indicator');
+        if (ind) ind.style.right = `-${tx}px`;
       }
     }
-    function handleTouchEnd(){
-      if(!currentRow) return;
-      const diff=touchStartX-touchEndX,thr=window.innerWidth*0.5;
-      if(diff>thr) deleteRowWithUndo(currentRow);
-      else {
-        currentRow.style.transform='';
-        const ind=currentRow.querySelector('.swipe-delete-indicator');
-        if(ind) ind.style.right='-100px';
+    function handleTouchEnd() {
+      if (!currentRow) return;
+      const diff = touchStartX - touchEndX,
+            thr  = window.innerWidth * 0.5;
+      if (diff > thr) {
+        deleteRowWithUndo(currentRow);
+      } else {
+        currentRow.style.transform = '';
+        const ind = currentRow.querySelector('.swipe-delete-indicator');
+        if (ind) ind.style.right = '-100px';
       }
-      currentRow=null;
+      currentRow = null;
     }
-    function deleteRowWithUndo(row){
-      const t=getTableNameFromRow(row);
+    function deleteRowWithUndo(row) {
+      const tableName = getTableNameFromRow(row);
       row.classList.add('swipe-delete');
-      const d={id:row.id, html:row.innerHTML, tableName:t,
-               index:Array.from(row.parentNode.children).indexOf(row)};
+      const d = {
+        id:        row.id,
+        html:      row.innerHTML,
+        tableName: tableName,
+        index:     Array.from(row.parentNode.children).indexOf(row)
+      };
       deletedRows.push(d);
       showUndoNotification();
-      setTimeout(()=>{
-        if(!d.undo){ row.remove(); saveTable(t); }
-      },300);
-    }
-    function showUndoNotification(){
-      const n=document.createElement('div');
-      n.className='undo-notification';
-      n.innerHTML=`Item deleted <button class="undo-btn" onclick="undoLastDelete()">UNDO</button>`;
-      document.body.appendChild(n);
-      setTimeout(()=>{
-        n.remove();
-        if(deletedRows.length && !deletedRows[deletedRows.length-1].undo){
-          const d=deletedRows.pop();
-          const r=document.getElementById(d.id);
-          if(r) r.remove();
+      setTimeout(() => {
+        if (!d.undo) {
+          row.remove();
+          saveTable(tableName);
         }
-      },5000);
+      }, 300);
     }
-    function undoLastDelete(){
-      if(!deletedRows.length) return;
-      const d=deletedRows.pop(); d.undo=true;
-      const tbody=document.getElementById(tables[d.tableName].id);
-      let r=document.getElementById(d.id);
-      if(r){
-        r.classList.remove('swipe-delete');
-        r.style.transform='';
-        const ind=r.querySelector('.swipe-delete-indicator');
-        if(ind) ind.style.right='-100px';
-        r.classList.add('undo-highlight');
-        setTimeout(()=>r.classList.remove('undo-highlight'),2000);
+    function showUndoNotification() {
+      const n = document.createElement('div');
+      n.className = 'undo-notification';
+      n.innerHTML = `Item deleted <button class="undo-btn" onclick="undoLastDelete()">UNDO</button>`;
+      document.body.appendChild(n);
+      setTimeout(() => {
+        n.remove();
+        // clean up if never undone
+        if (deletedRows.length && !deletedRows[deletedRows.length-1].undo) {
+          const d = deletedRows.pop();
+          const r = document.getElementById(d.id);
+          if (r) r.remove();
+        }
+      }, 5000);
+    }
+    function undoLastDelete() {
+      // remove notification immediately
+      document.querySelectorAll('.undo-notification').forEach(n => n.remove());
+      if (!deletedRows.length) return;
+      const d = deletedRows.pop();
+      d.undo = true;
+      const tbody = document.getElementById(tables[d.tableName].id);
+      let row = document.getElementById(d.id);
+      if (row) {
+        // still in DOM: just undo animation
+        row.classList.remove('swipe-delete');
+        row.style.transform = '';
+        const ind = row.querySelector('.swipe-delete-indicator');
+        if (ind) ind.style.right = '-100px';
+        row.classList.add('undo-highlight');
+        setTimeout(() => row.classList.remove('undo-highlight'), 2000);
       } else {
-        const nr=document.createElement('tr');
-        nr.id=d.id; nr.innerHTML=d.html;
-        if(d.index>=0 && d.index<tbody.children.length)
-          tbody.insertBefore(nr,tbody.children[d.index]);
-        else tbody.appendChild(nr);
+        // recreate
+        const nr = document.createElement('tr');
+        nr.id = d.id; nr.innerHTML = d.html;
+        if (d.index >= 0 && d.index < tbody.children.length) {
+          tbody.insertBefore(nr, tbody.children[d.index]);
+        } else {
+          tbody.appendChild(nr);
+        }
         nr.classList.add('undo-highlight');
-        setTimeout(()=>nr.classList.remove('undo-highlight'),2000);
-        // reattach
+        setTimeout(() => nr.classList.remove('undo-highlight'), 2000);
+        // reattach handlers
         nr.querySelector('.row-checkbox')
-          .addEventListener('change', ()=>toggleRow(nr.querySelector('.row-checkbox'),d.tableName));
-        const btns=nr.querySelectorAll('.counter-btn');
-        btns[0].addEventListener('click', ()=>changeCounter(btns[0],-1));
-        btns[1].addEventListener('click', ()=>changeCounter(btns[1], 1));
-        nr.addEventListener('touchstart', handleTouchStart,{passive:true});
-        nr.addEventListener('touchmove',  handleTouchMove,{passive:true});
+          .addEventListener('change', function(){ toggleRow(this, d.tableName) });
+        const btns = nr.querySelectorAll('.counter-btn');
+        btns[0].addEventListener('click', () => changeCounter(btns[0], -1));
+        btns[1].addEventListener('click', () => changeCounter(btns[1],  1));
+        nr.addEventListener('touchstart', handleTouchStart, {passive:true});
+        nr.addEventListener('touchmove',  handleTouchMove,  {passive:true});
         nr.addEventListener('touchend',   handleTouchEnd);
       }
     }
 
-    // — share only count>0 —
-    function shareList(){
-      let txt='';
-      for(let t in tables){
-        const arr=JSON.parse(localStorage.getItem(t)||'[]');
-        const pick=arr.filter(i=>parseInt(i.count,10)>0);
-        if(pick.length){
-          txt+=`${t.toUpperCase()}:\n`;
-          txt+=pick.map(i=>`${i.name} (${i.count})`).join('\n')+'\n\n';
+    // — Share only items with count>0 —
+    function shareList() {
+      let txt = '';
+      for (let t in tables) {
+        const arr = JSON.parse(localStorage.getItem(t) || '[]');
+        const pick = arr.filter(i => parseInt(i.count,10) > 0);
+        if (pick.length) {
+          txt += `${t.toUpperCase()}:\n`
+               + pick.map(i => `${i.name} (${i.count})`).join('\n')
+               + '\n\n';
         }
       }
-      txt=txt.trim();
-      if(!txt){alert('Nothing to share—no quantities above 0.');return;}
-      if(navigator.share){
-        navigator.share({title:'My Grocery List',text:txt,url:location.href})
-          .catch(()=>{copyToClipboard(txt);alert('Share failed—copied to clipboard.');});
+      txt = txt.trim();
+      if (!txt) {
+        alert('Nothing to share—no quantities above 0.');
+        return;
+      }
+      if (navigator.share) {
+        navigator.share({ title:'My Grocery List', text:txt, url:location.href })
+          .catch(() => {
+            copyToClipboard(txt);
+            alert('Share failed—copied to clipboard.');
+          });
       } else {
-        copyToClipboard(txt); alert('List copied to clipboard!');
+        copyToClipboard(txt);
+        alert('List copied to clipboard!');
       }
     }
-    function copyToClipboard(s){
-      const ta=document.createElement('textarea');
-      ta.value=s; document.body.appendChild(ta);
+    function copyToClipboard(s) {
+      const ta = document.createElement('textarea');
+      ta.value = s; document.body.appendChild(ta);
       ta.select(); document.execCommand('copy'); ta.remove();
     }
 
-    // — reset —
-    function resetAll(){
-      if(!confirm('Reset everything? Counts→0, uncheck all, expand all.')) return;
-      document.querySelectorAll('.row-checkbox').forEach(cb=>{
-        cb.checked=false; cb.closest('tr').classList.remove('checked');
+    // — Reset everything —
+    function resetAll() {
+      if (!confirm(
+        'Reset everything?\n\n' +
+        '- Counts → 0\n' +
+        '- Uncheck all\n' +
+        '- Expand all'
+      )) return;
+      document.querySelectorAll('.row-checkbox').forEach(cb => {
+        cb.checked = false;
+        cb.closest('tr').classList.remove('checked');
       });
-      document.querySelectorAll('.counter-value').forEach(sp=>sp.textContent='0');
-      document.querySelectorAll('.counter-btn').forEach(b=>b.disabled=(b.textContent==='-'));
-      document.querySelectorAll('.counter').forEach(c=>c.classList.remove('active'));
-      document.querySelectorAll('.item-name').forEach(nm=>nm.classList.remove('active'));
-      for(let t in tables){
-        tables[t].collapsed=false; updateCollapseUI(t);
+      document.querySelectorAll('.counter-value').forEach(sp => sp.textContent = '0');
+      document.querySelectorAll('.counter-btn').forEach(b => {
+        b.disabled = (b.textContent === '-');
+      });
+      document.querySelectorAll('.item-name').forEach(nm => nm.classList.remove('active'));
+      document.querySelectorAll('.counter').forEach(c => c.classList.remove('active'));
+      for (let t in tables) {
+        tables[t].collapsed = false;
+        updateCollapseUI(t);
         saveTable(t);
       }
       localStorage.removeItem('collapsedStates');
     }
 
-    // — add row —
-    function addRow(name){
-      const tbody=document.getElementById(tables[name].id);
-      const id='row-'+Date.now()+Math.random().toString(36).substr(2,9);
-      const tr=document.createElement('tr'); tr.id=id;
-      tr.innerHTML=`
+    // — Add a new row —
+    function addRow(name) {
+      const tbody = document.getElementById(tables[name].id);
+      const id    = 'row-' + Date.now() + Math.random().toString(36).substr(2,9);
+      const tr    = document.createElement('tr');
+      tr.id = id;
+      tr.innerHTML = `
         <td>
           <div class="row-content">
-            <input type="checkbox" class="row-checkbox"
-              onchange="toggleRow(this,'${name}')">
+            <input type="checkbox" class="row-checkbox" onchange="toggleRow(this,'${name}')">
             <input type="text" class="item-name" placeholder="Item name"
-              oninput="saveTable('${name}')">
+                   oninput="saveTable('${name}')">
             <div class="counter">
               <button class="counter-btn" onclick="changeCounter(this,-1)" disabled>-</button>
               <span class="counter-value">0</span>
@@ -491,26 +629,27 @@
           </div>
         </td>`;
       tbody.appendChild(tr);
-      tr.addEventListener('touchstart', handleTouchStart,{passive:true});
-      tr.addEventListener('touchmove',  handleTouchMove,{passive:true});
+      tr.addEventListener('touchstart', handleTouchStart, {passive:true});
+      tr.addEventListener('touchmove',  handleTouchMove,  {passive:true});
       tr.addEventListener('touchend',   handleTouchEnd);
       saveTable(name);
     }
 
-    // — change counter & highlight —
-    function changeCounter(btn, delta){
-      const counter=btn.parentElement;
-      const vs=counter.querySelector('.counter-value');
-      let v=parseInt(vs.textContent,10);
-      v=Math.max(0, Math.min(50, v+delta));
-      vs.textContent=v;
-      const [neg,pos]=counter.querySelectorAll('.counter-btn');
-      neg.disabled=(v<=0); pos.disabled=(v>=50);
+    // — Change count & highlight —
+    function changeCounter(btn, delta) {
+      const counter = btn.parentElement;
+      const vs      = counter.querySelector('.counter-value');
+      let   v       = parseInt(vs.textContent,10);
+      v = Math.max(0, Math.min(50, v + delta));
+      vs.textContent = v;
 
-      // persistent highlight if >0
-      const row=btn.closest('tr');
-      const nm=row.querySelector('.item-name');
-      if(v>0){
+      const [neg, pos] = counter.querySelectorAll('.counter-btn');
+      neg.disabled = (v <= 0);
+      pos.disabled = (v >= 50);
+
+      const row = btn.closest('tr');
+      const nm  = row.querySelector('.item-name');
+      if (v > 0) {
         nm.classList.add('active');
         counter.classList.add('active');
       } else {
@@ -521,77 +660,77 @@
       saveTable(getTableNameFromRow(row));
     }
 
-    // — toggle single row —
-    function toggleRow(cb,name){
-      const r=cb.closest('tr');
-      r.classList.toggle('checked',cb.checked);
+    // — Toggle one row —
+    function toggleRow(cb, name) {
+      const r = cb.closest('tr');
+      r.classList.toggle('checked', cb.checked);
       saveTable(name);
     }
 
-    // — toggle all —
-    function toggleAllCheckboxes(){
-      if(!confirm('Toggle all checkboxes?')) return;
-      const cbs=[...document.querySelectorAll('.row-checkbox')];
-      const any=cbs.some(cb=>cb.checked);
-      cbs.forEach(cb=>{
-        cb.checked=!any;
-        cb.closest('tr').classList.toggle('checked',cb.checked);
+    // — Toggle all —
+    function toggleAllCheckboxes() {
+      if (!confirm('Toggle all checkboxes?')) return;
+      const cbs = Array.from(document.querySelectorAll('.row-checkbox'));
+      const any = cbs.some(cb => cb.checked);
+      cbs.forEach(cb => {
+        cb.checked = !any;
+        cb.closest('tr').classList.toggle('checked', cb.checked);
       });
-      for(let t in tables) saveTable(t);
+      for (let t in tables) saveTable(t);
     }
 
-    // — save/load —
-    function saveTable(name){
-      const rows=[...document.getElementById(tables[name].id).querySelectorAll('tr')];
-      const out=rows.map(r=>({
+    // — Save / Load —
+    function saveTable(name) {
+      const rows = Array.from(document.getElementById(tables[name].id).querySelectorAll('tr'));
+      const out = rows.map(r => ({
         checked: r.querySelector('.row-checkbox').checked,
         count:   r.querySelector('.counter-value').textContent,
         name:    r.querySelector('.item-name').value
       }));
       localStorage.setItem(name, JSON.stringify(out));
     }
-    function loadTable(name){
-      const data=JSON.parse(localStorage.getItem(name)||'[]');
-      const tbody=document.getElementById(tables[name].id);
-      tbody.innerHTML='';
-      data.forEach(i=>{
-        const tr=document.createElement('tr');
-        tr.id='row-'+Date.now()+Math.random().toString(36).substr(2,9);
-        if(i.checked) tr.classList.add('checked');
-        tr.innerHTML=`
+    function loadTable(name) {
+      const data  = JSON.parse(localStorage.getItem(name) || '[]');
+      const tbody = document.getElementById(tables[name].id);
+      tbody.innerHTML = '';
+      data.forEach(item => {
+        const tr = document.createElement('tr');
+        tr.id = 'row-' + Date.now() + Math.random().toString(36).substr(2,9);
+        if (item.checked) tr.classList.add('checked');
+        tr.innerHTML = `
           <td>
             <div class="row-content">
               <input type="checkbox" class="row-checkbox"
-                onchange="toggleRow(this,'${name}')"
-                ${i.checked?'checked':''}>
+                     onchange="toggleRow(this,'${name}')"
+                     ${item.checked?'checked':''}>
               <input type="text" class="item-name"
-                value="${i.name.replace(/"/g,'&quot;')}"
-                oninput="saveTable('${name}')">
+                     value="${item.name.replace(/"/g,'&quot;')}"
+                     oninput="saveTable('${name}')">
               <div class="counter">
                 <button class="counter-btn" onclick="changeCounter(this,-1)"
-                  ${i.count<=0?'disabled':''}>-</button>
-                <span class="counter-value">${i.count}</span>
+                        ${item.count<=0?'disabled':''}>-</button>
+                <span class="counter-value">${item.count}</span>
                 <button class="counter-btn" onclick="changeCounter(this,1)"
-                  ${i.count>=50?'disabled':''}>+</button>
+                        ${item.count>=50?'disabled':''}>+</button>
               </div>
             </div>
           </td>`;
         tbody.appendChild(tr);
 
-        // persistent highlight on load
-        if(parseInt(i.count,10)>0){
+        if (parseInt(item.count,10) > 0) {
           tr.querySelector('.item-name').classList.add('active');
           tr.querySelector('.counter').classList.add('active');
         }
 
-        tr.addEventListener('touchstart', handleTouchStart,{passive:true});
-        tr.addEventListener('touchmove',  handleTouchMove,{passive:true});
+        tr.addEventListener('touchstart', handleTouchStart, {passive:true});
+        tr.addEventListener('touchmove',  handleTouchMove,  {passive:true});
         tr.addEventListener('touchend',   handleTouchEnd);
       });
     }
-    function getTableNameFromRow(row){
-      const tid=row.closest('tbody').id;
-      return Object.keys(tables).find(k=>tables[k].id===tid);
+
+    function getTableNameFromRow(row) {
+      const tid = row.closest('tbody').id;
+      return Object.keys(tables).find(k => tables[k].id === tid);
     }
   </script>
 </body>
