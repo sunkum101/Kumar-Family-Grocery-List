@@ -90,7 +90,7 @@ BigW:
     .actions button{padding:10px 14px;border:none;border-radius:12px;color:#fff;font-size:1rem;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.2)}
     .reset-btn{background:var(--btn2)} .share-btn{background:var(--btn3)} .checkzeros-btn{background:var(--btn4)}
 
-    .container{margin-bottom:30px;background:#fff;border-radius:4px;box-shadow:0 4px 12px rgba(0,0,0,0.05);overflow:hidden}
+    .container{margin-bottom:30px;background:#fff;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,0.05);overflow:hidden}
     .header{display:flex;justify-content:space-between;align-items:center;padding:12px;font-size:1.6rem;font-weight:bold;color:#fff;cursor:pointer}
     #veggies-header{background:var(--veg)} #grocery-header{background:var(--gro)} #indian-header{background:var(--ind)} #others-header{background:var(--oth)}
     .collapse-btn{font-size:2.4rem;transition:transform .3s;user-select:none}
@@ -208,7 +208,7 @@ BigW:
     function restoreCollapse(k){const hidden=localStorage.getItem(k+'-col')==='true';document.getElementById(k).style.display=hidden?'none':'';document.getElementById(lists[k].hdr).classList.toggle('collapsed',hidden);}
     function toggle(k){const ul=document.getElementById(k),hd=document.getElementById(lists[k].hdr),hidden=ul.style.display!=='none';ul.style.display=hidden?'none':'';hd.classList.toggle('collapsed',hidden);localStorage.setItem(k+'-col',hidden);}
     function fullReset(){document.cookie.split(';').forEach(c=>{document.cookie=c.replace(/=.*$/,'')+'=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/';});for(let k in lists){localStorage.removeItem(k);localStorage.removeItem(k+'-col');}location.reload();}
-    function shareList(){const now=new Date();const header=`${now.toLocaleDateString(undefined,{weekday:'long',year:'numeric',month:'short',day:'numeric'})} ${now.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'})}`;let text=header+"\n\n";for(let k in lists){const a=JSON.parse(localStorage.getItem(k)).filter(x=>x.count>0);if(a.length){text+=`${k.toUpperCase()}:\n`+a.map(x=>`${x.name} (${x.count})`).join('\n')+"\n\n";}}text=text.trim();if(!text)return alert('Nothing to share');if(navigator.share)navigator.share({text});else prompt('Copy:',text);}  
+    function shareList(){const now=new Date();const header=`${now.toLocaleDateString(undefined,{weekday:'long',year:'numeric',month:'short',day:'numeric'})} ${now.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'})}`;let text=header+"\n\n";for(let k in lists){const a=JSON.parse(localStorage.getItem(k)).filter(x=>x.count>0);if(a.length){text+=`${k.toUpperCase()}:\n`+a.map(x=>`${x.name} (${x.count})`).join('\n')+"\n\n";}}text=text.trim();if(!text)return alert('Nothing to share');if(navigator.share)navigator.share({text});else prompt('Copy:',text);}
     function checkZeros(){for(let k in lists){const a=JSON.parse(localStorage.getItem(k));a.forEach(x=>{if(x.count===0)x.checked=true});saveList(k,a);loadList(k);} }
     function editNamePrompt(el,k,i){
       const old=el.textContent;
@@ -236,7 +236,6 @@ BigW:
       a.push({name:'',count:0,checked:false});
       saveList(k,a);
       loadList(k);
-      // auto-edit the new item
       const ul=document.getElementById(k);
       const idx=a.length-1;
       const newLi=ul.lastElementChild;
