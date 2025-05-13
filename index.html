@@ -331,7 +331,19 @@ BigW:
     function toggle(k){const ul=document.getElementById(k), hd=document.getElementById(lists[k].hdr), hidden=ul.style.display!=='none';ul.style.display=hidden?'none':'';hd.classList.toggle('collapsed',hidden);localStorage.setItem(k+'-col',hidden);}    
     function fullReset(){document.cookie.split(';').forEach(c=>{document.cookie=c.replace(/=.*$/,'')+'=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/';});for(let k in lists){localStorage.removeItem(k);localStorage.removeItem(k+'-col');}location.reload();}    
     function shareList(){const now=new Date();const header=`${now.toLocaleDateString(undefined,{weekday:'long',year:'numeric',month:'short',day:'numeric'})} ${now.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'})}`;let text=header+"\n\n";for(let k in lists){const a=JSON.parse(localStorage.getItem(k)).filter(x=>x.count>0);if(a.length){text+=`${k.toUpperCase()}:\n`+a.map(x=>`${x.name} (${x.count})`).join('\n')+"\n\n";}}text=text.trim();if(!text)return alert('Nothing to share');if(navigator.share)navigator.share({text});else prompt('Copy:',text);}    
-    function checkZeros(){for(let k in lists){const a=JSON.parse(localStorage.getItem(k));const have=a.filter(x=>x.count>0), zero=a.filter(x=>x.count===0);saveList(k,have.concat(zero));loadList(k);} }    
+    function checkZeros(){
+      for(let k in lists){
+        const a = JSON.parse(localStorage.getItem(k));
+        // mark zeros as checked
+        a.forEach(item => { if(item.count === 0) item.checked = true; });
+        // keep original order but bring non-zeros first
+        const have = a.filter(x => x.count > 0);
+        const zero = a.filter(x => x.count === 0);
+        const out = have.concat(zero);
+        saveList(k, out);
+        loadList(k);
+      }
+    } }    
     function editNamePrompt(el,k,i){const old=el.textContent;const input=document.createElement('input');input.type='text';input.value=old;input.className='name active';input.style.width='100%';input.autofocus=true;el.replaceWith(input);input.focus();input.onblur=function(){const newVal=this.value.trim();const arr=JSON.parse(localStorage.getItem(k));if(newVal===''){arr.splice(i,1);}else{arr[i].name=newVal;}saveList(k,arr);loadList(k);};;input.onkeypress=function(e){if(e.key==='Enter')this.blur();};}    
     function addItem(k){const a=JSON.parse(localStorage.getItem(k));a.push({name:'',count:0,checked:false});saveList(k,a);loadList(k);const ul=document.getElementById(k),idx=a.length-1,newLi=ul.lastElementChild,nameDiv=newLi.querySelector('.name');editNamePrompt(nameDiv,k,idx);}    
   </script>
