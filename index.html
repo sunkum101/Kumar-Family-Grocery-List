@@ -97,7 +97,7 @@ BigW:
     .header.collapsed .collapse-btn{transform:rotate(-90deg)}
 
     ul{list-style:none;margin:0;padding:0}
-    li{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid #eee;background:#fff;font-size:1.8rem;transition:background .3s}
+    li{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border-bottom:1px solid #eee;background:#fff;font-size:1.8rem;transition:background .3s}
     li:last-child{border-bottom:none}
     li.checked{background:var(--check);color:#666}
     li.checked .name{background:var(--check);text-decoration:line-through;opacity:.7}
@@ -206,15 +206,16 @@ BigW:
     function changeCount(k,i,d){const a=JSON.parse(localStorage.getItem(k));let v=a[i].count+d;v=Math.max(0,Math.min(50,v));a[i].count=v;saveList(k,a);loadList(k);}
     function restoreCollapse(k){const hidden=localStorage.getItem(k+'-col')==='true';document.getElementById(k).style.display=hidden?'none':'';document.getElementById(lists[k].hdr).classList.toggle('collapsed',hidden);}
     function toggle(k){const ul=document.getElementById(k),hd=document.getElementById(lists[k].hdr),hidden=ul.style.display!=='none';ul.style.display=hidden?'none':'';hd.classList.toggle('collapsed',hidden);localStorage.setItem(k+'-col',hidden);}
-    function fullReset(){document.cookie.split(';').forEach(c=>{document.cookie=c.replace(/=.*/,'')+'=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/';});for(let k in lists){localStorage.removeItem(k);localStorage.removeItem(k+'-col');}location.reload();}
-    function shareList(){const now=new Date();const header=`${now.toLocaleDateString(undefined,{weekday:'long',year:'numeric',month:'short',day:'numeric'})} ${now.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'})}`;let text=header+"\n\n";for(let k in lists){const a=JSON.parse(localStorage.getItem(k)).filter(x=>x.count>0);if(a.length){text+=`${k.toUpperCase()}:\n`+a.map(x=>`${x.name} (${x.count})`).join('\n')+"\n\n";}}text=text.trim();if(!text)return alert('Nothing to share');if(navigator.share)navigator.share({text});else prompt('Copy:',text);}  
+    function fullReset(){document.cookie.split(';').forEach(c=>{document.cookie=c.replace(/=.*$/,'')+'=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/';});for(let k in lists){localStorage.removeItem(k);localStorage.removeItem(k+'-col');}location.reload();}
+    function shareList(){const now=new Date();const header=`${now.toLocaleDateString(undefined,{weekday:'long',year:'numeric',month:'short',day:'numeric'})} ${now.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'})}`;let text=header+"\n\n";for(let k in lists){const a=JSON.parse(localStorage.getItem(k)).filter(x=>x.count>0);if(a.length){text+=`${k.toUpperCase()}:\n`+a.map(x=>`${x.name} (${x.count})`).join('\n')+"\n\n";}}text=text.trim();if(!text)return alert('Nothing to share');if(navigator.share)navigator.share({text});else prompt('Copy:',text);}
     function checkZeros(){for(let k in lists){const a=JSON.parse(localStorage.getItem(k));a.forEach(x=>{if(x.count===0)x.checked=true});saveList(k,a);loadList(k);} }
     function editNamePrompt(el,k,i){
       const old=el.textContent;
       const input=document.createElement('input');
       input.type='text'; input.value=old;
       input.className='name active'; input.style.width='100%';
-      el.replaceWith(input); input.focus();
+      el.replaceWith(input);
+      input.focus();
       input.onblur=function(){
         const newVal=this.value;
         const arr=JSON.parse(localStorage.getItem(k));
@@ -223,8 +224,18 @@ BigW:
       };
       input.onkeypress=function(e){ if(e.key==='Enter') this.blur(); };
     }
-    function reorderAll(){ /* no-op replaced by checkZeros */ }
-    function addItem(k){const a=JSON.parse(localStorage.getItem(k));a.push({name:'',count:0,checked:false});saveList(k,a);loadList(k);}  
+    function addItem(k){
+      const a=JSON.parse(localStorage.getItem(k));
+      a.push({name:'',count:0,checked:false});
+      saveList(k,a);
+      loadList(k);
+      // auto-edit the new item
+      const ul=document.getElementById(k);
+      const idx=a.length-1;
+      const newLi=ul.lastElementChild;
+      const nameDiv=newLi.querySelector('.name');
+      editNamePrompt(nameDiv, k, idx);
+    }
   </script>
 </body>
 </html>
