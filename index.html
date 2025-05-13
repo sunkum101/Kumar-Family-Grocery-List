@@ -97,13 +97,13 @@ BigW:
     .header.collapsed .collapse-btn{transform:rotate(-90deg)}
 
     ul{list-style:none;margin:0;padding:0}
-    li{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border-bottom:1px solid #eee;background:#fff;font-size:1.8rem;transition:background .3s}
+    li{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid #eee;background:#fff;font-size:1.8rem;transition:background .3s}
     li:last-child{border-bottom:none}
     li.checked{background:var(--check);color:#666}
     li.checked .name{background:var(--check);text-decoration:line-through;opacity:.7}
 
-    input[type="checkbox"]{width:28px;height:28px;cursor:pointer;margin-top:6px}
-    .name{flex:1;min-width:0;font-size:1.8rem;line-height:1.4;white-space:pre-wrap;word-wrap:break-word;border:none;background:transparent;resize:none;overflow:hidden;font-family:inherit;}
+    input[type="checkbox"]{width:28px;height:28px;cursor:pointer}
+    .name{flex:1;min-width:0;font-size:1.8rem;line-height:1.4;white-space:normal;word-wrap:break-word;border:none;background:transparent;resize:none;overflow:hidden;font-family:inherit;}
     .name.active{background:var(--h);font-weight:bold;border-radius:4px}
     .name:focus{outline:none}
 
@@ -175,7 +175,7 @@ BigW:
             .getPropertyValue(`--${clr}`).trim();
       });
       for(let k in lists){
-        if(localStorage.getItem(k)===null){
+        if(!localStorage.getItem(k)){
           localStorage.setItem(k,
             JSON.stringify(lists[k].def.map(name=>({name,count:0,checked:false})))
           );
@@ -185,24 +185,25 @@ BigW:
       }
     });
 
-    function autoResize(el){ el.style.height='auto'; el.style.height=el.scrollHeight+'px'; }
     function loadList(k){
       const arr=JSON.parse(localStorage.getItem(k)||'[]'), ul=document.getElementById(k);
       ul.innerHTML='';
       arr.forEach((it,i)=>{
         const li=document.createElement('li');
-        li.innerHTML=`<input type="checkbox"${it.checked?' checked':''} onchange="toggleItem('${k}',${i},this.checked)">` +
-          `<textarea class="name${it.count>0?' active':''}" oninput="editName('${k}',${i},this.value);autoResize(this)">${it.name}</textarea>` +
-          `<div class="counter${it.count>0?' active':''}"><button onclick="changeCount('${k}',${i},-1)">-</button>` +
-          `<span class="count">${it.count}</span><button onclick="changeCount('${k}',${i},1)">+</button></div>`;
+        li.innerHTML=`
+          <input type="checkbox"${it.checked?' checked':''} onchange="toggleItem('${k}',${i},this.checked)">
+          <div class="name${it.count>0?' active':''}" style="white-space:pre-wrap">${it.name}</div>
+          <div class="counter${it.count>0?' active':''}">
+            <button onclick="changeCount('${k}',${i},-1)">-</button>
+            <span class="count">${it.count}</span>
+            <button onclick="changeCount('${k}',${i},1)">+</button>
+          </div>`;
         if(it.checked) li.classList.add('checked');
         ul.appendChild(li);
-        const ta=li.querySelector('textarea'); autoResize(ta);
       });
     }
     function saveList(k,a){localStorage.setItem(k,JSON.stringify(a));}
     function toggleItem(k,i,v){const a=JSON.parse(localStorage.getItem(k));a[i].checked=v;saveList(k,a);loadList(k);}
-    function editName(k,i,v){const a=JSON.parse(localStorage.getItem(k));a[i].name=v;saveList(k,a);}
     function changeCount(k,i,d){const a=JSON.parse(localStorage.getItem(k));let v=a[i].count+d;v=Math.max(0,Math.min(50,v));a[i].count=v;saveList(k,a);loadList(k);}
     function restoreCollapse(k){const hidden=localStorage.getItem(k+'-col')==='true';document.getElementById(k).style.display=hidden?'none':'';document.getElementById(lists[k].hdr).classList.toggle('collapsed',hidden);}
     function toggle(k){const ul=document.getElementById(k),hd=document.getElementById(lists[k].hdr),hidden=ul.style.display!=='none';ul.style.display=hidden?'none':'';hd.classList.toggle('collapsed',hidden);localStorage.setItem(k+'-col',hidden);}
