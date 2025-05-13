@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>Kumar Family Grocery</title>
 
+  <!-- Default lists: one item per line -->
   <script>
     const defaultVeggiesText = `
 लाल सेब
@@ -89,7 +90,7 @@ BigW:
     .actions button{padding:10px 14px;border:none;border-radius:12px;color:#fff;font-size:1rem;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.2)}
     .reset-btn{background:var(--btn2)}.share-btn{background:var(--btn3)}.reorder-btn{background:var(--btn4)}
 
-    .container{margin-bottom:30px;background:#fff;border-radius:4px;box-shadow:0 4px 12px rgba(0,0,0,0.05);overflow:hidden;position:relative}
+    .container{margin-bottom:30px;background:#fff;border-radius:4px;box-shadow:0 4px 12px rgba(0,0,0,0.05);overflow:hidden;}
     .header{display:flex;justify-content:space-between;align-items:center;padding:12px;font-size:1.6rem;font-weight:bold;color:#fff;cursor:pointer}
     #veggies-header{background:var(--veg)}#grocery-header{background:var(--gro)}#indian-header{background:var(--ind)}#others-header{background:var(--oth)}
     .collapse-btn{font-size:2.4rem;transition:transform .3s;user-select:none}
@@ -101,8 +102,8 @@ BigW:
     li.checked{background:var(--check);color:#666}
     li.checked .name{background:var(--check);text-decoration:line-through;opacity:.7}
 
-    input[type="checkbox"]{width:28px;height:28px;cursor:pointer;margin-top:4px}
-    .name{flex:1;min-width:0;font-size:1.8rem;line-height:1.4;white-space:normal;word-wrap:break-word;border:none;background:transparent;resize:none;overflow:hidden;}
+    input[type="checkbox"]{width:28px;height:28px;cursor:pointer;margin-top:6px}
+    .name{flex:1;min-width:0;font-size:1.8rem;line-height:1.4;white-space:pre-wrap;word-wrap:break-word;border:none;background:transparent;resize:none;overflow:hidden;font-family:inherit;}
     .name.active{background:var(--h);font-weight:bold;border-radius:4px}
     .name:focus{outline:none}
 
@@ -166,7 +167,7 @@ BigW:
       others: { el:'others',  hdr:'others-header',  def: defaultOthersText.split(/\r?\n/) }
     };
 
-    document.addEventListener('DOMContentLoaded',()=>{
+    document.addEventListener('DOMContentLoaded', ()=>{
       document.querySelectorAll('.container').forEach(div=>{
         const clr=div.dataset.color;
         div.querySelector('.add-btn').style.background=
@@ -184,7 +185,21 @@ BigW:
       }
     });
 
-    function loadList(k){const arr=JSON.parse(localStorage.getItem(k)||'[]'),ul=document.getElementById(k);ul.innerHTML='';arr.forEach((it,i)=>{const li=document.createElement('li');li.innerHTML=`<input type="checkbox"${it.checked?' checked':''} onchange="toggleItem('${k}',${i},this.checked)"><textarea class="name${it.count>0?' active':''}" rows="1" oninput="editName('${k}',${i},this.value)">${it.name.replace(/&/g,'&amp;')}</textarea><div class="counter${it.count>0?' active':''}"><button onclick="changeCount('${k}',${i},-1)">-</button><span class="count">${it.count}</span><button onclick="changeCount('${k}',${i},1)">+</button></div>`;if(it.checked)li.classList.add('checked');ul.appendChild(li);});}
+    function autoResize(el){ el.style.height='auto'; el.style.height=el.scrollHeight+'px'; }
+    function loadList(k){
+      const arr=JSON.parse(localStorage.getItem(k)||'[]'), ul=document.getElementById(k);
+      ul.innerHTML='';
+      arr.forEach((it,i)=>{
+        const li=document.createElement('li');
+        li.innerHTML=`<input type="checkbox"${it.checked?' checked':''} onchange="toggleItem('${k}',${i},this.checked)">` +
+          `<textarea class="name${it.count>0?' active':''}" oninput="editName('${k}',${i},this.value);autoResize(this)">${it.name}</textarea>` +
+          `<div class="counter${it.count>0?' active':''}"><button onclick="changeCount('${k}',${i},-1)">-</button>` +
+          `<span class="count">${it.count}</span><button onclick="changeCount('${k}',${i},1)">+</button></div>`;
+        if(it.checked) li.classList.add('checked');
+        ul.appendChild(li);
+        const ta=li.querySelector('textarea'); autoResize(ta);
+      });
+    }
     function saveList(k,a){localStorage.setItem(k,JSON.stringify(a));}
     function toggleItem(k,i,v){const a=JSON.parse(localStorage.getItem(k));a[i].checked=v;saveList(k,a);loadList(k);}
     function editName(k,i,v){const a=JSON.parse(localStorage.getItem(k));a[i].name=v;saveList(k,a);}
@@ -192,7 +207,7 @@ BigW:
     function restoreCollapse(k){const hidden=localStorage.getItem(k+'-col')==='true';document.getElementById(k).style.display=hidden?'none':'';document.getElementById(lists[k].hdr).classList.toggle('collapsed',hidden);}
     function toggle(k){const ul=document.getElementById(k),hd=document.getElementById(lists[k].hdr),hidden=ul.style.display!=='none';ul.style.display=hidden?'none':'';hd.classList.toggle('collapsed',hidden);localStorage.setItem(k+'-col',hidden);}
     function fullReset(){document.cookie.split(';').forEach(c=>{document.cookie=c.replace(/=.*/,'')+'=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/';});for(let k in lists){localStorage.removeItem(k);localStorage.removeItem(k+'-col');}location.reload();}
-    function shareList(){const now=new Date();const header=`${now.toLocaleDateString(undefined,{weekday:'long',year:'numeric',month:'short',day:'numeric'})} ${now.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'})}`;let text=header+"\n\n";for(let k in lists){const a=JSON.parse(localStorage.getItem(k)).filter(x=>x.count>0);if(a.length){text+=`${k.toUpperCase()}:\n`+a.map(x=>`${x.name} (${x.count})`).join('\n')+"\n\n";}}text=text.trim();if(!text)return alert('Nothing to share');if(navigator.share)navigator.share({text});else prompt('Copy:',text);}function reorderAll(){for(let k in lists){const a=JSON.parse(localStorage.getItem(k)),have=a.filter(x=>x.count>0),zero=a.filter(x=>x.count===0).map(x=>(x.checked=true,x)),out=have.concat(zero);saveList(k,out);loadList(k);}}function addItem(k){const a=JSON.parse(localStorage.getItem(k));a.push({name:'',count:0,checked:false});saveList(k,a);loadList(k);}  
+    function shareList(){const now=new Date();const header=`${now.toLocaleDateString(undefined,{weekday:'long',year:'numeric',month:'short',day:'numeric'})} ${now.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'})}`;let text=header+"\n\n";for(let k in lists){const a=JSON.parse(localStorage.getItem(k)).filter(x=>x.count>0);if(a.length){text+=`${k.toUpperCase()}:\n`+a.map(x=>`${x.name} (${x.count})`).join('\n')+"\n\n";}}text=text.trim();if(!text)return alert('Nothing to share');if(navigator.share)navigator.share({text});else prompt('Copy:',text);}function reorderAll(){for(let k in lists){const a=JSON.parse(localStorage.getItem(k)),have=a.filter(x=>x.count>0),zero=a.filter(x=>x.count===0).map(x=>(x.checked=true,x)),out=have.concat(zero);saveList(k,out);loadList(k);} }function addItem(k){const a=JSON.parse(localStorage.getItem(k));a.push({name:'',count:0,checked:false});saveList(k,a);loadList(k);}  
   </script>
 </body>
 </html>
