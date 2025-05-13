@@ -105,6 +105,7 @@ BigW:
     input[type="checkbox"]{width:28px;height:28px;cursor:pointer;margin-top:4px}
     .name{flex:1;min-width:0;font-size:1.8rem;line-height:1.4;white-space:pre-wrap;word-wrap:break-word;border:none;background:transparent;font-family:inherit;cursor:text}
     .name.active{background:var(--h);font-weight:bold;border-radius:4px}
+    input.name:focus{caret-color:#000;outline:none}
 
     .counter{display:flex;align-items:center;gap:8px;transition:background .3s}
     .counter.active{background:var(--h);border-radius:20px;padding:4px 8px}
@@ -207,19 +208,25 @@ BigW:
     function restoreCollapse(k){const hidden=localStorage.getItem(k+'-col')==='true';document.getElementById(k).style.display=hidden?'none':'';document.getElementById(lists[k].hdr).classList.toggle('collapsed',hidden);}
     function toggle(k){const ul=document.getElementById(k),hd=document.getElementById(lists[k].hdr),hidden=ul.style.display!=='none';ul.style.display=hidden?'none':'';hd.classList.toggle('collapsed',hidden);localStorage.setItem(k+'-col',hidden);}
     function fullReset(){document.cookie.split(';').forEach(c=>{document.cookie=c.replace(/=.*$/,'')+'=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/';});for(let k in lists){localStorage.removeItem(k);localStorage.removeItem(k+'-col');}location.reload();}
-    function shareList(){const now=new Date();const header=`${now.toLocaleDateString(undefined,{weekday:'long',year:'numeric',month:'short',day:'numeric'})} ${now.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'})}`;let text=header+"\n\n";for(let k in lists){const a=JSON.parse(localStorage.getItem(k)).filter(x=>x.count>0);if(a.length){text+=`${k.toUpperCase()}:\n`+a.map(x=>`${x.name} (${x.count})`).join('\n')+"\n\n";}}text=text.trim();if(!text)return alert('Nothing to share');if(navigator.share)navigator.share({text});else prompt('Copy:',text);}
+    function shareList(){const now=new Date();const header=`${now.toLocaleDateString(undefined,{weekday:'long',year:'numeric',month:'short',day:'numeric'})} ${now.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'})}`;let text=header+"\n\n";for(let k in lists){const a=JSON.parse(localStorage.getItem(k)).filter(x=>x.count>0);if(a.length){text+=`${k.toUpperCase()}:\n`+a.map(x=>`${x.name} (${x.count})`).join('\n')+"\n\n";}}text=text.trim();if(!text)return alert('Nothing to share');if(navigator.share)navigator.share({text});else prompt('Copy:',text);}  
     function checkZeros(){for(let k in lists){const a=JSON.parse(localStorage.getItem(k));a.forEach(x=>{if(x.count===0)x.checked=true});saveList(k,a);loadList(k);} }
     function editNamePrompt(el,k,i){
       const old=el.textContent;
       const input=document.createElement('input');
       input.type='text'; input.value=old;
       input.className='name active'; input.style.width='100%';
+      input.autofocus = true;
       el.replaceWith(input);
       input.focus();
       input.onblur=function(){
-        const newVal=this.value;
+        const newVal=this.value.trim();
         const arr=JSON.parse(localStorage.getItem(k));
-        arr[i].name=newVal; localStorage.setItem(k,JSON.stringify(arr));
+        if(newVal===''){
+          arr.splice(i,1);
+        } else {
+          arr[i].name=newVal;
+        }
+        localStorage.setItem(k,JSON.stringify(arr));
         loadList(k);
       };
       input.onkeypress=function(e){ if(e.key==='Enter') this.blur(); };
