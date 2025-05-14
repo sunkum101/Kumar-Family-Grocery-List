@@ -14,7 +14,6 @@ Broccoli
 हरा धनिया
 मेथी
 पालक
-पुदीना
 Beans
 खीरा
 लहसुन
@@ -102,7 +101,7 @@ BigW:
     li.checked{background:var(--check);color:#666}
     li.checked .name{background:var(--check);text-decoration:line-through;opacity:.7}
 
-    input[type="checkbox"]{width:28px;height:28px;cursor:pointer;margin-top:4px}
+    input[type="checkbox"]{width:28px;height:28px;cursor:pointer;margin-top:4px;accent-color:#666}
     .name{flex:1;min-width:0;font-size:1.8rem;line-height:1.4;white-space:pre-wrap;word-wrap:break-word;border:none;background:transparent;font-family:inherit;cursor:text}
     .name.active{background:var(--h);font-weight:bold;border-radius:4px}
     input.name:focus{caret-color:#000;outline:none}
@@ -320,8 +319,15 @@ BigW:
     function checkZeros(){
       for(let k in lists){
         const a=JSON.parse(localStorage.getItem(k));
-        a.forEach(x=>{if(x.count===0)x.checked=true});
-        saveList(k,a);
+        // First mark all zero items as checked
+        a.forEach(x => { if(x.count === 0) x.checked = true });
+        
+        // Reorder the array - non-zero items first, zero items last (preserving original order)
+        const nonZeroItems = a.filter(x => x.count > 0);
+        const zeroItems = a.filter(x => x.count === 0);
+        const reordered = [...nonZeroItems, ...zeroItems];
+        
+        saveList(k, reordered);
         loadList(k);
       }
     }
