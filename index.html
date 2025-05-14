@@ -85,6 +85,13 @@ BigW:
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     body{font:20px 'Segoe UI',sans-serif;background:#f5f7fa;padding:20px}
     h1{text-align:center;margin:20px 0;font-size:2rem;color:#333}
+    .date-time {
+      text-align: center;
+      font-size: 0.8rem;
+      color: #666;
+      margin-top: -15px;
+      margin-bottom: 20px;
+    }
     .actions{display:flex;justify-content:center;gap:12px;margin-bottom:20px}
     .actions button{padding:10px 14px;border:none;border-radius:12px;color:#fff;font-size:1rem;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.2)}
     .reset-btn{background:var(--btn2)} .share-btn{background:var(--btn3)} .checkzeros-btn{background:var(--btn4)}
@@ -185,6 +192,7 @@ BigW:
   </div>
 
   <h1>Kumar Family Grocery</h1>
+  <div class="date-time" id="currentDateTime"></div>
 
   <div class="container" data-color="veg">
     <div id="veggies-header" class="header" onclick="toggle('veggies')">
@@ -238,7 +246,26 @@ BigW:
       others: { el:'others',  hdr:'others-header',  def: defaultOthersText.split(/\r?\n/) }
     };
 
+    function updateDateTime() {
+      const now = new Date();
+      const options = { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      };
+      const dateTimeStr = now.toLocaleDateString(undefined, options);
+      document.getElementById('currentDateTime').textContent = `(${dateTimeStr})`;
+    }
+
     document.addEventListener('DOMContentLoaded',()=>{
+      updateDateTime();
+      // Update time every minute
+      setInterval(updateDateTime, 60000);
+      
       document.querySelectorAll('.container').forEach(div=>{
         const clr=div.dataset.color;
         div.querySelector('.add-btn').style.background=
@@ -248,7 +275,7 @@ BigW:
       for(let k in lists){
         if(!localStorage.getItem(k)){
           localStorage.setItem(k,
-            JSON.stringify(lists[k].def.map(name=>({name,count:0,checked:false})))
+            JSON.stringify(lists[k].def.map(name=>({name,count:0,checked:false}))
           );
         }
         loadList(k);
