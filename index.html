@@ -105,9 +105,10 @@ BigW:
     li.checked .name{background:var(--check);text-decoration:line-through;opacity:.7}
 
     input[type="checkbox"]{width:28px;height:28px;cursor:pointer;margin-top:4px;accent-color:#666}
-    .name{flex:1;min-width:0;font-size:1.8rem;line-height:1.4;white-space:pre-wrap;word-wrap:break-word;border:none;background:transparent;font-family:inherit;cursor:text}
+    .name{flex:1;min-width:0;font-size:1.8rem;line-height:1.4;white-space:pre-wrap;word-wrap:break-word;border:none;background:transparent;font-family:inherit;cursor:text;user-select:none}
     .name.active{background:var(--h);font-weight:bold;border-radius:4px}
     input.name:focus{caret-color:#000;outline:none}
+    input.name{user-select:text}
 
     .counter{display:flex;align-items:center;gap:8px;transition:background .3s}
     .counter.active{background:var(--h);border-radius:20px;padding:4px 8px}
