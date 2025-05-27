@@ -88,10 +88,33 @@ BigW:
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     body{font:20px 'Segoe UI',sans-serif;background:#f5f7fa;padding:20px}
     h1{text-align:center;margin:20px 0;font-size:2rem;color:#333}
-    .actions{display:flex;justify-content:center;gap:12px;margin-bottom:20px}
-    .actions button{padding:10px 14px;border:none;border-radius:12px;color:#fff;font-size:1rem;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.2)}
+    .actions{display:flex;justify-content:center;gap:10px;margin-bottom:20px}
+    .actions button{padding:8px 12px;border:none;border-radius:10px;color:#fff;font-size:0.9rem;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,0.2)}
     .reset-btn{background:var(--btn2)} .share-btn{background:var(--btn3)} .checkzeros-btn{background:var(--btn4)}
 
+    /* Floating Check Zeros button */
+    .floating-checkzeros {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      padding: 10px 15px;
+      background: var(--btn4);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      z-index: 100;
+      display: none;
+      transition: all 0.3s ease;
+    }
+    .floating-checkzeros:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+
+    /* Rest of your existing styles... */
     .container{margin-bottom:30px;background:#fff;border-radius:4px;box-shadow:0 4px 12px rgba(0,0,0,0.05);overflow:hidden}
     .header{display:flex;justify-content:space-between;align-items:center;padding:12px;font-size:1.6rem;font-weight:bold;color:#fff;cursor:pointer}
     #veggies-header{background:var(--veg)} #grocery-header{background:var(--gro)} #indian-header{background:var(--ind)} #others-header{background:var(--oth)}
@@ -177,6 +200,16 @@ BigW:
       li,.name,.counter span.count{font-size:1.6rem}
       .counter button{width:28px;height:28px}
       .add-btn{width:36px;height:36px;font-size:1.4rem;margin:12px 12px}
+      .actions button {
+        padding: 6px 10px;
+        font-size: 0.8rem;
+      }
+      .floating-checkzeros {
+        padding: 8px 12px;
+        font-size: 0.8rem;
+        bottom: 15px;
+        right: 15px;
+      }
     }
   </style>
 </head>
@@ -188,9 +221,13 @@ BigW:
     <button class="checkzeros-btn" onclick="checkZeros()">☑ Check Zeros</button>
   </div>
 
+  <!-- Floating Check Zeros Button -->
+  <button class="floating-checkzeros" onclick="checkZeros()">☑ Check Zeros</button>
+
   <h1>Kumar Family Grocery</h1>
   <div style="text-align:center;font-size:1.1rem;color:#555;margin-top:-10px;margin-bottom:15px;font-weight:500;" id="currentDateTime"></div>
   
+  <!-- Rest of your HTML content... -->
   <div class="container" data-color="veg">
     <div id="veggies-header" class="header" onclick="toggle('veggies')">
       Veggies <span class="collapse-btn">▾</span>
@@ -236,6 +273,17 @@ BigW:
   </div>
 
   <script>
+    // Add scroll event listener for floating button
+    window.addEventListener('scroll', function() {
+      const floatingBtn = document.querySelector('.floating-checkzeros');
+      if (window.scrollY > 100) {
+        floatingBtn.style.display = 'block';
+      } else {
+        floatingBtn.style.display = 'none';
+      }
+    });
+
+    // Rest of your JavaScript...
     const lists = {
       veggies: { el:'veggies', hdr:'veggies-header', def: defaultVeggiesText.split(/\r?\n/) },
       grocery:{ el:'grocery', hdr:'grocery-header', def: defaultGroceryText.split(/\r?\n/) },
@@ -262,14 +310,14 @@ BigW:
     });
 
     function updateDateTime() {
-    const now = new Date();
-    document.getElementById('currentDateTime').textContent = 
-      `${now.toLocaleDateString('en-US', { weekday: 'long' })}, 
-      ${now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} 
-      • ${now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}`;
-  }
-  updateDateTime();
-  setInterval(updateDateTime, 60000);
+      const now = new Date();
+      document.getElementById('currentDateTime').textContent = 
+        `${now.toLocaleDateString('en-US', { weekday: 'long' })}, 
+        ${now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} 
+        • ${now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}`;
+    }
+    updateDateTime();
+    setInterval(updateDateTime, 60000);
     
     function loadList(k){
       const arr=JSON.parse(localStorage.getItem(k)||'[]'), ul=document.getElementById(k);
@@ -288,6 +336,28 @@ BigW:
         ul.appendChild(li);
       });
     }
+    
+    function checkZeros() {
+      for (let k in lists) {
+        const a = JSON.parse(localStorage.getItem(k));
+        
+        // Mark zero-count items as checked
+        a.forEach(x => { 
+          if (x.count === 0) x.checked = true;
+        });
+        
+        // Reorder: non-checked items first, then checked items
+        // while preserving original order within each group
+        const nonCheckedItems = a.filter(x => !x.checked);
+        const checkedItems = a.filter(x => x.checked);
+        const reordered = [...nonCheckedItems, ...checkedItems];
+        
+        saveList(k, reordered);
+        loadList(k);
+      }
+    }
+    
+    // Rest of your existing JavaScript functions...
     function saveList(k,a){localStorage.setItem(k,JSON.stringify(a));}
     function toggleItem(k,i,v){const a=JSON.parse(localStorage.getItem(k));a[i].checked=v;saveList(k,a);loadList(k);}
     function changeCount(k,i,d){const a=JSON.parse(localStorage.getItem(k));let v=a[i].count+d;v=Math.max(0,Math.min(50,v));a[i].count=v;saveList(k,a);loadList(k);}
@@ -297,7 +367,6 @@ BigW:
     function fullReset(){
       const dialog = document.getElementById('confirmDialog');
       dialog.style.display = 'flex';
-      // Focus the No button by default
       setTimeout(() => dialog.querySelector('.confirm-no').focus(), 10);
     }
     
@@ -331,26 +400,6 @@ BigW:
       else prompt('Copy:',text);
     }  
     
-    function checkZeros(){
-    for(let k in lists){
-      const a = JSON.parse(localStorage.getItem(k));
-      
-      // First mark all zero items as checked
-      a.forEach(x => { 
-        if(x.count === 0) x.checked = true;
-      });
-      
-      // Create new arrays - non-checked first, then checked
-      // while preserving original order within each group
-      const nonCheckedItems = a.filter(x => !x.checked);
-      const checkedItems = a.filter(x => x.checked);
-      const reordered = [...nonCheckedItems, ...checkedItems];
-      
-      saveList(k, reordered);
-      loadList(k);
-    }
-  }
-    
     function editNamePrompt(el,k,i){
       const old=el.textContent;
       const input=document.createElement('input');
@@ -378,7 +427,6 @@ BigW:
       a.push({name:'',count:0,checked:false});
       saveList(k,a);
       loadList(k);
-      // auto-edit the new item
       const ul=document.getElementById(k);
       const idx=a.length-1;
       const newLi=ul.lastElementChild;
