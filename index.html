@@ -333,15 +333,18 @@ BigW:
     
     function checkZeros(){
     for(let k in lists){
-      const a=JSON.parse(localStorage.getItem(k));
-      // First mark all zero items as checked
-      a.forEach(x => { if(x.count === 0) x.checked = true });
+      const a = JSON.parse(localStorage.getItem(k));
       
-      // Create a new array with non-zero items first, then zero items
-      // while preserving the original order within each group
-      const nonZeroItems = a.filter(x => x.count > 0);
-      const zeroItems = a.filter(x => x.count === 0);
-      const reordered = [...nonZeroItems, ...zeroItems];
+      // First mark all zero items as checked
+      a.forEach(x => { 
+        if(x.count === 0) x.checked = true;
+      });
+      
+      // Create new arrays - non-checked first, then checked
+      // while preserving original order within each group
+      const nonCheckedItems = a.filter(x => !x.checked);
+      const checkedItems = a.filter(x => x.checked);
+      const reordered = [...nonCheckedItems, ...checkedItems];
       
       saveList(k, reordered);
       loadList(k);
