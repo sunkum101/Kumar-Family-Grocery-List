@@ -86,7 +86,8 @@ BigW:
     body{font:20px 'Segoe UI',sans-serif;background:#f5f7fa;padding:20px}
     h1{text-align:center;margin:10px 0;font-size:2rem;color:#333}
     .actions{display:flex;justify-content:center;gap:10px;margin-bottom:15px}
-    .actions button{padding:8px 12px;border:none;border-radius:10px;color:#fff;font-size:0.9rem;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,0.2)}
+    .actions button{padding:8px 12px;border:none;border-radius:10px;color:#fff;font-size:0.9rem;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,0.2);transition:transform 0.2s}
+    .actions button:hover{transform:scale(1.05)}
     .reset-btn{background:var(--btn2)} .share-btn{background:var(--btn3)} .checkzeros-btn{background:var(--btn4)}
     .floating-checkzeros {
       position: fixed;
@@ -105,27 +106,30 @@ BigW:
       transition: all 0.3s ease;
     }
     .floating-checkzeros:hover {
-      transform: translateY(-2px);
+      transform: translateY(-2px) scale(1.05);
       box-shadow: 0 4px 10px rgba(0,0,0,0.3);
     }
-    .container{margin-bottom:30px;background:#fff;border-radius:4px;box-shadow:0 4px 12px rgba(0,0,0,0.05);overflow:hidden}
+    .container{margin-bottom:30px;background:#fff;border-radius:4px;box-shadow:0 4px 12px rgba(0,0,0,0.05);overflow:hidden;opacity:1;transition:opacity 0.3s ease-in-out}
     .header{display:flex;justify-content:space-between;align-items:center;padding:12px;font-size:1.6rem;font-weight:bold;color:#fff;cursor:pointer}
     #veggies-header{background:var(--veg)} #grocery-header{background:var(--gro)} #indian-header{background:var(--ind)} #others-header{background:var(--oth)}
     .collapse-btn{font-size:2.4rem;transition:transform .3s;user-select:none}
     .header.collapsed .collapse-btn{transform:rotate(-90deg)}
     ul{list-style:none;margin:0;padding:0}
-    li{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border-bottom:1px solid #eee;background:#fff;font-size:1.8rem;transition:background .3s}
+    li{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border-bottom:1px solid #eee;background:#fff;font-size:1.8rem;transition:all 0.3s ease;opacity:0;animation:fadeIn 0.3s ease forwards}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
     li:last-child{border-bottom:none}
     li.checked{background:var(--check);color:#666}
     li.checked .name{background:var(--check);text-decoration:line-through;opacity:.7}
-    input[type="checkbox"]{width:28px;height:28px;cursor:pointer;margin-top:4px;accent-color:#666}
-    .name{flex:1;min-width:0;font-size:1.8rem;line-height:1.4;white-space:pre-wrap;word-wrap:break-word;border:none;background:transparent;font-family:inherit;cursor:text;user-select:none}
+    input[type="checkbox"]{width:28px;height:28px;cursor:pointer;margin-top:4px;accent-color:#666;transition:transform 0.2s}
+    input[type="checkbox"]:hover{transform:scale(1.1)}
+    .name{flex:1;min-width:0;font-size:1.8rem;line-height:1.4;white-space:pre-wrap;word-wrap:break-word;border:none;background:transparent;font-family:inherit;cursor:text;user-select:none;transition:all 0.2s}
     .name.active{background:var(--h);font-weight:bold;border-radius:4px}
     input.name:focus{caret-color:#000;outline:none}
     input.name{user-select:text}
-    .counter{display:flex;align-items:center;gap:8px;transition:background .3s}
+    .counter{display:flex;align-items:center;gap:8px;transition:all 0.3s}
     .counter.active{background:var(--h);border-radius:20px;padding:4px 8px}
-    .counter button{width:32px;height:32px;border:none;border-radius:50%;color:#fff;font-size:1.2rem;cursor:pointer;background-color:#bbb}
+    .counter button{width:32px;height:32px;border:none;border-radius:50%;color:#fff;font-size:1.2rem;cursor:pointer;background-color:#bbb;transition:all 0.2s}
+    .counter button:hover{transform:scale(1.1)}
     .counter span.count{min-width:32px;text-align:center}
     .counter.active span.count{font-weight:bold}
     li.checked .counter {
@@ -138,7 +142,8 @@ BigW:
       color: #666;
       opacity: 0.7;
     }
-    .add-btn{display:block;margin:12px 16px;width:40px;height:40px;border-radius:50%;background:var(--veg);color:#fff;font-size:1.6rem;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.2)}
+    .add-btn{display:block;margin:12px 16px;width:40px;height:40px;border-radius:50%;background:var(--veg);color:#fff;font-size:1.6rem;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.2);transition:all 0.2s}
+    .add-btn:hover{transform:scale(1.1)}
     /* Header counter styles */
     .header-counter {
       font-size: 2.3rem;
@@ -205,6 +210,7 @@ BigW:
       border-radius: 8px;
       max-width: 400px;
       text-align: center;
+      animation: fadeIn 0.3s ease;
     }
     .confirm-buttons {
       display: flex;
@@ -217,14 +223,21 @@ BigW:
       border: none;
       border-radius: 4px;
       cursor: pointer;
+      transition: all 0.2s;
     }
     .confirm-no {
       background: #f44336;
       color: white;
     }
+    .confirm-no:hover {
+      background: #d32f2f;
+    }
     .confirm-yes {
       background: #4caf50;
       color: white;
+    }
+    .confirm-yes:hover {
+      background: #388e3c;
     }
   </style>
 </head>
@@ -232,14 +245,14 @@ BigW:
   <div class="actions">
     <button class="reset-btn" onclick="fullReset()">🔄 Reset</button>
     <button class="share-btn" onclick="shareList()">⤴ Share</button>
-    <button class="checkzeros-btn" onclick="checkZeros()">☑ Check Zeros</button>
+    <button class="checkzeros-btn" onclick="checkZeros()">✓ Mark Zeros</button>
   </div>
-  <button class="floating-checkzeros" onclick="checkZeros()">☑ Check Zeros</button>
+  <button class="floating-checkzeros" onclick="checkZeros()">✓ Mark Zeros</button>
   <h1>Kumar Family Grocery</h1>
   <div style="text-align:center;font-size:1.1rem;color:#555;margin-top:-5px;margin-bottom:15px;font-weight:500;" id="currentDateTime"></div>
   <div class="container" data-color="veg">
     <div id="veggies-header" class="header" onclick="toggle('veggies')">
-      <span>Veggies <span class="header-counter" id="veggies-counter"></span></span>
+      <span>🥦 Veggies <span class="header-counter" id="veggies-counter"></span></span>
       <span class="collapse-btn">▾</span>
     </div>
     <ul id="veggies"></ul>
@@ -247,7 +260,7 @@ BigW:
   </div>
   <div class="container" data-color="gro">
     <div id="grocery-header" class="header" onclick="toggle('grocery')">
-      <span>Grocery <span class="header-counter" id="grocery-counter"></span></span>
+      <span>🛒 Grocery <span class="header-counter" id="grocery-counter"></span></span>
       <span class="collapse-btn">▾</span>
     </div>
     <ul id="grocery"></ul>
@@ -255,7 +268,7 @@ BigW:
   </div>
   <div class="container" data-color="ind">
     <div id="indian-header" class="header" onclick="toggle('indian')">
-      <span>Indian Store <span class="header-counter" id="indian-counter"></span></span>
+      <span>🇮🇳 Indian Store <span class="header-counter" id="indian-counter"></span></span>
       <span class="collapse-btn">▾</span>
     </div>
     <ul id="indian"></ul>
@@ -263,7 +276,7 @@ BigW:
   </div>
   <div class="container" data-color="oth">
     <div id="others-header" class="header" onclick="toggle('others')">
-      <span>Others <span class="header-counter" id="others-counter"></span></span>
+      <span>📦 Others <span class="header-counter" id="others-counter"></span></span>
       <span class="collapse-btn">▾</span>
     </div>
     <ul id="others"></ul>
