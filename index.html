@@ -153,13 +153,16 @@ BigW:
 
     .add-btn{display:block;margin:12px 16px;width:40px;height:40px;border-radius:50%;background:var(--veg);color:#fff;font-size:1.6rem;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.2)}
     
-    /* Header counter styles */
+    /* Header counter styles - SIMPLIFIED */
     .header-counter {
       font-size: 1rem;
       background: rgba(0,0,0,0.15);
       padding: 2px 8px;
       border-radius: 12px;
       margin-left: 8px;
+    }
+    .header-counter.completed {
+      background: rgba(255,255,255,0.3);
     }
     
     /* Custom confirmation dialog styles */
@@ -220,7 +223,7 @@ BigW:
         right: 15px;
       }
       .header-counter {
-        font-size: 0.8rem;
+        font-size: 0.9rem;
         padding: 2px 6px;
       }
     }
@@ -243,7 +246,7 @@ BigW:
   <!-- Rest of your HTML content... -->
   <div class="container" data-color="veg">
     <div id="veggies-header" class="header" onclick="toggle('veggies')">
-      <span>Veggies <span class="header-counter" id="veggies-counter">0/0</span></span>
+      <span>Veggies <span class="header-counter" id="veggies-counter">0</span></span>
       <span class="collapse-btn">▾</span>
     </div>
     <ul id="veggies"></ul>
@@ -252,7 +255,7 @@ BigW:
 
   <div class="container" data-color="gro">
     <div id="grocery-header" class="header" onclick="toggle('grocery')">
-      <span>Grocery <span class="header-counter" id="grocery-counter">0/0</span></span>
+      <span>Grocery <span class="header-counter" id="grocery-counter">0</span></span>
       <span class="collapse-btn">▾</span>
     </div>
     <ul id="grocery"></ul>
@@ -261,7 +264,7 @@ BigW:
 
   <div class="container" data-color="ind">
     <div id="indian-header" class="header" onclick="toggle('indian')">
-      <span>Indian Store <span class="header-counter" id="indian-counter">0/0</span></span>
+      <span>Indian Store <span class="header-counter" id="indian-counter">0</span></span>
       <span class="collapse-btn">▾</span>
     </div>
     <ul id="indian"></ul>
@@ -270,7 +273,7 @@ BigW:
 
   <div class="container" data-color="oth">
     <div id="others-header" class="header" onclick="toggle('others')">
-      <span>Others <span class="header-counter" id="others-counter">0/0</span></span>
+      <span>Others <span class="header-counter" id="others-counter">0</span></span>
       <span class="collapse-btn">▾</span>
     </div>
     <ul id="others"></ul>
@@ -338,10 +341,23 @@ BigW:
     setInterval(updateDateTime, 60000);
     
     function updateHeaderCounter(k) {
-      const arr = JSON.parse(localStorage.getItem(k) || '[]');
+      const arr = JSON.parse(localStorage.getItem(k) || [];
       const totalItems = arr.filter(item => item.count > 0).length;
       const purchasedItems = arr.filter(item => item.count > 0 && item.checked).length;
-      document.getElementById(lists[k].counter).textContent = `${purchasedItems}/${totalItems}`;
+      const remainingItems = totalItems - purchasedItems;
+      
+      const counterEl = document.getElementById(lists[k].counter);
+      
+      if (totalItems === 0) {
+        counterEl.textContent = '0';
+        counterEl.classList.remove('completed');
+      } else if (remainingItems === 0) {
+        counterEl.textContent = '✓';
+        counterEl.classList.add('completed');
+      } else {
+        counterEl.textContent = remainingItems;
+        counterEl.classList.remove('completed');
+      }
     }
     
     function loadList(k){
