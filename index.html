@@ -141,94 +141,49 @@ BigW:
     .add-btn{display:block;margin:12px 16px;width:40px;height:40px;border-radius:50%;background:var(--veg);color:#fff;font-size:1.6rem;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.2)}
     /* Header counter styles */
     .header-counter {
-      font-size: 1.3rem;
-      background: rgba(255,255,255,0.17);
-      padding: 2px 10px;
-      border-radius: 16px;
-      margin-left: 12px;
-      font-weight: 600;
-      min-width: 34px;
+      font-size: 2.3rem;           /* Much bigger font */
+      background: #fff8e1;         /* Light yellow bg for attention */
+      padding: 4px 22px;
+      border-radius: 18px;
+      margin-left: 18px;
+      font-weight: 700;
+      min-width: 52px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      letter-spacing: 0.02em;
-      transition: background 0.2s, color 0.2s;
+      letter-spacing: 0.03em;
+      transition: background 0.2s, color 0.2s, font-size 0.2s;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+      border: 2.5px solid #ffe082;
     }
+    
     .header-counter.done {
       background: #e9ecef;
-      color: #2c2c2c;
+      color: #1b5e20;
       font-weight: bold;
+      border-color: #a5d6a7;
     }
     .header-counter .checkmark {
-      font-size: 1.5rem;
-      color: #2a9d46;
+      font-size: 2.2rem;
+      color: #2e7d32;
       margin-left: 2px;
       font-weight: bold;
+      line-height: 1;
     }
     .header-counter.zero {
       background: #e0e0e0;
       color: #888;
       font-weight: normal;
-    }
-    /* Custom confirmation dialog styles */
-    .confirm-dialog {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.5);
-      display: none;
-      justify-content: center;
-      align-items: center;
-      z-index: 1000;
-    }
-    .confirm-content {
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-      max-width: 400px;
-      width: 90%;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-    }
-    .confirm-buttons {
-      display: flex;
-      justify-content: flex-end;
-      gap: 10px;
-      margin-top: 20px;
-    }
-    .confirm-buttons button {
-      padding: 8px 16px;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 1rem;
-    }
-    .confirm-no {
-      background: #f44336;
-      color: white;
-    }
-    .confirm-yes {
-      background: #4caf50;
-      color: white;
+      border-color: #bdbdbd;
     }
     @media(max-width:600px){
-      li,.name,.counter span.count{font-size:1.6rem}
-      .counter button{width:28px;height:28px}
-      .add-btn{width:36px;height:36px;font-size:1.4rem;margin:12px 12px}
-      .actions button {
-        padding: 6px 10px;
-        font-size: 0.8rem;
-      }
-      .floating-checkzeros {
-        padding: 8px 12px;
-        font-size: 0.8rem;
-        bottom: 15px;
-        right: 15px;
-      }
       .header-counter {
-        font-size: 1rem;
-        padding: 2px 8px;
+        font-size: 1.2rem;
+        padding: 3px 10px;
+        min-width: 32px;
+      }
+      .header-counter .checkmark {
+        font-size: 1.2rem;
       }
     }
   </style>
