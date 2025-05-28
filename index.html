@@ -87,8 +87,8 @@ BigW:
     :root{--veg:#4caf50;--gro:#2196f3;--ind:#ff9800;--oth:#9c27b0;--check:#e9ecef;--btn2:#f44336;--btn3:#4caf50;--btn4:#ff5722;--h:#fff9c4}
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     body{font:20px 'Segoe UI',sans-serif;background:#f5f7fa;padding:20px}
-    h1{text-align:center;margin:20px 0;font-size:2rem;color:#333}
-    .actions{display:flex;justify-content:center;gap:10px;margin-bottom:20px}
+    h1{text-align:center;margin:10px 0;font-size:2rem;color:#333}
+    .actions{display:flex;justify-content:center;gap:10px;margin-bottom:15px}
     .actions button{padding:8px 12px;border:none;border-radius:10px;color:#fff;font-size:0.9rem;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,0.2)}
     .reset-btn{background:var(--btn2)} .share-btn{background:var(--btn3)} .checkzeros-btn{background:var(--btn4)}
 
@@ -153,6 +153,15 @@ BigW:
 
     .add-btn{display:block;margin:12px 16px;width:40px;height:40px;border-radius:50%;background:var(--veg);color:#fff;font-size:1.6rem;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.2)}
     
+    /* Header counter styles */
+    .header-counter {
+      font-size: 1rem;
+      background: rgba(0,0,0,0.15);
+      padding: 2px 8px;
+      border-radius: 12px;
+      margin-left: 8px;
+    }
+    
     /* Custom confirmation dialog styles */
     .confirm-dialog {
       position: fixed;
@@ -210,6 +219,10 @@ BigW:
         bottom: 15px;
         right: 15px;
       }
+      .header-counter {
+        font-size: 0.8rem;
+        padding: 2px 6px;
+      }
     }
   </style>
 </head>
@@ -225,12 +238,13 @@ BigW:
   <button class="floating-checkzeros" onclick="checkZeros()">☑ Check Zeros</button>
 
   <h1>Kumar Family Grocery</h1>
-  <div style="text-align:center;font-size:1.1rem;color:#555;margin-top:-10px;margin-bottom:15px;font-weight:500;" id="currentDateTime"></div>
+  <div style="text-align:center;font-size:1.1rem;color:#555;margin-top:-5px;margin-bottom:15px;font-weight:500;" id="currentDateTime"></div>
   
   <!-- Rest of your HTML content... -->
   <div class="container" data-color="veg">
     <div id="veggies-header" class="header" onclick="toggle('veggies')">
-      Veggies <span class="collapse-btn">▾</span>
+      <span>Veggies <span class="header-counter" id="veggies-counter">0/0</span></span>
+      <span class="collapse-btn">▾</span>
     </div>
     <ul id="veggies"></ul>
     <button class="add-btn" onclick="addItem('veggies')">＋</button>
@@ -238,7 +252,8 @@ BigW:
 
   <div class="container" data-color="gro">
     <div id="grocery-header" class="header" onclick="toggle('grocery')">
-      Grocery <span class="collapse-btn">▾</span>
+      <span>Grocery <span class="header-counter" id="grocery-counter">0/0</span></span>
+      <span class="collapse-btn">▾</span>
     </div>
     <ul id="grocery"></ul>
     <button class="add-btn" onclick="addItem('grocery')">＋</button>
@@ -246,7 +261,8 @@ BigW:
 
   <div class="container" data-color="ind">
     <div id="indian-header" class="header" onclick="toggle('indian')">
-      Indian Store <span class="collapse-btn">▾</span>
+      <span>Indian Store <span class="header-counter" id="indian-counter">0/0</span></span>
+      <span class="collapse-btn">▾</span>
     </div>
     <ul id="indian"></ul>
     <button class="add-btn" onclick="addItem('indian')">＋</button>
@@ -254,7 +270,8 @@ BigW:
 
   <div class="container" data-color="oth">
     <div id="others-header" class="header" onclick="toggle('others')">
-      Others <span class="collapse-btn">▾</span>
+      <span>Others <span class="header-counter" id="others-counter">0/0</span></span>
+      <span class="collapse-btn">▾</span>
     </div>
     <ul id="others"></ul>
     <button class="add-btn" onclick="addItem('others')">＋</button>
@@ -285,10 +302,10 @@ BigW:
 
     // Rest of your JavaScript...
     const lists = {
-      veggies: { el:'veggies', hdr:'veggies-header', def: defaultVeggiesText.split(/\r?\n/) },
-      grocery:{ el:'grocery', hdr:'grocery-header', def: defaultGroceryText.split(/\r?\n/) },
-      indian: { el:'indian',  hdr:'indian-header',  def: defaultIndianText.split(/\r?\n/) },
-      others: { el:'others',  hdr:'others-header',  def: defaultOthersText.split(/\r?\n/) }
+      veggies: { el:'veggies', hdr:'veggies-header', counter:'veggies-counter', def: defaultVeggiesText.split(/\r?\n/) },
+      grocery:{ el:'grocery', hdr:'grocery-header', counter:'grocery-counter', def: defaultGroceryText.split(/\r?\n/) },
+      indian: { el:'indian',  hdr:'indian-header', counter:'indian-counter', def: defaultIndianText.split(/\r?\n/) },
+      others: { el:'others',  hdr:'others-header', counter:'others-counter', def: defaultOthersText.split(/\r?\n/) }
     };
 
     document.addEventListener('DOMContentLoaded',()=>{
@@ -306,6 +323,7 @@ BigW:
         }
         loadList(k);
         restoreCollapse(k);
+        updateHeaderCounter(k);
       }
     });
 
@@ -318,6 +336,13 @@ BigW:
     }
     updateDateTime();
     setInterval(updateDateTime, 60000);
+    
+    function updateHeaderCounter(k) {
+      const arr = JSON.parse(localStorage.getItem(k) || '[]');
+      const totalItems = arr.filter(item => item.count > 0).length;
+      const purchasedItems = arr.filter(item => item.count > 0 && item.checked).length;
+      document.getElementById(lists[k].counter).textContent = `${purchasedItems}/${totalItems}`;
+    }
     
     function loadList(k){
       const arr=JSON.parse(localStorage.getItem(k)||'[]'), ul=document.getElementById(k);
@@ -335,6 +360,7 @@ BigW:
         if(it.checked) li.classList.add('checked');
         ul.appendChild(li);
       });
+      updateHeaderCounter(k);
     }
     
     function checkZeros() {
@@ -358,11 +384,27 @@ BigW:
     }
     
     // Rest of your existing JavaScript functions...
-    function saveList(k,a){localStorage.setItem(k,JSON.stringify(a));}
+    function saveList(k,a){localStorage.setItem(k,JSON.stringify(a));updateHeaderCounter(k);}
     function toggleItem(k,i,v){const a=JSON.parse(localStorage.getItem(k));a[i].checked=v;saveList(k,a);loadList(k);}
     function changeCount(k,i,d){const a=JSON.parse(localStorage.getItem(k));let v=a[i].count+d;v=Math.max(0,Math.min(50,v));a[i].count=v;saveList(k,a);loadList(k);}
-    function restoreCollapse(k){const hidden=localStorage.getItem(k+'-col')==='true';document.getElementById(k).style.display=hidden?'none':'';document.getElementById(lists[k].hdr).classList.toggle('collapsed',hidden);}
-    function toggle(k){const ul=document.getElementById(k),hd=document.getElementById(lists[k].hdr),hidden=ul.style.display!=='none';ul.style.display=hidden?'none':'';hd.classList.toggle('collapsed',hidden);localStorage.setItem(k+'-col',hidden);}
+    function restoreCollapse(k){
+      const hidden=localStorage.getItem(k+'-col')==='true';
+      document.getElementById(k).style.display=hidden?'none':'';
+      document.getElementById(lists[k].hdr).classList.toggle('collapsed',hidden);
+      document.querySelector(`#${k}+.add-btn`).style.display = hidden ? 'none' : 'block';
+    }
+    
+    function toggle(k){
+      const ul=document.getElementById(k);
+      const hd=document.getElementById(lists[k].hdr);
+      const addBtn = document.querySelector(`#${k}+.add-btn`);
+      const hidden=ul.style.display!=='none';
+      
+      ul.style.display=hidden?'none':'';
+      hd.classList.toggle('collapsed',hidden);
+      addBtn.style.display = hidden ? 'none' : 'block';
+      localStorage.setItem(k+'-col',hidden);
+    }
     
     function fullReset(){
       const dialog = document.getElementById('confirmDialog');
