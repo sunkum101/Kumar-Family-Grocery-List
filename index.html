@@ -4,8 +4,6 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>Kumar Family Grocery</title>
-
-  <!-- Default lists: one item per line -->
   <script>
     const defaultVeggiesText = `
 लाल सेब
@@ -82,7 +80,6 @@ Kmart:
 BigW:
 `.trim();
   </script>
-
   <style>
     :root{--veg:#4caf50;--gro:#2196f3;--ind:#ff9800;--oth:#9c27b0;--check:#e9ecef;--btn2:#f44336;--btn3:#4caf50;--btn4:#ff5722;--h:#fff9c4}
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -91,8 +88,6 @@ BigW:
     .actions{display:flex;justify-content:center;gap:10px;margin-bottom:15px}
     .actions button{padding:8px 12px;border:none;border-radius:10px;color:#fff;font-size:0.9rem;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,0.2)}
     .reset-btn{background:var(--btn2)} .share-btn{background:var(--btn3)} .checkzeros-btn{background:var(--btn4)}
-
-    /* Floating Check Zeros button */
     .floating-checkzeros {
       position: fixed;
       bottom: 20px;
@@ -113,33 +108,26 @@ BigW:
       transform: translateY(-2px);
       box-shadow: 0 4px 10px rgba(0,0,0,0.3);
     }
-
-    /* Rest of your existing styles... */
     .container{margin-bottom:30px;background:#fff;border-radius:4px;box-shadow:0 4px 12px rgba(0,0,0,0.05);overflow:hidden}
     .header{display:flex;justify-content:space-between;align-items:center;padding:12px;font-size:1.6rem;font-weight:bold;color:#fff;cursor:pointer}
     #veggies-header{background:var(--veg)} #grocery-header{background:var(--gro)} #indian-header{background:var(--ind)} #others-header{background:var(--oth)}
     .collapse-btn{font-size:2.4rem;transition:transform .3s;user-select:none}
     .header.collapsed .collapse-btn{transform:rotate(-90deg)}
-
     ul{list-style:none;margin:0;padding:0}
     li{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border-bottom:1px solid #eee;background:#fff;font-size:1.8rem;transition:background .3s}
     li:last-child{border-bottom:none}
     li.checked{background:var(--check);color:#666}
     li.checked .name{background:var(--check);text-decoration:line-through;opacity:.7}
-
     input[type="checkbox"]{width:28px;height:28px;cursor:pointer;margin-top:4px;accent-color:#666}
     .name{flex:1;min-width:0;font-size:1.8rem;line-height:1.4;white-space:pre-wrap;word-wrap:break-word;border:none;background:transparent;font-family:inherit;cursor:text;user-select:none}
     .name.active{background:var(--h);font-weight:bold;border-radius:4px}
     input.name:focus{caret-color:#000;outline:none}
     input.name{user-select:text}
-
     .counter{display:flex;align-items:center;gap:8px;transition:background .3s}
     .counter.active{background:var(--h);border-radius:20px;padding:4px 8px}
     .counter button{width:32px;height:32px;border:none;border-radius:50%;color:#fff;font-size:1.2rem;cursor:pointer;background-color:#bbb}
     .counter span.count{min-width:32px;text-align:center}
     .counter.active span.count{font-weight:bold}
-
-    /* Style counter when item is checked */
     li.checked .counter {
       background: var(--check);
       border-radius: 20px;
@@ -150,21 +138,38 @@ BigW:
       color: #666;
       opacity: 0.7;
     }
-
     .add-btn{display:block;margin:12px 16px;width:40px;height:40px;border-radius:50%;background:var(--veg);color:#fff;font-size:1.6rem;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.2)}
-    
-    /* Header counter styles - SIMPLIFIED */
+    /* Header counter styles */
     .header-counter {
-      font-size: 1rem;
-      background: rgba(0,0,0,0.15);
-      padding: 2px 8px;
-      border-radius: 12px;
-      margin-left: 8px;
+      font-size: 1.3rem;
+      background: rgba(255,255,255,0.17);
+      padding: 2px 10px;
+      border-radius: 16px;
+      margin-left: 12px;
+      font-weight: 600;
+      min-width: 34px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      letter-spacing: 0.02em;
+      transition: background 0.2s, color 0.2s;
     }
-    .header-counter.completed {
-      background: rgba(255,255,255,0.3);
+    .header-counter.done {
+      background: #e9ecef;
+      color: #2c2c2c;
+      font-weight: bold;
     }
-    
+    .header-counter .checkmark {
+      font-size: 1.5rem;
+      color: #2a9d46;
+      margin-left: 2px;
+      font-weight: bold;
+    }
+    .header-counter.zero {
+      background: #e0e0e0;
+      color: #888;
+      font-weight: normal;
+    }
     /* Custom confirmation dialog styles */
     .confirm-dialog {
       position: fixed;
@@ -207,7 +212,6 @@ BigW:
       background: #4caf50;
       color: white;
     }
-    
     @media(max-width:600px){
       li,.name,.counter span.count{font-size:1.6rem}
       .counter button{width:28px;height:28px}
@@ -223,64 +227,53 @@ BigW:
         right: 15px;
       }
       .header-counter {
-        font-size: 0.9rem;
-        padding: 2px 6px;
+        font-size: 1rem;
+        padding: 2px 8px;
       }
     }
   </style>
 </head>
 <body>
-
   <div class="actions">
     <button class="reset-btn" onclick="fullReset()">🔄 Reset</button>
     <button class="share-btn" onclick="shareList()">⤴ Share</button>
     <button class="checkzeros-btn" onclick="checkZeros()">☑ Check Zeros</button>
   </div>
-
-  <!-- Floating Check Zeros Button -->
   <button class="floating-checkzeros" onclick="checkZeros()">☑ Check Zeros</button>
-
   <h1>Kumar Family Grocery</h1>
   <div style="text-align:center;font-size:1.1rem;color:#555;margin-top:-5px;margin-bottom:15px;font-weight:500;" id="currentDateTime"></div>
-  
-  <!-- Rest of your HTML content... -->
   <div class="container" data-color="veg">
     <div id="veggies-header" class="header" onclick="toggle('veggies')">
-      <span>Veggies <span class="header-counter" id="veggies-counter">0</span></span>
+      <span>Veggies <span class="header-counter" id="veggies-counter"></span></span>
       <span class="collapse-btn">▾</span>
     </div>
     <ul id="veggies"></ul>
     <button class="add-btn" onclick="addItem('veggies')">＋</button>
   </div>
-
   <div class="container" data-color="gro">
     <div id="grocery-header" class="header" onclick="toggle('grocery')">
-      <span>Grocery <span class="header-counter" id="grocery-counter">0</span></span>
+      <span>Grocery <span class="header-counter" id="grocery-counter"></span></span>
       <span class="collapse-btn">▾</span>
     </div>
     <ul id="grocery"></ul>
     <button class="add-btn" onclick="addItem('grocery')">＋</button>
   </div>
-
   <div class="container" data-color="ind">
     <div id="indian-header" class="header" onclick="toggle('indian')">
-      <span>Indian Store <span class="header-counter" id="indian-counter">0</span></span>
+      <span>Indian Store <span class="header-counter" id="indian-counter"></span></span>
       <span class="collapse-btn">▾</span>
     </div>
     <ul id="indian"></ul>
     <button class="add-btn" onclick="addItem('indian')">＋</button>
   </div>
-
   <div class="container" data-color="oth">
     <div id="others-header" class="header" onclick="toggle('others')">
-      <span>Others <span class="header-counter" id="others-counter">0</span></span>
+      <span>Others <span class="header-counter" id="others-counter"></span></span>
       <span class="collapse-btn">▾</span>
     </div>
     <ul id="others"></ul>
     <button class="add-btn" onclick="addItem('others')">＋</button>
   </div>
-
-  <!-- Confirmation Dialog -->
   <div id="confirmDialog" class="confirm-dialog">
     <div class="confirm-content">
       <p>Are you sure you want to reset all lists?</p>
@@ -291,7 +284,6 @@ BigW:
       </div>
     </div>
   </div>
-
   <script>
     // Add scroll event listener for floating button
     window.addEventListener('scroll', function() {
@@ -303,7 +295,6 @@ BigW:
       }
     });
 
-    // Rest of your JavaScript...
     const lists = {
       veggies: { el:'veggies', hdr:'veggies-header', counter:'veggies-counter', def: defaultVeggiesText.split(/\r?\n/) },
       grocery:{ el:'grocery', hdr:'grocery-header', counter:'grocery-counter', def: defaultGroceryText.split(/\r?\n/) },
@@ -339,27 +330,31 @@ BigW:
     }
     updateDateTime();
     setInterval(updateDateTime, 60000);
-    
+
+    // NEW: Simplified and visual counter for category header
     function updateHeaderCounter(k) {
-      const arr = JSON.parse(localStorage.getItem(k) || [];
-      const totalItems = arr.filter(item => item.count > 0).length;
-      const purchasedItems = arr.filter(item => item.count > 0 && item.checked).length;
-      const remainingItems = totalItems - purchasedItems;
-      
+      const arr = JSON.parse(localStorage.getItem(k) || '[]');
+      // Only consider items with count > 0 as "to buy"
+      const total = arr.filter(item => item.count > 0).length;
+      const remaining = arr.filter(item => item.count > 0 && !item.checked).length;
+
       const counterEl = document.getElementById(lists[k].counter);
-      
-      if (totalItems === 0) {
-        counterEl.textContent = '0';
-        counterEl.classList.remove('completed');
-      } else if (remainingItems === 0) {
-        counterEl.textContent = '✓';
-        counterEl.classList.add('completed');
+      counterEl.className = "header-counter"; // reset classes
+
+      if (total === 0) {
+        // No items in this category to buy
+        counterEl.textContent = "0";
+        counterEl.classList.add("zero");
+      } else if (remaining === 0) {
+        // All purchased
+        counterEl.innerHTML = `<span class="checkmark">✓</span>`;
+        counterEl.classList.add("done");
       } else {
-        counterEl.textContent = remainingItems;
-        counterEl.classList.remove('completed');
+        // Some remaining
+        counterEl.textContent = remaining;
       }
     }
-    
+
     function loadList(k){
       const arr=JSON.parse(localStorage.getItem(k)||'[]'), ul=document.getElementById(k);
       ul.innerHTML='';
@@ -378,28 +373,20 @@ BigW:
       });
       updateHeaderCounter(k);
     }
-    
+
     function checkZeros() {
       for (let k in lists) {
         const a = JSON.parse(localStorage.getItem(k));
-        
-        // Mark zero-count items as checked
         a.forEach(x => { 
           if (x.count === 0) x.checked = true;
         });
-        
-        // Reorder: non-checked items first, then checked items
-        // while preserving original order within each group
         const nonCheckedItems = a.filter(x => !x.checked);
         const checkedItems = a.filter(x => x.checked);
         const reordered = [...nonCheckedItems, ...checkedItems];
-        
         saveList(k, reordered);
         loadList(k);
       }
     }
-    
-    // Rest of your existing JavaScript functions...
     function saveList(k,a){localStorage.setItem(k,JSON.stringify(a));updateHeaderCounter(k);}
     function toggleItem(k,i,v){const a=JSON.parse(localStorage.getItem(k));a[i].checked=v;saveList(k,a);loadList(k);}
     function changeCount(k,i,d){const a=JSON.parse(localStorage.getItem(k));let v=a[i].count+d;v=Math.max(0,Math.min(50,v));a[i].count=v;saveList(k,a);loadList(k);}
@@ -409,29 +396,24 @@ BigW:
       document.getElementById(lists[k].hdr).classList.toggle('collapsed',hidden);
       document.querySelector(`#${k}+.add-btn`).style.display = hidden ? 'none' : 'block';
     }
-    
     function toggle(k){
       const ul=document.getElementById(k);
       const hd=document.getElementById(lists[k].hdr);
       const addBtn = document.querySelector(`#${k}+.add-btn`);
       const hidden=ul.style.display!=='none';
-      
       ul.style.display=hidden?'none':'';
       hd.classList.toggle('collapsed',hidden);
       addBtn.style.display = hidden ? 'none' : 'block';
       localStorage.setItem(k+'-col',hidden);
     }
-    
     function fullReset(){
       const dialog = document.getElementById('confirmDialog');
       dialog.style.display = 'flex';
       setTimeout(() => dialog.querySelector('.confirm-no').focus(), 10);
     }
-    
     function confirmReset(confirmed) {
       document.getElementById('confirmDialog').style.display = 'none';
       if (!confirmed) return;
-      
       document.cookie.split(';').forEach(c=>{
         document.cookie=c.replace(/=.*$/,'')+'=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/';
       });
@@ -441,7 +423,6 @@ BigW:
       }
       location.reload();
     }
-    
     function shareList(){
       const now=new Date();
       const header=`${now.toLocaleDateString(undefined,{weekday:'long',year:'numeric',month:'short',day:'numeric'})} ${now.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'})}`;
@@ -456,8 +437,7 @@ BigW:
       if(!text)return alert('Nothing to share');
       if(navigator.share)navigator.share({text});
       else prompt('Copy:',text);
-    }  
-    
+    }
     function editNamePrompt(el,k,i){
       const old=el.textContent;
       const input=document.createElement('input');
@@ -479,7 +459,6 @@ BigW:
       };
       input.onkeypress=function(e){ if(e.key==='Enter') this.blur(); };
     }
-    
     function addItem(k){
       const a=JSON.parse(localStorage.getItem(k));
       a.push({name:'',count:0,checked:false});
