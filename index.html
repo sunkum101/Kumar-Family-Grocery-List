@@ -109,14 +109,13 @@ BigW:
       transform: translateY(-2px) scale(1.05);
       box-shadow: 0 4px 10px rgba(0,0,0,0.3);
     }
-    .container{margin-bottom:30px;background:#fff;border-radius:4px;box-shadow:0 4px 12px rgba(0,0,0,0.05);overflow:hidden;opacity:1;transition:opacity 0.3s ease-in-out}
+    .container{margin-bottom:30px;background:#fff;border-radius:4px;box-shadow:0 4px 12px rgba(0,0,0,0.05);overflow:hidden;}
     .header{display:flex;justify-content:space-between;align-items:center;padding:12px;font-size:1.6rem;font-weight:bold;color:#fff;cursor:pointer}
     #veggies-header{background:var(--veg)} #grocery-header{background:var(--gro)} #indian-header{background:var(--ind)} #others-header{background:var(--oth)}
     .collapse-btn{font-size:2.4rem;transition:transform .3s;user-select:none}
     .header.collapsed .collapse-btn{transform:rotate(-90deg)}
     ul{list-style:none;margin:0;padding:0}
-    li{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border-bottom:1px solid #eee;background:#fff;font-size:1.8rem;transition:all 0.3s ease;opacity:0;animation:fadeIn 0.3s ease forwards}
-    @keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+    li{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border-bottom:1px solid #eee;background:#fff;font-size:1.8rem;}
     li:last-child{border-bottom:none}
     li.checked{background:var(--check);color:#666}
     li.checked .name{background:var(--check);text-decoration:line-through;opacity:.7}
@@ -162,7 +161,6 @@ BigW:
       box-shadow: 0 2px 12px rgba(0,0,0,0.12);
       border: 3px solid #ffcc80;
     }
-    
     .header-counter.done {
       background: #e6f9e6;
       color: #107c41;
@@ -210,7 +208,6 @@ BigW:
       border-radius: 8px;
       max-width: 400px;
       text-align: center;
-      animation: fadeIn 0.3s ease;
     }
     .confirm-buttons {
       display: flex;
