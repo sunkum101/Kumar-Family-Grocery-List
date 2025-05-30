@@ -388,8 +388,37 @@ BigW:
       }
     }
     function saveList(k,a){localStorage.setItem(k,JSON.stringify(a));updateHeaderCounter(k);}
-    function toggleItem(k,i,v){const a=JSON.parse(localStorage.getItem(k));a[i].checked=v;saveList(k,a);loadList(k);}
-    function changeCount(k,i,d){const a=JSON.parse(localStorage.getItem(k));let v=a[i].count+d;v=Math.max(0,Math.min(50,v));a[i].count=v;saveList(k,a);loadList(k);}
+    function toggleItem(k,i,v){
+      const a=JSON.parse(localStorage.getItem(k));
+      a[i].checked=v;
+      
+      // Reorder the list - unchecked items first, then checked items
+      const nonCheckedItems = a.filter(x => !x.checked);
+      const checkedItems = a.filter(x => x.checked);
+      const reordered = [...nonCheckedItems, ...checkedItems];
+      
+      saveList(k, reordered);
+      loadList(k);
+    }
+    function changeCount(k,i,d){
+      const a=JSON.parse(localStorage.getItem(k));
+      let v=a[i].count+d;
+      v=Math.max(0,Math.min(50,v));
+      a[i].count=v;
+      
+      // If count reaches 0, mark as checked and reorder
+      if(v === 0) {
+        a[i].checked = true;
+        const nonCheckedItems = a.filter(x => !x.checked);
+        const checkedItems = a.filter(x => x.checked);
+        const reordered = [...nonCheckedItems, ...checkedItems];
+        saveList(k, reordered);
+      } else {
+        saveList(k, a);
+      }
+      
+      loadList(k);
+    }
     function restoreCollapse(k){
       const hidden=localStorage.getItem(k+'-col')==='true';
       document.getElementById(k).style.display=hidden?'none':'';
@@ -454,7 +483,13 @@ BigW:
         } else {
           arr[i].name=newVal;
         }
-        localStorage.setItem(k,JSON.stringify(arr));
+        
+        // Maintain order after edit
+        const nonCheckedItems = arr.filter(x => !x.checked);
+        const checkedItems = arr.filter(x => x.checked);
+        const reordered = [...nonCheckedItems, ...checkedItems];
+        
+        localStorage.setItem(k,JSON.stringify(reordered));
         loadList(k);
       };
       input.onkeypress=function(e){ if(e.key==='Enter') this.blur(); };
@@ -462,10 +497,17 @@ BigW:
     function addItem(k){
       const a=JSON.parse(localStorage.getItem(k));
       a.push({name:'',count:0,checked:false});
-      saveList(k,a);
+      
+      // Maintain order after adding
+      const nonCheckedItems = a.filter(x => !x.checked);
+      const checkedItems = a.filter(x => x.checked);
+      const reordered = [...nonCheckedItems, ...checkedItems];
+      
+      saveList(k, reordered);
       loadList(k);
+      
       const ul=document.getElementById(k);
-      const idx=a.length-1;
+      const idx=reordered.length-1;
       const newLi=ul.lastElementChild;
       const nameDiv=newLi.querySelector('.name');
       editNamePrompt(nameDiv, k, idx);
