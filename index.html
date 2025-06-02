@@ -17,7 +17,7 @@
     .container{margin-bottom:30px;background:#fff;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,0.08);}
     .header{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;font-size:1.45rem;font-weight:700;color:#fff;cursor:pointer;}
     #veggies-header{background:#4caf50} #grocery-header{background:#2196f3} #indian-header{background:#ff9800} #others-header{background:#9c27b0}
-    #bunnings-header{background:#388e3c} #special-header{background:#c2185b}
+    #kmart-header{background:#00897b}
     .header-count{font-size:1.7rem;font-weight:900;background:rgba(255,255,255,0.83);color:#222;padding:2px 18px;border-radius:22px;margin-left:10px;min-width:40px;text-align:center;}
     .header-check{font-size:2.0rem;font-weight:900;color:#fff;background:rgba(16,157,57,0.92);padding:2px 16px;border-radius:22px;margin-left:10px;min-width:40px;display:inline-block;text-align:center;}
     .collapse-arrow{margin-left:10px;font-size:1.5rem;transition:transform 0.18s;}
@@ -93,30 +93,21 @@
     </div>
     <div class="container" id="others-container">
       <div id="others-header" class="header" onclick="toggleCollapse('others')">
-        <span>Kmart/Big W/Target</span>
+        <span>Bunnings/Kmart/BigW</span>
         <span class="header-count" id="others-count"></span>
         <span class="collapse-arrow" id="others-arrow">&#9654;</span>
       </div>
       <ul id="others"></ul>
       <button class="add-btn" onclick="addItem('others')">＋</button>
     </div>
-    <div class="container" id="bunnings-container">
-      <div id="bunnings-header" class="header" onclick="toggleCollapse('bunnings')">
-        <span>Bunnings</span>
-        <span class="header-count" id="bunnings-count"></span>
-        <span class="collapse-arrow" id="bunnings-arrow">&#9654;</span>
+    <div class="container" id="kmart-container">
+      <div id="kmart-header" class="header" onclick="toggleCollapse('kmart_bigw_target')">
+        <span>Kmart/Big W/Target</span>
+        <span class="header-count" id="kmart_bigw_target-count"></span>
+        <span class="collapse-arrow" id="kmart_bigw_target-arrow">&#9654;</span>
       </div>
-      <ul id="bunnings"></ul>
-      <button class="add-btn" onclick="addItem('bunnings')">＋</button>
-    </div>
-    <div class="container" id="special-container">
-      <div id="special-header" class="header" onclick="toggleCollapse('special')">
-        <span>Special</span>
-        <span class="header-count" id="special-count"></span>
-        <span class="collapse-arrow" id="special-arrow">&#9654;</span>
-      </div>
-      <ul id="special"></ul>
-      <button class="add-btn" onclick="addItem('special')">＋</button>
+      <ul id="kmart_bigw_target"></ul>
+      <button class="add-btn" onclick="addItem('kmart_bigw_target')">＋</button>
     </div>
   </div>
   <script>
@@ -126,7 +117,7 @@
       authDomain: "kumar-grocery-list.firebaseapp.com",
       databaseURL: "https://kumar-grocery-list-default-rtdb.asia-southeast1.firebasedatabase.app",
       projectId: "kumar-grocery-list",
-      storageBucket: "kumar-grocery-list.firebasestorage.app",
+      storageBucket: "kumar-grocery-list.appspot.com",
       messagingSenderId: "726095302244",
       appId: "1:726095302244:web:afacaef92680ad26151971",
       measurementId: "G-MC9K47NDW6"
@@ -140,9 +131,9 @@
       "+61472504905",
       "+61460028100"
     ];
-    const CATEGORIES = ['veggies', 'grocery', 'indian', 'others', 'bunnings', 'special'];
+    const CATEGORIES = ['veggies', 'grocery', 'indian', 'others', 'kmart_bigw_target'];
     let groceryData = {};
-    CATEGORIES.forEach(cat=>{groceryData[cat]=[];});
+    CATEGORIES.forEach(cat=>{groceryData[cat]={};});
     let listeners = [];
 
     // OTP Auth
@@ -211,7 +202,7 @@
       CATEGORIES.forEach(cat => {
         const ref = db.ref(`/groceryLists/${cat}`);
         const fn = ref.on('value', snap => {
-          groceryData[cat] = Array.isArray(snap.val()) ? snap.val() : [];
+          groceryData[cat] = snap.val() || {};
           renderList(cat);
           updateHeaderCount(cat);
         });
@@ -235,12 +226,13 @@
       addBtn.style.display = collapsed?'none':'';
       container.classList.toggle('collapsed', collapsed);
     }
+
     // Render List
     function renderList(cat) {
       const ul = document.getElementById(cat);
       ul.innerHTML = '';
-      (groceryData[cat] || []).forEach((item, i) => {
-        // Defensive: Only render if item is object with .name
+      const items = groceryData[cat] || {};
+      Object.entries(items).forEach(([key, item]) => {
         if (!item || typeof item !== 'object' || typeof item.name !== 'string') return;
         const li = document.createElement('li');
         li.setAttribute('draggable', 'false');
@@ -251,115 +243,14 @@
         const cb = document.createElement('input');
         cb.type = 'checkbox';
         cb.checked = !!item.checked;
-        cb.onchange = () => toggleChecked(cat, i, cb.checked);
+        cb.onchange = () => toggleChecked(cat, key, cb.checked);
         li.appendChild(cb);
 
-        // Name (edit on double click, drag on long press)
+        // Name (edit on double click)
         const name = document.createElement('div');
         name.className = 'name';
         name.textContent = item.name;
-        name.ondblclick = () => editNameInline(cat, i, name, item);
-        // Drag/Drop long press
-        let pressTimer = null, dragging = false, dragData = null;
-        name.addEventListener('mousedown', function(e){
-          if(e.button!==0) return;
-          pressTimer = setTimeout(()=>{
-            dragging = true;
-            li.classList.add('dragging');
-            document.body.style.userSelect = 'none';
-            dragData = {cat, idx: i, li};
-          }, 700);
-        });
-        name.addEventListener('mouseup', function(e){
-          clearTimeout(pressTimer);
-          if(dragging) {
-            dragging = false;
-            li.classList.remove('dragging');
-            document.body.style.userSelect = '';
-            dragData = null;
-          }
-        });
-        name.addEventListener('mouseleave', function(e){
-          clearTimeout(pressTimer);
-        });
-        name.addEventListener('mousemove', function(e){
-          if(!dragging || !dragData) return;
-          let overElem = document.elementFromPoint(e.clientX, e.clientY);
-          while(overElem && overElem.tagName!=="LI" && overElem!==document.body) overElem=overElem.parentNode;
-          if(overElem && overElem!==li) {
-            let targetUl = overElem.parentNode;
-            let targetCat = targetUl.id;
-            let targetIdx = Array.from(targetUl.children).indexOf(overElem);
-            if(targetCat && CATEGORIES.includes(targetCat)) {
-              moveItem(dragData.cat, dragData.idx, targetCat, targetIdx);
-              dragging = false;
-              li.classList.remove('dragging');
-              document.body.style.userSelect = '';
-              dragData = null;
-            }
-          }
-        });
-        // Touch support for mobile long-press drag
-        name.addEventListener('touchstart', function(e){
-          pressTimer = setTimeout(()=>{
-            dragging = true;
-            li.classList.add('dragging');
-            document.body.style.userSelect = 'none';
-            dragData = {cat, idx: i, li};
-          }, 700);
-        });
-        name.addEventListener('touchend', function(e){
-          clearTimeout(pressTimer);
-          if(dragging) {
-            dragging = false;
-            li.classList.remove('dragging');
-            document.body.style.userSelect = '';
-            dragData = null;
-          }
-        });
-        name.addEventListener('touchmove', function(e){
-          if(!dragging || !dragData) return;
-          const touch = e.touches[0];
-          let overElem = document.elementFromPoint(touch.clientX, touch.clientY);
-          while(overElem && overElem.tagName!=="LI" && overElem!==document.body) overElem=overElem.parentNode;
-          if(overElem && overElem!==li) {
-            let targetUl = overElem.parentNode;
-            let targetCat = targetUl.id;
-            let targetIdx = Array.from(targetUl.children).indexOf(overElem);
-            if(targetCat && CATEGORIES.includes(targetCat)) {
-              moveItem(dragData.cat, dragData.idx, targetCat, targetIdx);
-              dragging = false;
-              li.classList.remove('dragging');
-              document.body.style.userSelect = '';
-              dragData = null;
-            }
-          }
-        });
-        // Swipe to delete
-        name.addEventListener('touchstart', e => { name.touchStartX = e.touches[0].clientX; name.touchMoved = false; });
-        name.addEventListener('touchmove', function(e){
-          const dx = e.touches[0].clientX - name.touchStartX;
-          if(dx < -30) { name.touchMoved = true; swipeDelete(li, cat, i); }
-        });
-        name.addEventListener('touchend', function(e){
-          if(!name.touchMoved) li.classList.remove('swiped');
-        });
-        // Mouse swiping
-        let mouseDownX = null, mouseMoved = false;
-        name.onmousedown = function(e){
-          mouseDownX = e.clientX;
-          mouseMoved = false;
-        };
-        name.onmousemove = function(e){
-          if(mouseDownX !== null && e.buttons && e.clientX - mouseDownX < -32) {
-            mouseMoved = true;
-            swipeDelete(li, cat, i);
-          }
-        };
-        name.onmouseup = function(e){
-          setTimeout(()=>{li.classList.remove('swiped')},2200);
-          mouseDownX = null;
-        };
+        name.ondblclick = () => editNameInline(cat, key, name, item);
         li.appendChild(name);
 
         // Counter
@@ -367,13 +258,19 @@
         cnt.className = 'counter';
         const minus = document.createElement('button');
         minus.textContent = '-';
-        minus.onclick = () => changeCount(cat, i, -1);
+        minus.onclick = (e) => {
+          e.stopPropagation();
+          changeCount(cat, key, -1);
+        };
         const count = document.createElement('span');
         count.className = 'count';
         count.textContent = item.count || 0;
         const plus = document.createElement('button');
         plus.textContent = '+';
-        plus.onclick = () => changeCount(cat, i, +1);
+        plus.onclick = (e) => {
+          e.stopPropagation();
+          changeCount(cat, key, +1);
+        };
         cnt.appendChild(minus);
         cnt.appendChild(count);
         cnt.appendChild(plus);
@@ -383,75 +280,93 @@
         const swipeDel = document.createElement('div');
         swipeDel.className = 'swipe-delete';
         swipeDel.textContent = 'Delete';
-        swipeDel.onclick = (e)=>{ removeItem(cat, i); };
+        swipeDel.onclick = (e)=>{ removeItem(cat, key); };
         li.appendChild(swipeDel);
 
         ul.appendChild(li);
       });
     }
-    function swipeDelete(li, cat, i) {
-      li.classList.add('swiped');
-      setTimeout(()=>{li.classList.remove('swiped')},2200);
-    }
+
     function addItem(cat) {
       const name = prompt('Enter new item name:');
-      if(!name) return;
-      const arr = (groceryData[cat] || []).slice();
-      arr.push({name: name, count: 0, checked: false});
-      db.ref(`/groceryLists/${cat}`).set(arr);
+      if(!name || !name.trim()) return;
+      db.ref(`/groceryLists/${cat}`).push({name: name.trim(), count: 0, checked: false});
     }
-    function removeItem(cat, idx) {
-      const arr = (groceryData[cat] || []).slice();
-      arr.splice(idx, 1);
-      db.ref(`/groceryLists/${cat}`).set(arr);
+    function removeItem(cat, key) {
+      db.ref(`/groceryLists/${cat}/${key}`).remove();
     }
-    // Defensive: Only update count, never delete row
-    function changeCount(cat, idx, delta) {
-      const arr = (groceryData[cat] || []).slice();
-      if (!arr[idx] || typeof arr[idx] !== 'object' || typeof arr[idx].name !== 'string') return;
-      let v = (arr[idx].count || 0) + delta;
-      v = Math.max(0, Math.min(50, v));
-      arr[idx].count = v;
-      db.ref(`/groceryLists/${cat}`).set(arr);
+
+
+    function changeCount(cat, key, delta) {
+      const itemRef = db.ref(`/groceryLists/${cat}/${key}`);
+      itemRef.transaction(item => {
+        // Don't cause deletion: always return previous value if bad data
+        if (!item || typeof item !== 'object' || typeof item.name !== 'string') {
+          return item;
+        }
+        let v = (item.count || 0) + delta;
+        v = Math.max(0, Math.min(50, v));
+        return { ...item, count: v };
+      });
+    } 
+    
+    function toggleChecked(cat, key, val) {
+      db.ref(`/groceryLists/${cat}/${key}`).update({ checked: !!val });
     }
-    function toggleChecked(cat, idx, val) {
-      const arr = (groceryData[cat] || []).slice();
-      if (!arr[idx] || typeof arr[idx] !== 'object' || typeof arr[idx].name !== 'string') return;
-      arr[idx].checked = !!val;
-      db.ref(`/groceryLists/${cat}`).set(arr);
-    }
-    function editNameInline(cat, idx, nameDiv, oldItem) {
+
+    // --- THE KEY FIX: do not allow deletion on blank name during inline edit ---
+    function editNameInline(cat, key, nameDiv, oldItem) {
       if(nameDiv.classList.contains('editing')) return;
+      const prevName = oldItem.name;
       nameDiv.classList.add('editing');
       const input = document.createElement('input');
       input.type = "text";
-      input.value = oldItem.name;
+      input.value = prevName;
       input.className = "name editing";
       input.style.width = "95%";
       nameDiv.replaceWith(input);
       input.focus();
       input.setSelectionRange(input.value.length, input.value.length);
+      let finished = false;
       input.onkeydown = function(e) {
         if (e.key === "Enter") finishEdit();
-        if (e.key === "Escape") renderList(cat);
+        if (e.key === "Escape") cancelEdit();
       };
       input.onblur = finishEdit;
       function finishEdit() {
+        if (finished) return;
+        finished = true;
         const newValue = input.value.trim();
         if (!newValue) {
-          removeItem(cat, idx);
+          // Don't delete, just revert to previous name visually
+          db.ref(`/groceryLists/${cat}/${key}`).update({ name: prevName });
+        } else if (newValue !== prevName) {
+          db.ref(`/groceryLists/${cat}/${key}`).update({ name: newValue });
         } else {
-          const arr = (groceryData[cat] || []).slice();
-          if (!arr[idx] || typeof arr[idx] !== 'object') return;
-          arr[idx].name = newValue;
-          db.ref(`/groceryLists/${cat}`).set(arr);
+          renderList(cat);
         }
       }
+      function cancelEdit() {
+        if (finished) return;
+        finished = true;
+        renderList(cat);
+      }
+    }
+
+    function resetAll() {
+      if(!confirm("Reset all counters to 0 and uncheck all items in all tables?")) return;
+      CATEGORIES.forEach(cat=>{
+        const items = groceryData[cat] || {};
+        Object.entries(items).forEach(([key, item]) => {
+          db.ref(`/groceryLists/${cat}/${key}`).update({count:0, checked:false});
+        });
+      });
     }
     function updateHeaderCount(cat){
-      const arr = groceryData[cat] || [];
-      const count = arr.filter(x=>x && typeof x === "object" && !x.checked && x.count>0).length;
+      const items = groceryData[cat] || {};
+      const count = Object.values(items).filter(x=>x && typeof x === "object" && !x.checked && x.count>0).length;
       const el = document.getElementById(cat+'-count');
+      if(!el) return;
       if(count>0) {
         el.textContent = count;
         el.className = 'header-count';
@@ -460,29 +375,7 @@
         el.className = '';
       }
     }
-    function resetAll() {
-      if(!confirm("Reset all counters to 0 and uncheck all items in all tables?")) return;
-      CATEGORIES.forEach(cat=>{
-        const arr = (groceryData[cat]||[]).map(x=>x && typeof x === "object" && typeof x.name === "string"
-          ? {name:x.name,count:0,checked:false}
-          : null
-        ).filter(Boolean);
-        db.ref(`/groceryLists/${cat}`).set(arr);
-      });
-    }
-    function moveItem(fromCat, fromIdx, toCat, toIdx) {
-      if(fromCat===toCat && fromIdx===toIdx) return;
-      let fromArr = (groceryData[fromCat]||[]).slice();
-      let toArr = (groceryData[toCat]||[]).slice();
-      const [item] = fromArr.splice(fromIdx,1);
-      if(!item || typeof item !== "object" || typeof item.name !== "string") return;
-      if(fromCat===toCat && fromArr.length+1===toArr.length) {
-        if(toIdx>fromIdx) toIdx--;
-      }
-      toArr.splice(toIdx,0,item);
-      db.ref(`/groceryLists/${fromCat}`).set(fromArr);
-      db.ref(`/groceryLists/${toCat}`).set(toArr);
-    }
+
     auth.onAuthStateChanged(user => {
       if (user && ALLOWED_PHONES.includes(user.phoneNumber)) {
         showMain();
