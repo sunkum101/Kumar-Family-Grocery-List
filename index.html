@@ -19,11 +19,74 @@
       margin: 0;
       padding: 0;
     }
-    body{
-      font:17px 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-      padding:16px 0 32px 0;
+    body {
+      font: 17px 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      padding: 0 0 32px 0;
       box-sizing: border-box;
       min-height: 100vh;
+    }
+    .top-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: flex-end;
+      position: sticky;
+      top: 0;
+      left: 0;
+      z-index: 999;
+      background: #e3e7ee;
+      padding: 8px 13px 7px 0;
+      border-bottom: 1.5px solid #d6dbe2;
+      margin-bottom: 7px;
+      min-height: 38px;
+    }
+    .top-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      border: none;
+      background: #f5f7fa;
+      color: #333;
+      font-size: 1.04rem;
+      border-radius: 7px;
+      padding: 5px 13px 5px 10px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+      transition: background 0.16s;
+      outline: none;
+      opacity: 0.93;
+    }
+    .top-btn:active {background:#e4e8f0;}
+    .top-btn.reset { color:#ba2222; }
+    .top-btn.check-zeros { color:#388e3c; }
+    .reset-btn-float {
+      position:fixed;
+      top:13px;
+      left:13px;
+      z-index:1000;
+      background:#f5f7fa;
+      color:#ba2222;
+      border:none;
+      border-radius:50%;
+      padding: 6px 8px;
+      font-size:1.13rem;
+      box-shadow:0 2px 6px rgba(0,0,0,0.09);
+      cursor:pointer;
+      font-weight:700;
+      transition: background 0.13s, color 0.13s;
+      opacity:0.73;
+      min-width:0;
+      min-height:0;
+      width:34px; height:34px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .reset-btn-float:active {background: #e3e7ee;}
+    @media (max-width:600px) {
+      .reset-btn-float {display:none;}
+      .top-actions{padding-right: 4px;}
     }
     h1{
       text-align:center;
@@ -55,24 +118,6 @@
       margin-bottom:20px;
       letter-spacing:0.01em;
     }
-    .reset-btn-float{
-      position:fixed;
-      top:22px;
-      left:22px;
-      z-index:999;
-      background:linear-gradient(90deg,#f44336,#f87954);
-      color:#fff;
-      border:none;
-      border-radius:50px;
-      padding:10px 20px;
-      font-size:1.2rem;
-      box-shadow:0 4px 14px rgba(0,0,0,0.15);
-      cursor:pointer;
-      font-weight:700;
-      transition: background 0.18s, box-shadow 0.18s;
-      outline:none;
-    }
-    .reset-btn-float:active {background:linear-gradient(90deg,#d32f2f,#f87954);}
     .container{
       margin:24px 8px 32px 8px;
       background:linear-gradient(120deg, #e9eef8 0%, #ffffff 100%);
@@ -86,7 +131,6 @@
       padding-bottom: 4px;
       transition: box-shadow 0.18s;
     }
-    .container:active {box-shadow:0 2px 8px rgba(66,80,104,0.07);}
     .header {
       display:flex;
       flex-direction:row;
@@ -342,6 +386,38 @@
       .counter button{width:25px;height:25px;font-size:1.04rem;}
       .add-table-btn-wrap {margin: 34px 0 0 0; padding-left:7px;}
     }
+    li.checked {
+      background: #e0e0e0 !important;
+      color: #444 !important;
+    }
+    li.checked.has-count > .name, li.checked.has-count .name {
+      font-weight: bold !important;
+      color: #444 !important;
+      background: transparent !important;
+      text-decoration: line-through !important;
+    }
+    li.checked:not(.has-count) > .name,
+    li.checked:not(.has-count) .name {
+      font-weight: normal !important;
+      color: #444 !important;
+      background: transparent !important;
+      text-decoration: line-through !important;
+    }
+    li.checked > .name, li.checked .name {
+      text-decoration: line-through !important;
+    }
+    li.has-count:not(.checked) > .name, li.has-count:not(.checked) .name {
+      font-weight: bold !important;
+      color: #222 !important;
+      background: #fff59d !important;
+      border-radius: 5px !important;
+      padding: 2px 8px !important;
+      font-size: 1.09rem !important;
+      letter-spacing: 0.01em !important;
+      transition: background 0.15s, color 0.15s;
+      font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;
+      text-decoration: none !important;
+    }
     /* Modal styles */
     .modal-backdrop {
       position:fixed;
@@ -412,10 +488,17 @@
     <div id="login-error" style="color:red;margin:10px;"></div>
   </div>
   <div id="main-section" style="display:none;">
-    <button id="logout-btn" title="Logout" onclick="logout()">
-      <svg width="16" height="16" viewBox="0 0 20 20" style="vertical-align:middle;"><path fill="#5b5b5b" d="M3 2a2 2 0 0 1 2-2h5a2 2 0 0 1 2 2v3h-2V2H5v16h5v-3h2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V2zm11.29 7.29l-1.3 1.3a1 1 0 1 0 1.42 1.42l3-3a1 1 0 0 0 0-1.42l-3-3a1 1 0 0 0-1.42 1.42l1.3 1.3H9a1 1 0 1 0 0 2h5.59z"/></svg>
+    <div class="top-actions">
+      <button class="top-btn reset" id="static-reset-btn" title="Reset counters and uncheck all">
+        <span>Reset All</span>
+      </button>
+      <button class="top-btn check-zeros" id="check-zeros-btn" title="Highlight items to buy">
+        <span>Check Zeros</span>
+      </button>
+    </div>
+    <button class="reset-btn-float" id="floating-reset-btn" title="Reset counters and uncheck all">
+      <svg width="17" height="17" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="#f44336"/><path fill="#fff" d="M6.6 13.2A4.5 4.5 0 0 1 10 6.5c1.2 0 2.3.5 3.1 1.3l-1.1 1.1H16V5.5l-1.4 1.4A6 6 0 1 0 16 10h-1.5a4.5 4.5 0 0 1-7.9 2.7z"/></svg>
     </button>
-    <button class="reset-btn-float" onclick="resetAll()" title="Reset counters and uncheck all">Reset All</button>
     <h1>Kumar Family Grocery</h1>
     <div class="datetime" id="datetime"></div>
     <div id="tables-area"></div>
@@ -493,6 +576,9 @@
 
     let groceryData = {};
     let listeners = [];
+    // For check zeros mode
+    let checkZerosActive = false;
+    let originalKeyOrder = {};
 
     // Google Auth
     function googleSignIn() {
@@ -542,6 +628,12 @@
       db.ref(`/groceryLists`).on('value', snap => {
         const data = snap.val() || {};
         groceryData = data;
+        // Save original order for each category (first load only)
+        Object.entries(data).forEach(([cat, items]) => {
+          if (!originalKeyOrder[cat] && items) {
+            originalKeyOrder[cat] = Object.keys(items);
+          }
+        });
         let allKeys = Object.keys(data);
         let ordered = [];
         CATEGORIES.forEach(cat => { if(allKeys.includes(cat)) ordered.push(cat); });
@@ -664,7 +756,6 @@
 
     function deleteTable(cat) {
       db.ref(`/groceryLists/${cat}`).remove();
-      // Remove from category display lists
       setTimeout(renderAllTables, 300);
     }
 
@@ -691,8 +782,27 @@
       const ul = document.getElementById(cat);
       if (!ul) return;
       ul.innerHTML = '';
-      const items = groceryData[cat] || {};
-      Object.entries(items).forEach(([key, item]) => {
+
+      let items = groceryData[cat] || {};
+      let keys = Object.keys(items);
+
+      // If check-zeros mode is active, sort: count>0 first (maintain order), then count==0 (maintain order)
+      if (checkZerosActive && originalKeyOrder[cat]) {
+        const origOrder = originalKeyOrder[cat].slice(); // snapshot
+        keys.sort((a,b)=>{
+          const ia = items[a]?.count>0 ? 0 : 1;
+          const ib = items[b]?.count>0 ? 0 : 1;
+          if (ia !== ib) return ia-ib;
+          // maintain original order within each group
+          return origOrder.indexOf(a) - origOrder.indexOf(b);
+        });
+      } else if (originalKeyOrder[cat]) {
+        // Always show in original order if not sorting
+        keys = originalKeyOrder[cat].slice();
+      }
+
+      keys.forEach(key => {
+        const item = items[key];
         if (!item || typeof item !== 'object' || typeof item.name !== 'string') return;
         const li = document.createElement('li');
         li.setAttribute('draggable', 'false');
@@ -846,15 +956,41 @@
       nameDiv.onblur = finishEdit;
     }
 
+    // RESET ALL: Uncheck all, set count=0, restore order
     function resetAll() {
       if(!confirm("Reset all counters to 0 and uncheck all items in all tables?")) return;
+      checkZerosActive = false;
       CATEGORIES.forEach(cat=>{
         const items = groceryData[cat] || {};
         Object.entries(items).forEach(([key, item]) => {
           db.ref(`/groceryLists/${cat}/${key}`).update({count:0, checked:false});
         });
       });
+      setTimeout(()=>{
+        renderAllTables();
+      }, 350);
     }
+
+    // "Check Zeros": check all items with count==0, sort count>0 to top, count==0 to bottom
+    function checkZeros() {
+      checkZerosActive = true;
+      CATEGORIES.forEach(cat=>{
+        const items = groceryData[cat] || {};
+        Object.entries(items).forEach(([key, item]) => {
+          if(item.count==0 && !item.checked) {
+            db.ref(`/groceryLists/${cat}/${key}`).update({checked:true});
+          }
+        });
+      });
+      setTimeout(()=>{
+        renderAllTables();
+      }, 350);
+    }
+
+    // Handle static and floating reset/check buttons
+    document.getElementById('static-reset-btn').onclick = resetAll;
+    document.getElementById('floating-reset-btn').onclick = resetAll;
+    document.getElementById('check-zeros-btn').onclick = checkZeros;
 
     function updateHeaderCount(cat){
       const items = groceryData[cat] || {};
