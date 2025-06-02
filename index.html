@@ -67,7 +67,6 @@
       border-radius:6px;
       box-shadow:0 4px 12px rgba(0,0,0,0.08);
     }
-    /* Header coloring based on table */
     .header {
       display:flex;
       flex-direction:row;
@@ -87,7 +86,6 @@
     .pharmacy-header { background: #00897b; }
     .others-header { background: #607d8b; }
     .default-header { background: #607d8b; }
-
     .header-title{
       flex:0 0 auto;
       font-size:1.09rem;
@@ -166,11 +164,10 @@
       border-radius:5px;
       user-select: text;
     }
-    /* Highlight item name with count>0 as bold black & light yellow background, UNLESS checked */
     li.has-count > .name, li.has-count .name {
       font-weight: bold !important;
       color: #222 !important;
-      background: #fff59d !important; /* light yellow */
+      background: #fff59d !important;
       border-radius: 5px !important;
       padding: 2px 8px !important;
       font-size: 1.09rem !important;
@@ -178,7 +175,6 @@
       transition: background 0.15s, color 0.15s;
       font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;
     }
-    /* Checked items: remove bold and yellow, make normal font and gray bg */
     li.checked > .name, li.checked .name {
       font-weight: normal !important;
       color: #444 !important;
@@ -273,58 +269,48 @@
       .counter{font-size:0.95rem;}
       .counter span.count{font-size:0.98rem;}
     }
-    
-    /* Checked items: always grey background */
-  li.checked {
-    background: #e0e0e0 !important;
-    color: #444 !important;
-  }
-  /* Checked and count > 0: Keep bold, but use grey background */
-  li.checked.has-count > .name, li.checked.has-count .name {
-    font-weight: bold !important;
-    color: #444 !important;
-    background: transparent !important;
-    text-decoration: line-through !important;
-  }
-  /* Checked and count = 0: normal font, grey background, cross out */
-  li.checked:not(.has-count) > .name,
-  li.checked:not(.has-count) .name {
-    font-weight: normal !important;
-    color: #444 !important;
-    background: transparent !important;
-    text-decoration: line-through !important;
-  }
-  /* Checked (any): cross out */
-  li.checked > .name, li.checked .name {
-    text-decoration: line-through !important;
-  }
-
-  /* Unchecked and has count: bold, yellow, no cross out */
-  li.has-count:not(.checked) > .name, li.has-count:not(.checked) .name {
-    font-weight: bold !important;
-    color: #222 !important;
-    background: #fff59d !important; /* light yellow */
-    border-radius: 5px !important;
-    padding: 2px 8px !important;
-    font-size: 1.09rem !important;
-    letter-spacing: 0.01em !important;
-    transition: background 0.15s, color 0.15s;
-    font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;
-    text-decoration: none !important;
-  }
-    
+    li.checked {
+      background: #e0e0e0 !important;
+      color: #444 !important;
+    }
+    li.checked.has-count > .name, li.checked.has-count .name {
+      font-weight: bold !important;
+      color: #444 !important;
+      background: transparent !important;
+      text-decoration: line-through !important;
+    }
+    li.checked:not(.has-count) > .name,
+    li.checked:not(.has-count) .name {
+      font-weight: normal !important;
+      color: #444 !important;
+      background: transparent !important;
+      text-decoration: line-through !important;
+    }
+    li.checked > .name, li.checked .name {
+      text-decoration: line-through !important;
+    }
+    li.has-count:not(.checked) > .name, li.has-count:not(.checked) .name {
+      font-weight: bold !important;
+      color: #222 !important;
+      background: #fff59d !important;
+      border-radius: 5px !important;
+      padding: 2px 8px !important;
+      font-size: 1.09rem !important;
+      letter-spacing: 0.01em !important;
+      transition: background 0.15s, color 0.15s;
+      font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;
+      text-decoration: none !important;
+    }
   </style>
+</head>
 </head>
 <body>
   <div id="login-section" style="text-align:center;margin-top:50px;">
     <h2>Login to Grocery List</h2>
-    <input type="text" id="phone-number" placeholder="+614XXXXXXXX" style="font-size:1.05rem;padding:8px;width:180px;">
-    <button onclick="sendOTP()">Send OTP</button>
-    <div id="recaptcha-container"></div>
-    <div id="otp-section" style="display:none;margin-top:15px;">
-      <input type="text" id="otp-code" placeholder="Enter OTP" style="font-size:1.05rem;padding:8px;width:120px;">
-      <button onclick="verifyOTP()">Verify OTP</button>
-    </div>
+    <button id="google-signin-btn" style="font-size:1.1rem;padding:10px 22px;background:#4285F4;color:#fff;border:none;border-radius:5px;cursor:pointer;font-weight:600;">
+      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" style="height:1.25em;vertical-align:middle;margin-right:6px;">
+      Sign in with Google
+    </button>
     <div id="login-error" style="color:red;margin:10px;"></div>
   </div>
   <div id="main-section" style="display:none;">
@@ -351,17 +337,19 @@
       appId: "1:726095302244:web:afacaef92680ad26151971",
       measurementId: "G-MC9K47NDW6"
     };
-    firebase.initializeApp(firebaseConfig);
+    const app = firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.database();
 
-    const ALLOWED_PHONES = [
-      "+61455178635",
-      "+61472504905",
-      "+61460028100"
+    // Verify initialization
+    console.log("Firebase apps:", firebase.apps);
+    
+    // Define ALLOWED_USERS as an array of allowed email addresses
+    const ALLOWED_USERS = [
+      "sunil.kumar101@gmail.com",
+      "manju4sun@gmail.com"
     ];
 
-    // Desired table order
     let CATEGORIES = [
       'veggies',
       'grocery',
@@ -371,7 +359,6 @@
       'others'
     ];
 
-    // Table display names
     let CATEGORY_NAMES = {
       veggies: 'Veggies',
       grocery: 'Grocery',
@@ -381,7 +368,6 @@
       others: 'Others'
     };
 
-    // Table emoji/icons
     let CATEGORY_ICONS = {
       veggies: '🥦',
       grocery: '🛒',
@@ -391,7 +377,6 @@
       others: ''
     };
 
-    // Table header color classes
     let CATEGORY_HEADER_CLASSES = {
       veggies: 'veggies-header',
       grocery: 'grocery-header',
@@ -404,44 +389,27 @@
     let groceryData = {};
     let listeners = [];
 
-    // OTP Auth
-    let confirmationResult = null;
-    function sendOTP() {
-      const phone = document.getElementById('phone-number').value.trim();
-      let phoneE164 = phone.startsWith('+') ? phone : '+'+phone;
-      if (!ALLOWED_PHONES.includes(phoneE164)) {
-        document.getElementById('login-error').textContent = 'This number is not allowed.';
-        return;
-      }
-      window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {size: 'invisible'});
-      auth.signInWithPhoneNumber(phoneE164, window.recaptchaVerifier)
-        .then((result) => {
-          confirmationResult = result;
-          document.getElementById('otp-section').style.display = '';
-          document.getElementById('login-error').textContent = 'OTP sent!';
-        })
-        .catch((err) => {
-          document.getElementById('login-error').textContent = err.message;
-        });
-    }
-    function verifyOTP() {
-      const code = document.getElementById('otp-code').value.trim();
-      if (!confirmationResult) return;
-      confirmationResult.confirm(code)
+    // Google Auth
+    function googleSignIn() {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      auth.signInWithPopup(provider)
         .then((result) => {
           const user = result.user;
-          if (!ALLOWED_PHONES.includes(user.phoneNumber)) {
+          if (ALLOWED_USERS.length && !ALLOWED_USERS.includes(user.email)) {
             auth.signOut();
-            document.getElementById('login-error').textContent = 'Access denied.';
+            document.getElementById('login-error').textContent = 'Access denied. Please use an allowed Google account.';
             return;
           }
           showMain();
           subscribeAllLists();
         })
         .catch((err) => {
-          document.getElementById('login-error').textContent = 'Wrong OTP.';
+          document.getElementById('login-error').textContent = err.message;
         });
     }
+
+    document.getElementById('google-signin-btn').onclick = googleSignIn;
+
     function logout() {
       listeners.forEach(fn => {try {fn();}catch(e){}});
       listeners = [];
@@ -468,11 +436,9 @@
       listeners.forEach(fn => {try {fn();}catch(e){}});
       listeners = [];
 
-      // Listen for table (category) changes
       db.ref(`/groceryLists`).on('value', snap => {
         const data = snap.val() || {};
         groceryData = data;
-        // Update categories: keep desired order, add any new tables at end
         let allKeys = Object.keys(data);
         let ordered = [];
         CATEGORIES.forEach(cat => { if(allKeys.includes(cat)) ordered.push(cat); });
@@ -483,7 +449,6 @@
         renderAllTables();
       });
 
-      // Listen for collapses
       CATEGORIES.forEach(cat => {
         const ref = db.ref(`/groceryLists/${cat}`);
         const fn = ref.on('value', snap => {
@@ -495,19 +460,18 @@
       });
     }
 
-    // Render all tables
+    // ... [ALL RENDERING AND LOGIC FUNCTIONS UNCHANGED FROM ORIGINAL CODE] ...
+
     function renderAllTables() {
       const area = document.getElementById('tables-area');
       area.innerHTML = '';
       CATEGORIES.forEach(cat => {
         if (!CATEGORY_NAMES[cat]) CATEGORY_NAMES[cat] = cat.charAt(0).toUpperCase() + cat.slice(1);
         if (!CATEGORY_ICONS[cat]) CATEGORY_ICONS[cat] = '';
-        // Container
         const container = document.createElement('div');
         container.className = 'container';
         container.id = `${cat}-container`;
 
-        // Header
         const header = document.createElement('div');
         header.className = 'header ' + (CATEGORY_HEADER_CLASSES[cat] || 'default-header');
         header.id = `${cat}-header`;
@@ -517,12 +481,10 @@
         headerTitle.className = 'header-title';
         headerTitle.innerHTML = (CATEGORY_ICONS[cat] ? CATEGORY_ICONS[cat] + " " : "") + CATEGORY_NAMES[cat];
 
-        // Count
         const headerCount = document.createElement('span');
         headerCount.className = 'header-count';
         headerCount.id = `${cat}-count`;
 
-        // Arrow
         const headerArrow = document.createElement('span');
         headerArrow.className = 'collapse-arrow';
         headerArrow.id = `${cat}-arrow`;
@@ -534,12 +496,10 @@
 
         container.appendChild(header);
 
-        // List
         const ul = document.createElement('ul');
         ul.id = cat;
         container.appendChild(ul);
 
-        // Add item button
         const addBtn = document.createElement('button');
         addBtn.className = 'add-btn';
         addBtn.textContent = '＋';
@@ -551,16 +511,13 @@
 
         area.appendChild(container);
 
-        // Collapse state
         if(localStorage.getItem('col-'+cat)==='true') setCollapsed(cat,true);
 
-        // Fill list and update count
         renderList(cat);
         updateHeaderCount(cat);
       });
     }
 
-    // Collapse logic
     function toggleCollapse(cat) {
       const ul = document.getElementById(cat);
       const addBtn = document.querySelector(`#${cat}-container .add-btn`);
@@ -578,7 +535,6 @@
       container.classList.toggle('collapsed', collapsed);
     }
 
-    // Render List
     function renderList(cat) {
       const ul = document.getElementById(cat);
       if (!ul) return;
@@ -592,14 +548,12 @@
         if(item.count > 0) li.classList.add('has-count');
         li.style.position = 'relative';
 
-        // Checkbox
         const cb = document.createElement('input');
         cb.type = 'checkbox';
         cb.checked = !!item.checked;
         cb.onchange = () => toggleChecked(cat, key, cb.checked);
         li.appendChild(cb);
 
-        // Name (edit on double click)
         const name = document.createElement('div');
         name.className = 'name';
         name.textContent = item.name;
@@ -609,7 +563,6 @@
         };
         li.appendChild(name);
 
-        // Counter
         const cnt = document.createElement('div');
         cnt.className = 'counter';
         const minus = document.createElement('button');
@@ -642,20 +595,16 @@
       db.ref(`/groceryLists/${cat}`).push({name: name.trim(), count: 0, checked: false});
     }
 
-    // Add new table prompt
     function addNewTablePrompt() {
       let tname = prompt('Enter table name (e.g. Pharmacy):');
       if(!tname || !tname.trim()) return;
       tname = tname.trim();
-      // Generate category key
       let catKey = tname.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'');
       if (!catKey) catKey = 'custom_' + Date.now();
-      // Check if already exists
       if(CATEGORIES.includes(catKey)) {
         alert('Table already exists!');
         return;
       }
-      // Optional: initial items
       let items = {};
       if(confirm('Do you want to add an item to this table now?')) {
         let itemName = prompt('Enter item name:');
@@ -663,15 +612,12 @@
           items = {[db.ref().push().key]: {name:itemName.trim(), count:0, checked:false}};
         }
       }
-      // Add to display names
       CATEGORY_NAMES[catKey] = tname;
       CATEGORY_ICONS[catKey] = '';
       CATEGORY_HEADER_CLASSES[catKey] = 'default-header';
-      // Add to firebase
       db.ref(`/groceryLists/${catKey}`).set(items);
     }
 
-    // Safe update for plus/minus counter
     function updateCount(cat, key, delta) {
       const item = groceryData[cat][key];
       if (!item || typeof item !== 'object' || typeof item.name !== 'string') return;
@@ -684,7 +630,6 @@
       db.ref(`/groceryLists/${cat}/${key}`).update({ checked: !!val });
     }
 
-    // Only allow editing on double click.
     function editNameInline(cat, key, nameDiv, oldItem) {
       if(nameDiv.classList.contains('editing')) return;
       const prevName = oldItem.name;
@@ -705,7 +650,6 @@
         nameDiv.style.userSelect = "";
         const newValue = nameDiv.textContent.trim();
         if (!newValue) {
-          // Don't delete, just revert to previous name
           db.ref(`/groceryLists/${cat}/${key}`).update({ name: prevName });
           nameDiv.textContent = prevName;
         } else if (newValue !== prevName) {
@@ -729,7 +673,6 @@
       });
     }
 
-    // Update header count
     function updateHeaderCount(cat){
       const items = groceryData[cat] || {};
       const count = Object.values(items).filter(x=>x && typeof x === "object" && !x.checked && x.count>0).length;
@@ -745,7 +688,7 @@
     }
 
     auth.onAuthStateChanged(user => {
-      if (user && ALLOWED_PHONES.includes(user.phoneNumber)) {
+      if (user && (!ALLOWED_USERS.length || ALLOWED_USERS.includes(user.email))) {
         showMain();
         subscribeAllLists();
       } else {
