@@ -4,19 +4,26 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>Kumar Family Grocery</title>
+  <!-- Firebase scripts -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
   <style>
+    html, body {
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+    }
     body{
-      font:20px 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      font:15px 'Helvetica Neue', Helvetica, Arial, sans-serif;
       background:#f5f7fa;
       padding:20px;
     }
     h1{
       text-align:center;
       margin:10px 0;
-      font-size:2rem;
+      font-size:1.7rem;
       color:#333;
       position:relative;
       font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;
@@ -53,23 +60,7 @@
       cursor:pointer;
       font-weight:600;
     }
-    .add-table-btn{
-      position:fixed;
-      bottom:20px;
-      left:20px;
-      z-index:999;
-      background:#009688;
-      color:#fff;
-      border:none;
-      border-radius:50px;
-      padding:10px 22px;
-      font-size:1.15rem;
-      box-shadow:0 3px 10px rgba(0,0,0,0.14);
-      cursor:pointer;
-      font-weight:600;
-      transition:background 0.18s;
-    }
-    .add-table-btn:hover{background:#00796b;}
+    .reset-btn-float:hover{background:#c62828;}
     .container{
       margin-bottom:30px;
       background:#fff;
@@ -92,9 +83,9 @@
     .veggies-header { background: #388e3c; }
     .grocery-header { background: #1976d2; }
     .indian-header  { background: #ff9800; }
-    .bunnings-header { background: #009688; }
     .kmart_bigw_target-header { background: #9c27b0; }
-    /* fallback for unknown/new tables */
+    .pharmacy-header { background: #00897b; }
+    .others-header { background: #607d8b; }
     .default-header { background: #607d8b; }
 
     .header-title{
@@ -144,18 +135,21 @@
       padding:13px 16px;
       border-bottom:1px solid #eee;
       background:#fff;
-      font-size:1.32rem;
+      font-size:1.14rem;
       user-select:none;
       transition:background .2s;
       font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;
     }
     li:last-child{border-bottom:none}
-    li.checked{background:#e9ecef;color:#666}
-    input[type="checkbox"]{width:22px;height:22px;cursor:pointer;margin-top:2px;accent-color:#666;}
+    li.checked{
+      background:#e0e0e0 !important;
+      color:#444 !important;
+    }
+    input[type="checkbox"]{width:18px;height:18px;cursor:pointer;margin-top:2px;accent-color:#666;}
     .name{
       flex:1;
       min-width:0;
-      font-size:1.29rem;
+      font-size:1.09rem;
       line-height:1.3;
       border:none;
       background:transparent;
@@ -163,80 +157,132 @@
       padding:0;
       transition:background 0.15s;
       font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;
+      font-weight: normal;
+      color: #222;
+      user-select: none;
     }
-    .name.editing{background:#fffbe9;border-radius:5px;}
+    .name.editing{
+      background:#fffbe9;
+      border-radius:5px;
+      user-select: text;
+    }
+    /* Highlight item name with count>0 as bold black & light yellow background, UNLESS checked */
     li.has-count > .name, li.has-count .name {
       font-weight: bold !important;
       color: #222 !important;
       background: #fff59d !important; /* light yellow */
       border-radius: 5px !important;
       padding: 2px 8px !important;
-      font-size: 1.29rem !important;
+      font-size: 1.09rem !important;
       letter-spacing: 0.01em !important;
       transition: background 0.15s, color 0.15s;
       font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;
+    }
+    /* Checked items: remove bold and yellow, make normal font and gray bg */
+    li.checked > .name, li.checked .name {
+      font-weight: normal !important;
+      color: #444 !important;
+      background: transparent !important;
     }
     .counter{
       display:flex;
       align-items:center;
       gap:7px;
-      font-size:1.22rem;
+      font-size:1.02rem;
       font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;
+      user-select: none;
     }
     .counter button{
-      width:28px;
-      height:28px;
+      width:22px;
+      height:22px;
       border:none;
       border-radius:50%;
       color:#fff;
-      font-size:1.17rem;
+      font-size:1.01rem;
       cursor:pointer;
       background-color:#bbb;
       font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;
+      user-select: none;
     }
     .counter span.count{
-      min-width:25px;
+      min-width:19px;
       text-align:center;
-      font-size:1.23rem;
+      font-size:1.03rem;
       font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;
+      user-select: none;
     }
-    .add-btn{
-      margin:12px 16px 12px 16px;
-      width:34px;
-      height:34px;
-      border-radius:50%;
-      background:#4caf50;
-      color:#fff;
-      font-size:1.3rem;
-      cursor:pointer;
-      border:none;
-      font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;
+    .add-table-btn-wrap {
+      width: 100%;
+      display: flex;
+      justify-content: flex-start;
+      margin: 42px 0 0 0;
     }
-    .swipe-delete{position:absolute;right:0;top:0;bottom:0;width:85px;display:flex;align-items:center;justify-content:center;background:#f44336;color:#fff;font-size:1.2rem;border-radius:0 8px 8px 0;opacity:0;transition:opacity 0.15s;}
-    li.swiped .swipe-delete{opacity:1;}
-    li.dragging{opacity:0.5;}
+    .add-table-btn {
+      position: static;
+      margin-left: 0;
+      background: #009688;
+      color: #fff;
+      border: none;
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      font-size: 1.3rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.13);
+      cursor: pointer;
+      font-weight: 700;
+      transition: background 0.18s, box-shadow 0.18s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0.82;
+    }
+    .add-table-btn:hover {
+      background: #00796b;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.18);
+      opacity: 1;
+    }
+    .add-table-btn::after {
+      content: attr(data-tooltip);
+      opacity: 0;
+      pointer-events: none;
+      background: #222;
+      color: #fff;
+      padding: 3px 9px;
+      border-radius: 5px;
+      font-size: 0.88rem;
+      white-space: nowrap;
+      position: absolute;
+      left: 120%;
+      top: 50%;
+      transform: translateY(-50%);
+      transition: opacity 0.2s;
+      z-index: 1001;
+    }
+    .add-table-btn:hover::after {
+      opacity: 0.95;
+    }
     @media(max-width:600px){
       .header{font-size:0.95rem;}
       .header-title{font-size:1rem;}
-      .name{font-size:1.09rem;}
-      .header-count{font-size:1rem;padding:2px 7px;}
-      .header-check{font-size:1.1rem;padding:2px 7px;}
+      .name{font-size:0.98rem;}
+      .header-count{font-size:0.97rem;padding:2px 7px;}
+      .header-check{font-size:1.02rem;padding:2px 7px;}
       .reset-btn-float{padding:7px 10px;font-size:0.9rem;}
-      .add-table-btn{font-size:0.99rem;padding:8px 15px;}
-      li{font-size:1.04rem;}
-      .counter{font-size:1.05rem;}
-      .counter span.count{font-size:1.09rem;}
+      .add-table-btn{width:26px;height:26px;font-size:0.99rem;}
+      li{font-size:0.96rem;}
+      .counter{font-size:0.95rem;}
+      .counter span.count{font-size:0.98rem;}
     }
   </style>
 </head>
 <body>
   <div id="login-section" style="text-align:center;margin-top:50px;">
     <h2>Login to Grocery List</h2>
-    <input type="text" id="phone-number" placeholder="+614XXXXXXXX" style="font-size:1.2rem;padding:8px;width:220px;">
+    <input type="text" id="phone-number" placeholder="+614XXXXXXXX" style="font-size:1.05rem;padding:8px;width:180px;">
     <button onclick="sendOTP()">Send OTP</button>
     <div id="recaptcha-container"></div>
     <div id="otp-section" style="display:none;margin-top:15px;">
-      <input type="text" id="otp-code" placeholder="Enter OTP" style="font-size:1.2rem;padding:8px;width:160px;">
+      <input type="text" id="otp-code" placeholder="Enter OTP" style="font-size:1.05rem;padding:8px;width:120px;">
       <button onclick="verifyOTP()">Verify OTP</button>
     </div>
     <div id="login-error" style="color:red;margin:10px;"></div>
@@ -249,7 +295,9 @@
     <h1>Kumar Family Grocery</h1>
     <div class="datetime" id="datetime"></div>
     <div id="tables-area"></div>
-    <button class="add-table-btn" onclick="addNewTablePrompt()">＋ Add Table</button>
+    <div class="add-table-btn-wrap">
+      <button class="add-table-btn" onclick="addNewTablePrompt()" data-tooltip="Add Table" title="Add Table">＋</button>
+    </div>
   </div>
   <script>
     // Firebase config
@@ -273,13 +321,14 @@
       "+61460028100"
     ];
 
-    // Table display order
+    // Desired table order
     let CATEGORIES = [
       'veggies',
       'grocery',
       'indian',
-      'bunnings',
-      'kmart_bigw_target'
+      'kmart_bigw_target',
+      'pharmacy',
+      'others'
     ];
 
     // Table display names
@@ -287,8 +336,9 @@
       veggies: 'Veggies',
       grocery: 'Grocery',
       indian: 'India Store',
-      bunnings: 'Bunnings',
-      kmart_bigw_target: 'Kmart/Big W/Target'
+      kmart_bigw_target: 'Kmart/Big W/Target',
+      pharmacy: 'Pharmacy',
+      others: 'Others'
     };
 
     // Table emoji/icons
@@ -296,8 +346,9 @@
       veggies: '🥦',
       grocery: '🛒',
       indian: '<img src="https://upload.wikimedia.org/wikipedia/en/4/41/Flag_of_India.svg" alt="India" style="height:1.3em;vertical-align:middle;margin-right:4px;">',
-      bunnings: '', // No emoji
-      kmart_bigw_target: ''
+      kmart_bigw_target: '',
+      pharmacy: '',
+      others: ''
     };
 
     // Table header color classes
@@ -305,8 +356,9 @@
       veggies: 'veggies-header',
       grocery: 'grocery-header',
       indian: 'indian-header',
-      bunnings: 'bunnings-header',
-      kmart_bigw_target: 'kmart_bigw_target-header'
+      kmart_bigw_target: 'kmart_bigw_target-header',
+      pharmacy: 'pharmacy-header',
+      others: 'others-header'
     };
 
     let groceryData = {};
@@ -380,9 +432,14 @@
       db.ref(`/groceryLists`).on('value', snap => {
         const data = snap.val() || {};
         groceryData = data;
-        // Update categories if new ones are added
-        CATEGORIES = Object.keys(data);
-        // Render all tables
+        // Update categories: keep desired order, add any new tables at end
+        let allKeys = Object.keys(data);
+        let ordered = [];
+        CATEGORIES.forEach(cat => { if(allKeys.includes(cat)) ordered.push(cat); });
+        allKeys.forEach(cat=>{
+          if(!ordered.includes(cat)) ordered.push(cat);
+        });
+        CATEGORIES = ordered;
         renderAllTables();
       });
 
@@ -446,7 +503,10 @@
         const addBtn = document.createElement('button');
         addBtn.className = 'add-btn';
         addBtn.textContent = '＋';
-        addBtn.onclick = ()=>addItem(cat);
+        addBtn.onclick = (e)=>{
+          e.stopPropagation();
+          addItem(cat);
+        };
         container.appendChild(addBtn);
 
         area.appendChild(container);
@@ -503,7 +563,10 @@
         const name = document.createElement('div');
         name.className = 'name';
         name.textContent = item.name;
-        name.ondblclick = () => editNameInline(cat, key, name, item);
+        name.ondblclick = (e) => {
+          e.stopPropagation();
+          editNameInline(cat, key, name, item);
+        };
         li.appendChild(name);
 
         // Counter
@@ -581,43 +644,39 @@
       db.ref(`/groceryLists/${cat}/${key}`).update({ checked: !!val });
     }
 
-    // --- THE KEY FIX: do not allow deletion on blank name during inline edit ---
+    // Only allow editing on double click.
     function editNameInline(cat, key, nameDiv, oldItem) {
       if(nameDiv.classList.contains('editing')) return;
       const prevName = oldItem.name;
       nameDiv.classList.add('editing');
-      const input = document.createElement('input');
-      input.type = "text";
-      input.value = prevName;
-      input.className = "name editing";
-      input.style.width = "95%";
-      nameDiv.replaceWith(input);
-      input.focus();
-      input.setSelectionRange(input.value.length, input.value.length);
+      nameDiv.setAttribute('contenteditable', 'true');
+      nameDiv.setAttribute('spellcheck', 'false');
+      nameDiv.style.userSelect = "text";
+      nameDiv.focus();
+      nameDiv.setSelectionRange && nameDiv.setSelectionRange(prevName.length, prevName.length);
+
       let finished = false;
-      input.onkeydown = function(e) {
-        if (e.key === "Enter") finishEdit();
-        if (e.key === "Escape") cancelEdit();
-      };
-      input.onblur = finishEdit;
+
       function finishEdit() {
         if (finished) return;
         finished = true;
-        const newValue = input.value.trim();
+        nameDiv.classList.remove('editing');
+        nameDiv.removeAttribute('contenteditable');
+        nameDiv.style.userSelect = "";
+        const newValue = nameDiv.textContent.trim();
         if (!newValue) {
-          // Don't delete, just revert to previous name visually
+          // Don't delete, just revert to previous name
           db.ref(`/groceryLists/${cat}/${key}`).update({ name: prevName });
+          nameDiv.textContent = prevName;
         } else if (newValue !== prevName) {
           db.ref(`/groceryLists/${cat}/${key}`).update({ name: newValue });
-        } else {
-          renderList(cat);
         }
       }
-      function cancelEdit() {
-        if (finished) return;
-        finished = true;
-        renderList(cat);
-      }
+      nameDiv.onkeydown = function(e) {
+        if (e.key === "Enter") { e.preventDefault(); finishEdit(); }
+        if (e.key === "Escape") { nameDiv.textContent = prevName; finishEdit(); }
+      };
+      nameDiv.onblur = finishEdit;
     }
 
     function resetAll() {
