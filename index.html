@@ -260,7 +260,7 @@
         minus.textContent = '-';
         minus.onclick = (e) => {
           e.stopPropagation();
-          changeCount(cat, key, -1);
+          updateCount(cat, key, -1);
         };
         const count = document.createElement('span');
         count.className = 'count';
@@ -269,7 +269,7 @@
         plus.textContent = '+';
         plus.onclick = (e) => {
           e.stopPropagation();
-          changeCount(cat, key, +1);
+          updateCount(cat, key, +1);
         };
         cnt.appendChild(minus);
         cnt.appendChild(count);
@@ -277,11 +277,7 @@
         li.appendChild(cnt);
 
         // Swipe Delete area (hidden until swipe)
-        const swipeDel = document.createElement('div');
-        swipeDel.className = 'swipe-delete';
-        swipeDel.textContent = 'Delete';
-        swipeDel.onclick = (e)=>{ removeItem(cat, key); };
-        li.appendChild(swipeDel);
+        // If you want to add delete back, add an explicit removeItem handler here
 
         ul.appendChild(li);
       });
@@ -292,24 +288,17 @@
       if(!name || !name.trim()) return;
       db.ref(`/groceryLists/${cat}`).push({name: name.trim(), count: 0, checked: false});
     }
-    function removeItem(cat, key) {
-      db.ref(`/groceryLists/${cat}/${key}`).remove();
+
+    // Safe update for plus/minus counter
+    function updateCount(cat, key, delta) {
+      // Read current value from cached data, then update in db
+      const item = groceryData[cat][key];
+      if (!item || typeof item !== 'object' || typeof item.name !== 'string') return;
+      let v = (item.count || 0) + delta;
+      v = Math.max(0, Math.min(50, v));
+      db.ref(`/groceryLists/${cat}/${key}`).update({ count: v });
     }
 
-
-    function changeCount(cat, key, delta) {
-      const itemRef = db.ref(`/groceryLists/${cat}/${key}`);
-      itemRef.transaction(item => {
-        // Don't cause deletion: always return previous value if bad data
-        if (!item || typeof item !== 'object' || typeof item.name !== 'string') {
-          return item;
-        }
-        let v = (item.count || 0) + delta;
-        v = Math.max(0, Math.min(50, v));
-        return { ...item, count: v };
-      });
-    } 
-    
     function toggleChecked(cat, key, val) {
       db.ref(`/groceryLists/${cat}/${key}`).update({ checked: !!val });
     }
