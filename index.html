@@ -273,6 +273,46 @@
       .counter{font-size:0.95rem;}
       .counter span.count{font-size:0.98rem;}
     }
+    
+    /* Checked items: always grey background */
+  li.checked {
+    background: #e0e0e0 !important;
+    color: #444 !important;
+  }
+  /* Checked and count > 0: Keep bold, but use grey background */
+  li.checked.has-count > .name, li.checked.has-count .name {
+    font-weight: bold !important;
+    color: #444 !important;
+    background: transparent !important;
+    text-decoration: line-through !important;
+  }
+  /* Checked and count = 0: normal font, grey background, cross out */
+  li.checked:not(.has-count) > .name,
+  li.checked:not(.has-count) .name {
+    font-weight: normal !important;
+    color: #444 !important;
+    background: transparent !important;
+    text-decoration: line-through !important;
+  }
+  /* Checked (any): cross out */
+  li.checked > .name, li.checked .name {
+    text-decoration: line-through !important;
+  }
+
+  /* Unchecked and has count: bold, yellow, no cross out */
+  li.has-count:not(.checked) > .name, li.has-count:not(.checked) .name {
+    font-weight: bold !important;
+    color: #222 !important;
+    background: #fff59d !important; /* light yellow */
+    border-radius: 5px !important;
+    padding: 2px 8px !important;
+    font-size: 1.09rem !important;
+    letter-spacing: 0.01em !important;
+    transition: background 0.15s, color 0.15s;
+    font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;
+    text-decoration: none !important;
+  }
+    
   </style>
 </head>
 <body>
