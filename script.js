@@ -296,6 +296,48 @@ function renderAllTables() {
     header.className = 'header ' + headerClass;
     header.id = `${cat}-header`;
     header.dataset.category = cat;
+
+     // Header with collapse functionality
+    const header = document.createElement('div');
+    header.className = 'header ' + getHeaderClass(cat, idx);
+    header.id = `${cat}-header`;
+    header.dataset.category = cat;
+    
+    // Drag handle for table (only in reorder mode)
+    const headerDragHandle = document.createElement('div');
+    headerDragHandle.className = 'drag-handle';
+    headerDragHandle.innerHTML = '<i class="fas fa-ellipsis-v"></i>';
+    header.appendChild(headerDragHandle);
+    
+    // Header title
+    const headerTitle = document.createElement('span');
+    headerTitle.className = 'header-title';
+    headerTitle.innerHTML = (CATEGORY_ICONS[cat] ? CATEGORY_ICONS[cat] + " " : "") + CATEGORY_NAMES[cat];
+    header.appendChild(headerTitle);
+    
+    // Item count
+    const headerCount = document.createElement('span');
+    headerCount.className = 'header-count';
+    headerCount.id = `${cat}-count`;
+    header.appendChild(headerCount);
+    
+    // Collapse arrow
+    const headerArrow = document.createElement('span');
+    headerArrow.className = 'collapse-arrow';
+    headerArrow.id = `${cat}-arrow`;
+    headerArrow.innerHTML = "&#9654;";
+    headerArrow.onclick = (e) => {
+      e.stopPropagation();
+      toggleCollapse(cat);
+    };
+    header.appendChild(headerArrow);
+    
+    // Make entire header clickable for collapse (except drag handle)
+    header.onclick = (e) => {
+      if (!e.target.classList.contains('drag-handle') {
+        toggleCollapse(cat);
+      }
+    };
     
     // Add drag handle to header
     const headerDragHandle = document.createElement('div');
@@ -435,13 +477,32 @@ function deleteTable(cat) {
   setTimeout(renderAllTables, 300);
 }
 function toggleCollapse(cat) {
+  if (isReorderMode) return; // Disable collapsing in reorder mode
+  
   const ul = document.getElementById(cat);
   const addBtn = document.querySelector(`#${cat}-container .add-btn`);
-  const container = document.getElementById(cat+'-container');
-  let collapsed = ul.style.display!=='none';
-  setCollapsed(cat, collapsed);
-  localStorage.setItem('col-'+cat, collapsed?'true':'');
+  const container = document.getElementById(`${cat}-container`);
+  const arrow = document.getElementById(`${cat}-arrow`);
+  
+  if (!ul || !addBtn || !container || !arrow) return;
+  
+  const isCollapsed = ul.style.display === 'none';
+  
+  if (isCollapsed) {
+    ul.style.display = '';
+    addBtn.style.display = '';
+    arrow.style.transform = 'rotate(0deg)';
+    localStorage.setItem(`col-${cat}`, '');
+  } else {
+    ul.style.display = 'none';
+    addBtn.style.display = 'none';
+    arrow.style.transform = 'rotate(-90deg)';
+    localStorage.setItem(`col-${cat}`, 'true');
+  }
+  
+  container.classList.toggle('collapsed', !isCollapsed);
 }
+
 function setCollapsed(cat, collapsed) {
   const ul = document.getElementById(cat);
   const addBtn = document.querySelector(`#${cat}-container .add-btn`);
