@@ -1265,36 +1265,42 @@
       nameDiv.onblur = finishEdit;
     }
 
-    function resetAll() {
-      if(!confirm("Reset all counters to 0 and uncheck all items in all tables?")) return;
-      checkZerosActive = false;
-      CATEGORIES.forEach(cat=>{
-        const items = groceryData[cat] || {};
-        Object.entries(items).forEach(([key, item]) => {
-          db.ref(`/groceryLists/${cat}/${key}`).update({count:0, checked:false});
-        });
+document.getElementById('static-reset-btn').onclick = function() {
+  showModal("Reset all counters to 0 and uncheck all items in all tables?", function(yes) {
+    if (!yes) return;
+    checkZerosActive = false;
+    CATEGORIES.forEach(cat=>{
+      const items = groceryData[cat] || {};
+      Object.entries(items).forEach(([key, item]) => {
+        db.ref(`/groceryLists/${cat}/${key}`).update({count:0, checked:false});
       });
-      setTimeout(()=>{
-        renderAllTables();
-      }, 350);
-    }
-    function checkZeros() {
-      checkZerosActive = true;
-      CATEGORIES.forEach(cat=>{
-        const items = groceryData[cat] || {};
-        Object.entries(items).forEach(([key, item]) => {
-          if(item.count==0 && !item.checked) {
-            db.ref(`/groceryLists/${cat}/${key}`).update({checked:true});
-          }
-        });
-      });
-      setTimeout(()=>{
-        renderAllTables();
-      }, 350);
-    }
+    });
+    setTimeout(()=>{
+      renderAllTables();
+    }, 350);
+  });
+};
 
-    document.getElementById('static-reset-btn').onclick = resetAll;
-    document.getElementById('check-zeros-btn').onclick = checkZeros;
+document.getElementById('check-zeros-btn').onclick = function() {
+  showModal("Do you want to check all 'zero' items (highlight items to buy)?", function(yes) {
+    if (!yes) return;
+    checkZerosActive = true;
+    CATEGORIES.forEach(cat=>{
+      const items = groceryData[cat] || {};
+      Object.entries(items).forEach(([key, item]) => {
+        if(item.count==0 && !item.checked) {
+          db.ref(`/groceryLists/${cat}/${key}`).update({checked:true});
+        }
+      });
+    });
+    setTimeout(()=>{
+      renderAllTables();
+    }, 350);
+  });
+};
+
+    // document.getElementById('static-reset-btn').onclick = resetAll;
+    // document.getElementById('check-zeros-btn').onclick = checkZeros;
 
     function updateHeaderCount(cat){
       const items = groceryData[cat] || {};
