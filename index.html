@@ -4,373 +4,167 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>Kumar Family Grocery</title>
-  <!-- Firebase scripts -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-  
+  <link href="https://fonts.googleapis.com/css?family=Inter:400,500,700&display=swap" rel="stylesheet">
   <style>
-    :root {
-      --veg: #4caf50;
-      --gro: #2196f3;
-      --ind: #ff9800;
-      --oth: #9c27b0;
-      --check: #e9ecef;
-      --btn2: #f44336;
-      --btn3: #4caf50;
-      --btn4: #ff5722;
-      --h: #fff9c4;
-    }
-    
-    *, *::before, *::after {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-    
+    /* LOGIN CARD & AVATAR STYLES */
     body {
-      font: 20px 'Segoe UI', sans-serif;
+      font: 17px 'Inter', 'Segoe UI', Arial, sans-serif;
       background: #f5f7fa;
-      padding: 20px;
-    }
-    
-    h1 {
-      text-align: center;
-      margin: 10px 0;
-      font-size: 2rem;
-      color: #333;
-    }
-    
-    .datetime {
-      text-align: center;
-      font-size: 1.1rem;
-      color: #555;
-      margin-top: -5px;
-      margin-bottom: 15px;
-      font-weight: 500;
-    }
-    
-    .container {
-      margin-bottom: 30px;
-      background: #fff;
-      border-radius: 4px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-      overflow: hidden;
-    }
-    
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px;
-      font-size: 1.6rem;
-      font-weight: bold;
-      color: #fff;
-      cursor: pointer;
-    }
-    
-    #veggies-header { background: var(--veg); }
-    #grocery-header { background: var(--gro); }
-    #indian-header { background: var(--ind); }
-    #kmart_bigw_target-header { background: var(--oth); }
-    #pharmacy-header { background: var(--oth); }
-    #others-header { background: var(--oth); }
-    
-    .collapse-arrow {
-      font-size: 2.4rem;
-      transition: transform .3s;
-      user-select: none;
-    }
-    
-    .collapsed .collapse-arrow {
-      transform: rotate(-90deg);
-    }
-    
-    ul {
-      list-style: none;
       margin: 0;
       padding: 0;
+      min-height: 100vh;
     }
-    
-    li {
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
-      padding: 14px 16px;
-      border-bottom: 1px solid #eee;
-      background: #fff;
-      font-size: 1.8rem;
-    }
-    
-    li:last-child {
-      border-bottom: none;
-    }
-    
-    li.checked {
-      background: var(--check);
-      color: #666;
-    }
-    
-    li.checked .name {
-      background: var(--check);
-      text-decoration: line-through;
-      opacity: .7;
-    }
-    
-    input[type="checkbox"] {
-      width: 28px;
-      height: 28px;
-      cursor: pointer;
-      margin-top: 4px;
-      accent-color: #666;
-      transition: transform 0.2s;
-    }
-    
-    input[type="checkbox"]:hover {
-      transform: scale(1.1);
-    }
-    
-    .name {
-      flex: 1;
-      min-width: 0;
-      font-size: 1.8rem;
-      line-height: 1.4;
-      white-space: pre-wrap;
-      word-wrap: break-word;
-      border: none;
-      background: transparent;
-      font-family: inherit;
-      cursor: text;
-      user-select: none;
-      transition: all 0.2s;
-    }
-    
-    .name.active {
-      background: var(--h);
-      font-weight: bold;
-      border-radius: 4px;
-    }
-    
-    input.name:focus {
-      caret-color: #000;
-      outline: none;
-    }
-    
-    input.name {
-      user-select: text;
-    }
-    
-    .counter {
+    .login-bg {
+      min-height: 100vh;
       display: flex;
       align-items: center;
-      gap: 8px;
-      transition: all 0.3s;
+      justify-content: center;
+      background: linear-gradient(120deg, #e3e7ee 0%, #dde5f7 100%);
     }
-    
-    .counter.active {
-      background: var(--h);
-      border-radius: 20px;
-      padding: 4px 8px;
+    .login-card {
+      background: #fff;
+      border-radius: 22px;
+      box-shadow: 0 8px 40px rgba(60,80,130,0.16);
+      padding: 44px 32px 36px 32px;
+      max-width: 400px;
+      width: 95vw;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 25px;
+      position: relative;
     }
-    
-    .counter button {
-      width: 32px;
-      height: 32px;
-      border: none;
-      border-radius: 50%;
+    .login-logo {
+      width: 62px;
+      height: 62px;
+      border-radius: 17px;
+      background: linear-gradient(135deg,#1976d2 30%,#4caf50 70%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.6rem;
       color: #fff;
-      font-size: 1.2rem;
-      cursor: pointer;
-      background-color: #bbb;
-      transition: all 0.2s;
+      margin-bottom: 6px;
+      box-shadow: 0 4px 16px rgba(30,60,90,0.09);
     }
-    
-    .counter button:hover {
-      transform: scale(1.1);
+    .login-title {
+      font-size: 2rem;
+      font-weight: bold;
+      color: #353c48;
+      margin-bottom: 0px;
+      font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+      text-align: center;
+      letter-spacing: 0.01em;
     }
-    
-    .counter span.count {
-      min-width: 32px;
+    .login-desc {
+      color: #616e7c;
+      font-size: 1.15rem;
+      margin-bottom: 8px;
       text-align: center;
     }
-    
-    .counter.active span.count {
-      font-weight: bold;
+    .allowed-list {
+      width: 100%;
+      margin: 10px 0 18px 0;
+      padding: 0;
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      align-items: stretch;
     }
-    
-    li.checked .counter {
-      background: var(--check);
-      border-radius: 20px;
-      padding: 4px 8px;
-    }
-    
-    li.checked .counter span.count,
-    li.checked .counter button {
-      color: #666;
-      opacity: 0.7;
-    }
-    
-    .add-btn {
-      display: block;
-      margin: 12px 16px;
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      background: var(--veg);
-      color: #fff;
-      font-size: 1.6rem;
+    .allowed-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #f5f7fa;
+      border-radius: 9px;
+      padding: 10px 16px;
+      font-size: 1.06rem;
+      color: #244a6b;
+      font-weight: 500;
       cursor: pointer;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-      transition: all 0.2s;
+      border: 1.5px solid #e3e7ee;
+      transition: background 0.19s, border 0.19s, color 0.13s;
+      box-shadow: 0 2px 8px rgba(60,80,130,0.05);
+      position: relative;
     }
-    
-    .add-btn:hover {
-      transform: scale(1.1);
+    .allowed-item:hover, .allowed-item.active {
+      background: #e3fcef;
+      border-color: #4caf50;
+      color: #176b35;
     }
-    
-    /* Header counter styles */
-    .header-count {
-      font-size: 2.3rem;
-      background: #fffbe7;
-      color: #222;
-      padding: 6px 28px;
-      border-radius: 22px;
-      margin-left: 20px;
-      font-weight: 800;
-      min-width: 60px;
-      display: inline-flex;
+    .allowed-item.selected {
+      background: #d6eaf8;
+      border-color: #1976d2;
+      color: #1347a9;
+    }
+    .allowed-avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: #e0e7ef;
+      display: flex;
       align-items: center;
       justify-content: center;
-      letter-spacing: 0.03em;
-      transition: background 0.2s, color 0.2s, font-size 0.2s;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.12);
-      border: 3px solid #ffcc80;
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #607d8b;
     }
-    
-    .header-check {
-      font-size: 2.3rem;
-      background: #e6f9e6;
-      color: #107c41;
-      padding: 6px 28px;
-      border-radius: 22px;
-      margin-left: 20px;
-      font-weight: 800;
-      min-width: 60px;
-      display: inline-flex;
+    .google-btn {
+      display: flex;
       align-items: center;
+      gap: 10px;
+      background: #4285F4;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 13px 22px;
+      font-size: 1.12rem;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(60,80,130,0.08);
+      margin: 6px 0 0 0;
+      transition: background .13s, box-shadow .13s, transform .11s;
+      font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+      outline: none;
+      width: 100%;
       justify-content: center;
-      letter-spacing: 0.03em;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.12);
-      border: 3px solid #b2e9b2;
     }
-    
-    .header-check .checkmark {
-      font-size: 2.2rem;
-      color: #00a152;
-      margin-left: 2px;
-      font-weight: bold;
-      line-height: 1;
+    .google-btn:active {
+      background: #3076d1;
+      transform: scale(0.97);
     }
-    
-    .header-count.zero {
-      background: #f5f5f5;
-      color: #666;
-      font-weight: normal;
-      border-color: #bdbdbd;
+    .google-logo {
+      height: 1.43em;
+      width: 1.43em;
+      vertical-align: middle;
+      border-radius: 50%;
+      background: #fff;
+      padding: 2px;
     }
-    
-    @media (max-width: 600px) {
-      .header-count,
-      .header-check {
-        font-size: 1.2rem;
-        padding: 3px 10px;
-        min-width: 32px;
-      }
-      
-      .header-check .checkmark {
-        font-size: 1.2rem;
-      }
-      
-      li {
-        font-size: 1.35rem;
-        padding: 15px 13px 15px 14px;
-      }
-      
-      .name {
-        font-size: 1.35rem;
-      }
-      
-      input[type="checkbox"] {
-        width: 24px;
-        height: 24px;
-      }
-      
-      .counter button {
-        width: 28px;
-        height: 28px;
-        font-size: 1rem;
-      }
-      
-      .counter span.count {
-        font-size: 1.35rem;
-        min-width: 28px;
-      }
+    .login-error {
+      color: #e53935;
+      margin: 10px 0 0 0;
+      font-size: 1rem;
+      text-align: center;
     }
-    
-    /* Top actions bar */
+
+    /* --- FULL GROCERY APP CSS --- */
     .top-actions {
       display: flex;
-      justify-content: center;
       gap: 10px;
-      margin-bottom: 15px;
+      align-items: center;
+      justify-content: flex-end;
+      position: sticky;
+      top: 0;
+      left: 0;
+      z-index: 999;
+      background: #e3e7ee;
+      padding: 8px 13px 7px 0;
+      border-bottom: 1.5px solid #d6dbe2;
+      margin-bottom: 7px;
+      min-height: 38px;
     }
-    
-    .top-actions button {
-      padding: 8px 12px;
-      border: none;
-      border-radius: 10px;
-      color: #fff;
-      font-size: 0.9rem;
-      cursor: pointer;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-      transition: transform 0.2s;
-    }
-    
-    .top-actions button:hover {
-      transform: scale(1.05);
-    }
-    
-    .reset-btn {
-      background: var(--btn2);
-    }
-    
-    .check-zeros-btn {
-      background: var(--btn4);
-    }
-    
-    /* Floating reset button */
-    .reset-btn-float {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      padding: 10px 15px;
-      background: var(--btn2);
-      color: white;
-      border: none;
-      border-radius: 10px;
-      font-size: 0.9rem;
-      cursor: pointer;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-      z-index: 100;
-      transition: all 0.3s ease;
-    }
-    
-    .reset-btn-float:hover {
-      transform: translateY(-2px) scale(1.05);
-      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-    }
-    
-    /* Logout button */
     .logout-btn-top {
       position: fixed;
       top: 14px;
@@ -389,198 +183,511 @@
       opacity: 0.84;
       transition: background 0.13s, opacity 0.13s;
     }
-    
+    .logout-btn-top:active,
     .logout-btn-top:hover {
       background: #e3e7ee;
       opacity: 1;
     }
-    
     .logout-btn-top svg {
       width: 19px;
       height: 19px;
       fill: #444;
     }
-    
-    /* Add table button */
+    @media (max-width:600px) {
+      .top-actions {
+        padding-right: 4px;
+      }
+      .logout-btn-top {
+        top: 8px;
+        left: 7px;
+        width: 29px;
+        height: 29px;
+      }
+      .logout-btn-top svg {
+        width: 15px;
+        height: 15px;
+      }
+    }
+    html, body {
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+      background: #e3e7ee;
+      min-height: 100vh;
+      margin: 0;
+      padding: 0;
+    }
+    h1{
+      text-align:center;
+      margin:10px 0;
+      font-size:2.1rem;
+      color:#3d4855;
+      position:relative;
+      font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+      letter-spacing:0.01em;
+      font-weight:700;
+    }
+    .datetime{
+      font-size:1.07rem;
+      color:#888;
+      text-align:center;
+      margin-bottom:20px;
+      letter-spacing:0.01em;
+    }
+    .container{
+      margin:24px 8px 32px 8px;
+      background: #fff;
+      border-radius:10px;
+      box-shadow:0 4px 12px rgba(66,80,104,0.06);
+      overflow:hidden;
+      border:1px solid #d8e0ed;
+      max-width: 560px;
+      margin-left:auto;
+      margin-right:auto;
+      padding-bottom: 4px;
+      transition: box-shadow 0.18s;
+    }
+    .header {
+      display:flex;
+      flex-direction:row;
+      align-items:center;
+      padding:14px 16px 13px 20px;
+      font-size:1.2rem;
+      font-weight:700;
+      color:#fff;
+      cursor:pointer;
+      min-height:38px;
+      font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+      user-select:none;
+      letter-spacing:0.01em;
+      border-bottom: 1px solid #d6dbe2;
+      box-shadow: none;
+      transition:background 0.12s;
+      z-index:1;
+    }
+    .veggies-header { background: #388e3c; }
+    .grocery-header { background: #1976d2; }
+    .indian-header { background: #ff9800; }
+    .kmart_bigw_target-header { background: #8e24aa; }
+    .pharmacy-header { background: #00897b; }
+    .others-header { background: #607d8b; }
+    .default-header { background: #546e7a; }
+    .header-title{
+      flex:0 0 auto;
+      font-size:1.15rem;
+      margin-right:9px;
+      font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+      color: #fff;
+      letter-spacing:0.01em;
+    }
+    .header-count{
+      font-size:1.1rem;
+      font-weight:900;
+      background:rgba(240,240,240,0.98);
+      color:#222;
+      padding:2px 13px;
+      border-radius:22px;
+      margin-left:3px;
+      min-width:28px;
+      text-align:center;
+      display:inline-block;
+      vertical-align:middle;
+      box-shadow:0 2px 6px rgba(0,0,0,.05);
+      border:1px solid #e0e3ea;
+    }
+    .header-check{
+      font-size:1.1rem;
+      font-weight:900;
+      color:#fff;
+      background:#71c77a;
+      padding:2px 10px;
+      border-radius:22px;
+      margin-left:6px;
+      min-width:22px;
+      display:inline-block;
+      text-align:center;
+      box-shadow:0 2px 6px rgba(0,0,0,.05);
+    }
+    .collapse-arrow{
+      margin-left:auto;
+      font-size:1.15rem;
+      transition:transform 0.18s;
+      display:inline-block;
+      opacity:.67;
+    }
+    .collapsed .collapse-arrow{transform:rotate(-90deg);}
+    ul{list-style:none;margin:0;padding:0}
+    li{
+      display:flex;
+      align-items:center;
+      gap:11px;
+      padding:16px 18px 16px 21px;
+      border-bottom:1px solid #e3e9f2;
+      background: #fff;
+      font-size:1.7rem;
+      user-select:none;
+      transition:background .2s, box-shadow .18s;
+      font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+      position:relative;
+      border-radius:7px;
+      margin:5px 9px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.02);
+    }
+    li:last-child{border-bottom:none}
+    li.checked{
+      background:#f1f1f1 !important;
+      color:#444 !important;
+      opacity:.75;
+    }
+    input[type="checkbox"]{
+      width:28px;
+      height:28px;
+      cursor:pointer;
+      margin-top:2px;
+      accent-color:#666;
+      border-radius:5px;
+      box-shadow:0 1px 4px rgba(80,80,80,0.07);
+      border: 1px solid #d3dbe6;
+      background:#fafbfc;
+    }
+    .name{
+      flex:1;
+      min-width:0;
+      font-size:1.8rem;
+      line-height:1.3;
+      border:none;
+      background:transparent;
+      outline:none;
+      padding:0 0 0 2px;
+      transition:background 0.15s;
+      font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+      font-weight: 700;
+      color: #232323;
+      user-select: none;
+      letter-spacing:0.01em;
+      border-radius:6px;
+      word-break:break-word;
+    }
+    .name.editing{
+      background:#fffbe9;
+      border-radius:6px;
+      user-select: text;
+      color: #333;
+      font-weight: 600;
+    }
+    li.has-count > .name, li.has-count .name {
+      font-weight: bold !important;
+      color: #232323 !important;
+      background: #fdf2c7 !important;
+      border-radius: 7px !important;
+      padding: 3px 12px !important;
+      font-size:1.6rem !important;
+      letter-spacing: 0.01em !important;
+      transition: background 0.15s, color 0.15s;
+      font-family:'Inter', 'Segoe UI', Arial, sans-serif;
+    }
+    li.checked > .name, li.checked .name {
+      font-weight: normal !important;
+      color: #444 !important;
+      background: transparent !important;
+    }
+    .counter{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      font-size:1.5rem;
+      font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+      user-select: none;
+      background: #f7f7f7;
+      border-radius: 12px;
+      padding: 4px 14px;
+      margin-right: 2px;
+      min-width: 85px;
+      justify-content: center;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+    }
+    .counter button{
+      width:30px;
+      height:30px;
+      border:none;
+      border-radius:50%;
+      color:#fff;
+      font-size:1.25rem;
+      cursor:pointer;
+      background: #7ba5d6;
+      font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+      user-select: none;
+      font-weight:700;
+      transition: background .13s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+      outline:none;
+    }
+    .counter button:active {
+      background:#5277ad;
+    }
+    .counter span.count{
+      min-width:32px;
+      text-align:center;
+      font-size:1.5rem;
+      font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+      user-select: none;
+      font-weight:600;
+      color:#1c2331;
+      letter-spacing:0.01em;
+    }
     .add-table-btn-wrap {
       width: 100%;
       display: flex;
-      justify-content: center;
-      margin: 20px 0;
+      justify-content: flex-start;
+      margin: 32px 0 0 0;
+      padding-left:16px;
     }
-    
     .add-table-btn {
-      background: var(--btn3);
+      margin-left: 0;
+      background: #aeb9c5;
       color: #fff;
       border: none;
       border-radius: 50%;
-      width: 46px;
-      height: 46px;
-      font-size: 2.1rem;
-      box-shadow: 0 3px 14px rgba(0,0,0,0.13);
+      width: 40px;
+      height: 40px;
+      font-size: 1.7rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
       cursor: pointer;
       font-weight: 700;
-      transition: all 0.2s;
+      transition: background 0.13s, box-shadow 0.13s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0.93;
+      position: relative;
     }
-    
     .add-table-btn:hover {
-      transform: scale(1.1);
+      background: #8b97a6;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.11);
+      opacity: 1;
     }
-    
+    @media(max-width:600px){
+      .container{margin:12px 2px 24px 2px;}
+      .header{font-size:1.09rem; padding:11px 11px 9px 12px;}
+      .header-title{font-size:1rem;}
+      .name{font-size:1.15rem;}
+      .header-count{font-size:1.02rem;padding:2px 6px;}
+      .header-check{font-size:1.03rem;padding:2px 6px;}
+      .add-table-btn{width:32px;height:32px;font-size:1.3rem;}
+      li{font-size:1.15rem; padding:11px 7px 11px 9px;}
+      .counter{font-size:1.1rem; min-width: 60px;}
+      .counter span.count{font-size:1.1rem;}
+      .counter button{width:22px;height:22px;font-size:0.93rem;}
+      .add-table-btn-wrap {margin: 24px 0 0 0; padding-left:7px;}
+      li.has-count:not(.checked) > .name, li.has-count:not(.checked) .name {
+        font-size:1rem !important;
+      }
+    }
+    li.checked {
+      background: #f1f1f1 !important;
+      color: #444 !important;
+    }
+    li.checked.has-count > .name, li.checked.has-count .name {
+      font-weight: bold !important;
+      color: #444 !important;
+      background: transparent !important;
+      text-decoration: line-through !important;
+    }
+    li.checked:not(.has-count) > .name,
+    li.checked:not(.has-count) .name {
+      font-weight: normal !important;
+      color: #444 !important;
+      background: transparent !important;
+      text-decoration: line-through !important;
+    }
+    li.checked > .name, li.checked .name {
+      text-decoration: line-through !important;
+    }
+    li.has-count:not(.checked) > .name, li.has-count:not(.checked) .name {
+      font-weight: bold !important;
+      color: #222 !important;
+      background: #fdf2c7 !important;
+      border-radius: 5px !important;
+      padding: 2px 8px !important;
+      font-size: 1.6rem !important;
+      letter-spacing: 0.01em !important;
+      transition: background 0.15s, color 0.15s;
+      font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+      text-decoration: none !important;
+    }
     /* Modal styles */
     .modal-backdrop {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.5);
-      display: none;
-      justify-content: center;
-      align-items: center;
-      z-index: 1000;
+      position:fixed;
+      z-index: 1300;
+      top:0; left:0; width:100vw; height:100vh;
+      background:rgba(30,41,54,0.28);
+      display:none;
+      align-items:center;
+      justify-content:center;
     }
-    
+    .modal-backdrop.active {display:flex;}
     .modal-dialog {
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-      max-width: 400px;
-      text-align: center;
+      background:#fff;
+      border-radius:14px;
+      max-width:92vw;
+      min-width:220px;
+      padding:28px 18px 18px 18px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.09);
+      border:1px solid #e2e7f1;
+      text-align:center;
+      font-size:1.13rem;
+      font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+      color:#232b35;
+      animation:popin .18s cubic-bezier(.2,1.5,.6,1);
     }
-    
-    .modal-title {
-      font-size: 1.2rem;
-      margin-bottom: 15px;
+    @keyframes popin {
+      0% {transform: scale(0.85); opacity:0;}
+      100% {transform: scale(1); opacity:1;}
     }
-    
-    .modal-btns {
+    .modal-dialog .modal-title{
+      font-size:1.08rem;
+      font-weight: 700;
+      margin-bottom: 11px;
+      color:#242c36;
+    }
+    .modal-dialog .modal-btns{
+      margin-top: 22px;
       display: flex;
       justify-content: center;
-      gap: 10px;
-      margin-top: 20px;
+      gap: 22px;
     }
-    
-    .modal-btn-no, .modal-btn-yes {
-      padding: 8px 16px;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: all 0.2s;
+    .modal-dialog button{
+      min-width: 74px;
+      padding: 8px 0;
+      font-size:1.08rem;
+      border:none;
+      border-radius:8px;
+      font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+      font-weight: 700;
+      cursor:pointer;
+      transition: background .14s;
+      box-shadow:0 2px 7px rgba(30,30,30,0.07);
+      outline:none;
     }
-    
-    .modal-btn-no {
-      background: #f44336;
-      color: white;
-    }
-    
-    .modal-btn-no:hover {
-      background: #d32f2f;
-    }
-    
-    .modal-btn-yes {
-      background: #4caf50;
-      color: white;
-    }
-    
-    .modal-btn-yes:hover {
-      background: #388e3c;
-    }
-    
-    /* Input modal */
+    .modal-btn-no { background: #e3e7ee; color:#3f4a56; }
+    .modal-btn-no:active {background:#c8cfd7;}
+    .modal-btn-yes { background:linear-gradient(90deg,#f44336 60%, #f87954 100%); color:#fff;}
+    .modal-btn-yes:active {background:linear-gradient(90deg,#d32f2f 60%,#f87954 100%);}
     .input-modal-backdrop {
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.5);
+      z-index: 1400;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background: rgba(30,41,54,0.18);
       display: none;
-      justify-content: center;
       align-items: center;
-      z-index: 1000;
+      justify-content: center;
     }
-    
+    .input-modal-backdrop.active { display: flex; }
     .input-modal-dialog {
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-      max-width: 400px;
+      background: #fff;
+      border-radius: 14px;
+      min-width: 220px;
+      max-width: 95vw;
+      padding: 22px 16px 12px 16px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.09);
+      border: 1px solid #e2e7f1;
       text-align: center;
+      font-size: 1.09rem;
+      font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+      color: #232b35;
+      display: flex;
+      flex-direction: column;
+      gap: 13px;
     }
-    
     .input-modal-title {
-      font-size: 1.2rem;
-      margin-bottom: 15px;
+      font-size: 1.06rem;
+      font-weight: 700;
+      margin-bottom: 2px;
+      color:#242c36;
     }
-    
     .input-modal-input {
+      font-size: 1.07rem;
+      padding: 7px 9px;
+      border-radius: 7px;
+      border: 1px solid #c7d1e6;
+      background: #f7fafd;
+      outline: none;
       width: 100%;
-      padding: 8px;
-      margin-bottom: 15px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      font-size: 1rem;
+      box-sizing: border-box;
+      margin-bottom: 6px;
+      transition: border 0.13s, background 0.13s;
     }
-    
+    .input-modal-input:focus {
+      border: 1px solid #388e3c;
+      background: #fff;
+    }
     .input-modal-btns {
       display: flex;
+      gap: 15px;
       justify-content: center;
-      gap: 10px;
+      margin-top: 8px;
     }
-    
-    .input-modal-btn-cancel, .input-modal-btn-ok {
-      padding: 8px 16px;
+    .input-modal-btn {
+      min-width: 60px;
+      padding: 7px 0;
+      font-size: 1.08rem;
       border: none;
-      border-radius: 4px;
+      border-radius: 8px;
+      font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+      font-weight: 700;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: background .14s;
+      box-shadow: 0 2px 7px rgba(30,30,30,0.07);
+      outline: none;
     }
-    
     .input-modal-btn-cancel {
-      background: #f44336;
-      color: white;
+      background: #e3e7ee;
+      color: #3f4a56;
     }
-    
-    .input-modal-btn-cancel:hover {
-      background: #d32f2f;
-    }
-    
+    .input-modal-btn-cancel:active { background: #c8cfd7; }
     .input-modal-btn-ok {
-      background: #4caf50;
-      color: white;
+      background: linear-gradient(90deg,#388e3c 60%, #5dd05d 100%);
+      color: #fff;
     }
-    
-    .input-modal-btn-ok:hover {
-      background: #388e3c;
+    .input-modal-btn-ok:active {
+      background: linear-gradient(90deg,#3070b3 0%,#2b79c2 100%);
     }
   </style>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 </head>
 <body>
-  <!-- Logout button top left -->
   <button class="logout-btn-top" id="logout-btn-top" title="Logout" style="display:none;">
     <svg viewBox="0 0 20 20"><path d="M7.5 3A1.5 1.5 0 0 0 6 4.5v3a1 1 0 1 0 2 0v-3h7v13h-7v-3a1 1 0 1 0-2 0v3A1.5 1.5 0 0 0 7.5 19h7A1.5 1.5 0 0 0 16 17.5v-13A1.5 1.5 0 0 0 14.5 3h-7zm2.79 3.29a1 1 0 1 0-1.42 1.42L10.59 10H2a1 1 0 1 0 0 2h8.59l-1.72 1.29a1 1 0 1 0 1.42 1.42l3.5-3a1 1 0 0 0 0-1.42l-3.5-3z"></path></svg>
   </button>
-  <div id="login-section" style="text-align:center;margin-top:50px;">
-    <h2>Login to Grocery List</h2>
-    <button id="google-signin-btn" style="font-size:1.1rem;padding:10px 22px;background:#4285F4;color:#fff;border:none;border-radius:5px;cursor:pointer;font-weight:600;">
-      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" style="height:1.25em;vertical-align:middle;margin-right:6px;">
-      Sign in with Google
-    </button>
-    <div id="login-error" style="color:red;margin:10px;"></div>
+  <div class="login-bg" id="login-bg">
+    <div class="login-card" id="login-section">
+      <div class="login-logo" title="Grocery 🌽">🛒</div>
+      <div class="login-title">Login to your Grocery List</div>
+      <div class="login-desc">
+        Only the following family accounts can access.<br/>
+        <span style="font-size:0.98rem;">Click your email to login with Google.</span>
+      </div>
+      <ul class="allowed-list" id="allowed-list"></ul>
+      <button class="google-btn" id="google-signin-btn" style="display:none;">
+        <img class="google-logo" src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+        <span id="google-btn-text">Sign in with Google</span>
+      </button>
+      <div class="login-error" id="login-error"></div>
+    </div>
   </div>
   <div id="main-section" style="display:none;">
     <div class="top-actions">
-      <button class="reset-btn" id="static-reset-btn" title="Reset counters and uncheck all">
+      <button class="top-btn reset" id="static-reset-btn" title="Reset counters and uncheck all">
         <span>Reset All</span>
       </button>
-      <button class="check-zeros-btn" id="check-zeros-btn" title="Highlight items to buy">
+      <button class="top-btn check-zeros" id="check-zeros-btn" title="Highlight items to buy">
         <span>Check Zeros</span>
       </button>
     </div>
-    <button class="reset-btn-float" id="floating-reset-btn" title="Reset counters and uncheck all">
-      <svg width="17" height="17" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="#f44336"/><path fill="#fff" d="M6.6 13.2A4.5 4.5 0 0 1 10 6.5c1.2 0 2.3.5 3.1 1.3l-1.1 1.1H16V5.5l-1.4 1.4A6 6 0 1 0 16 10h-1.5a4.5 4.5 0 0 1-7.9 2.7z"/></svg>
-    </button>
     <h1>Kumar Family Grocery</h1>
     <div class="datetime" id="datetime"></div>
     <div id="tables-area"></div>
@@ -588,7 +695,6 @@
       <button class="add-table-btn" onclick="addNewTablePrompt()" data-tooltip="Add Table" title="Add Table">＋</button>
     </div>
   </div>
-  <!-- Modal for confirmations -->
   <div class="modal-backdrop" id="modal-backdrop">
     <div class="modal-dialog" id="modal-dialog">
       <div class="modal-title" id="modal-title"></div>
@@ -598,7 +704,6 @@
       </div>
     </div>
   </div>
-  <!-- Custom Input Modal -->
   <div class="input-modal-backdrop" id="input-modal-backdrop">
     <div class="input-modal-dialog">
       <div class="input-modal-title" id="input-modal-title"></div>
@@ -610,13 +715,66 @@
     </div>
   </div>
   <script>
-    // Allowed users
+    // Allowed Users & Avatars
     const ALLOWED_USERS = [
       "sunil.kumar101@gmail.com",
-      "manju4sun@gmail.com"
+      "manju4sun@gmail.com",
+      "yashvi.k.australia@gmail.com"
     ];
+    const USER_AVATARS = {
+      "sunil.kumar101@gmail.com": "https://www.gravatar.com/avatar/9c6e6f2c4eae64c1e11c6f9d952a8a33?d=identicon",
+      "manju4sun@gmail.com": "https://www.gravatar.com/avatar/6fa6e4ea6e7a5c3f4aec7f4bba50f1a4?d=identicon",
+      "yashvi.k.australia@gmail.com": "https://www.gravatar.com/avatar/cfe5c6e9c1e7a9b7ed7b3e1b3d5f2c2d?d=identicon"
+    };
 
-    // Firebase config
+    function renderAllowedList() {
+      const ul = document.getElementById('allowed-list');
+      ul.innerHTML = '';
+      ALLOWED_USERS.forEach(email => {
+        const li = document.createElement('li');
+        li.className = 'allowed-item';
+        li.tabIndex = 0;
+        li.setAttribute('data-email', email);
+
+        // Avatar (from map or initials)
+        let avatarUrl = USER_AVATARS[email];
+        let avatar;
+        if (avatarUrl) {
+          avatar = document.createElement('img');
+          avatar.src = avatarUrl;
+          avatar.className = 'allowed-avatar';
+          avatar.alt = email;
+        } else {
+          avatar = document.createElement('div');
+          avatar.className = 'allowed-avatar';
+          avatar.textContent = email.split('@')[0][0].toUpperCase();
+        }
+        li.appendChild(avatar);
+
+        const emailSpan = document.createElement('span');
+        emailSpan.textContent = email;
+        li.appendChild(emailSpan);
+
+        li.onclick = () => selectAllowedEmail(email, li);
+        li.onkeydown = (e) => {
+          if (e.key === "Enter" || e.key === " ") selectAllowedEmail(email, li);
+        };
+        ul.appendChild(li);
+      });
+    }
+    let selectedEmail = null;
+    function selectAllowedEmail(email, li) {
+      selectedEmail = email;
+      document.querySelectorAll('.allowed-item').forEach(e => {
+        e.classList.remove('selected');
+      });
+      li.classList.add('selected');
+      document.getElementById('google-btn-text').textContent = `Sign in as ${email.split('@')[0]}`;
+      document.getElementById('google-signin-btn').style.display = "";
+      setTimeout(() => { document.getElementById('google-signin-btn').focus(); }, 80);
+    }
+
+    // Firebase Setup
     const firebaseConfig = {
       apiKey: "AIzaSyADHt2ZI5eCYLWs9hA16WJaL16C8REHbMI",
       authDomain: "kumar-grocery-list.firebaseapp.com",
@@ -631,51 +789,13 @@
     const auth = firebase.auth();
     const db = firebase.database();
 
-    let CATEGORIES = [
-      'veggies',
-      'grocery',
-      'indian',
-      'kmart_bigw_target',
-      'pharmacy',
-      'others'
-    ];
-
-    let CATEGORY_NAMES = {
-      veggies: 'Veggies',
-      grocery: 'Grocery',
-      indian: 'India Store',
-      kmart_bigw_target: 'Kmart/Big W/Target',
-      pharmacy: 'Pharmacy',
-      others: 'Others'
-    };
-
-    let CATEGORY_ICONS = {
-      veggies: '🥦',
-      grocery: '🛒',
-      indian: '<img src="https://upload.wikimedia.org/wikipedia/en/4/41/Flag_of_India.svg" alt="India" style="height:1.3em;vertical-align:middle;margin-right:4px;">',
-      kmart_bigw_target: '',
-      pharmacy: '',
-      others: ''
-    };
-
-    let CATEGORY_HEADER_CLASSES = {
-      veggies: 'veggies-header',
-      grocery: 'grocery-header',
-      indian: 'indian-header',
-      kmart_bigw_target: 'kmart_bigw_target-header',
-      pharmacy: 'pharmacy-header',
-      others: 'others-header'
-    };
-
-    let groceryData = {};
-    let listeners = [];
-    // For check zeros mode
-    let checkZerosActive = false;
-    let originalKeyOrder = {};
-
-    // Google Auth
     function googleSignIn() {
+      if (!selectedEmail) {
+        document.getElementById('login-error').textContent = "Please select your email address above.";
+        return;
+      }
       const provider = new firebase.auth.GoogleAuthProvider();
+      provider.setCustomParameters({login_hint: selectedEmail});
       auth.signInWithPopup(provider)
         .then((result) => {
           const user = result.user;
@@ -692,8 +812,152 @@
         });
     }
     document.getElementById('google-signin-btn').onclick = googleSignIn;
+    renderAllowedList();
 
-    // Custom input modal for modern UI prompts
+    // Logout Logic
+    function clearAllCookies() {
+      const cookies = document.cookie.split("; ");
+      for (let c of cookies) {
+        const eqPos = c.indexOf("=");
+        const name = eqPos > -1 ? c.substring(0, eqPos) : c;
+        document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+        document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;";
+      }
+    }
+    function logout() {
+      listeners?.forEach(fn => {try {fn();}catch(e){}});
+      listeners = [];
+      auth.signOut().finally(() => {
+        clearAllCookies();
+        localStorage.clear();
+        sessionStorage.clear();
+        location.reload();
+      });
+    }
+    document.getElementById('logout-btn-top').onclick = function() {
+      showModal("Are you sure you want to logout?", function(yes) {
+        if (yes) logout();
+      });
+    };
+    function setLogoutButtonVisible(visible) {
+      var btn = document.getElementById('logout-btn-top');
+      if (btn) btn.style.display = visible ? '' : 'none';
+    }
+
+    // Grocery Logic
+    let CATEGORIES = [
+      'veggies',
+      'grocery',
+      'indian',
+      'kmart_bigw_target',
+      'pharmacy',
+      'others'
+    ];
+    let CATEGORY_NAMES = {
+      veggies: 'Veggies',
+      grocery: 'Grocery',
+      indian: 'India Store',
+      kmart_bigw_target: 'Kmart/Big W/Target',
+      pharmacy: 'Pharmacy',
+      others: 'Others'
+    };
+    let CATEGORY_ICONS = {
+      veggies: '🥦',
+      grocery: '🛒',
+      indian: '<img src="https://upload.wikimedia.org/wikipedia/en/4/41/Flag_of_India.svg" alt="India" style="height:1.3em;vertical-align:middle;margin-right:4px;">',
+      kmart_bigw_target: '',
+      pharmacy: '',
+      others: ''
+    };
+    let CATEGORY_HEADER_CLASSES = {
+      veggies: 'veggies-header',
+      grocery: 'grocery-header',
+      indian: 'indian-header',
+      kmart_bigw_target: 'kmart_bigw_target-header',
+      pharmacy: 'pharmacy-header',
+      others: 'others-header'
+    };
+    const TABLE_COLOR_CLASSES = [
+      "veggies-header", "grocery-header", "indian-header",
+      "kmart_bigw_target-header","pharmacy-header", "others-header", "default-header"
+    ];
+    function getHeaderClass(catKey, idx) {
+      if (CATEGORY_HEADER_CLASSES[catKey]) return CATEGORY_HEADER_CLASSES[catKey];
+      if (typeof idx === "number") {
+        const paletteIdx = idx % TABLE_COLOR_CLASSES.length;
+        return TABLE_COLOR_CLASSES[paletteIdx];
+      }
+      return "default-header";
+    }
+
+    let groceryData = {};
+    let listeners = [];
+    let checkZerosActive = false;
+    let originalKeyOrder = {};
+
+    // Main UI
+    function showMain() {
+      document.getElementById('login-bg').style.display = 'none';
+      document.getElementById('main-section').style.display = '';
+      setLogoutButtonVisible(true);
+    }
+    function updateDateTime() {
+      const now = new Date();
+      document.getElementById('datetime').textContent =
+        now.toLocaleString('en-AU', {weekday:'long',year:'numeric',month:'short',day:'numeric', hour:'2-digit',minute:'2-digit', second:'2-digit', hour12:true});
+    }
+    setInterval(updateDateTime, 1000);
+    updateDateTime();
+
+    function subscribeAllLists() {
+      listeners.forEach(fn => {try {fn();}catch(e){}});
+      listeners = [];
+      db.ref(`/groceryLists`).on('value', snap => {
+        const data = snap.val() || {};
+        groceryData = data;
+        Object.entries(data).forEach(([cat, items]) => {
+          if (!originalKeyOrder[cat] && items) {
+            originalKeyOrder[cat] = Object.keys(items);
+          }
+        });
+        let allKeys = Object.keys(data);
+        let ordered = [];
+        CATEGORIES.forEach(cat => { if(allKeys.includes(cat)) ordered.push(cat); });
+        allKeys.forEach(cat=>{
+          if(!ordered.includes(cat)) ordered.push(cat);
+        });
+        CATEGORIES = ordered;
+        renderAllTables();
+      });
+      CATEGORIES.forEach(cat => {
+        const ref = db.ref(`/groceryLists/${cat}`);
+        const fn = ref.on('value', snap => {
+          groceryData[cat] = snap.val() || {};
+          renderList(cat);
+          updateHeaderCount(cat);
+        });
+        listeners.push(() => ref.off('value', fn));
+      });
+    }
+
+    // Modals
+    function showModal(title, callback) {
+      const backdrop = document.getElementById('modal-backdrop');
+      const titleEl = document.getElementById('modal-title');
+      const btnNo = document.getElementById('modal-btn-no');
+      const btnYes = document.getElementById('modal-btn-yes');
+      titleEl.textContent = title;
+      backdrop.classList.add('active');
+      btnNo.focus();
+      function cleanup() {
+        backdrop.classList.remove('active');
+        btnNo.onclick = null;
+        btnYes.onclick = null;
+      }
+      btnNo.onclick = ()=>{ cleanup(); callback(false); };
+      btnYes.onclick = ()=>{ cleanup(); callback(true); };
+    }
+
     function showInputModal(title, placeholder, callback) {
       const backdrop = document.getElementById('input-modal-backdrop');
       const titleEl = document.getElementById('input-modal-title');
@@ -726,125 +990,22 @@
       };
     }
 
-    // Logout logic and clearing stale data
-    function clearAllCookies() {
-      const cookies = document.cookie.split("; ");
-      for (let c of cookies) {
-        const eqPos = c.indexOf("=");
-        const name = eqPos > -1 ? c.substring(0, eqPos) : c;
-        document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
-        document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;";
-      }
-    }
-
-    function logout() {
-      listeners.forEach(fn => {try {fn();}catch(e){}});
-      listeners = [];
-      auth.signOut().finally(() => {
-        clearAllCookies();
-        localStorage.clear();
-        sessionStorage.clear();
-        location.reload();
-      });
-    }
-
-    // Logout icon confirmation modal
-    document.getElementById('logout-btn-top').onclick = function() {
-      showModal("Are you sure you want to logout?", function(yes) {
-        if (yes) logout();
-      });
-    };
-
-    // Show/hide logout button depending on login state
-    function setLogoutButtonVisible(visible) {
-      var btn = document.getElementById('logout-btn-top');
-      if (btn) btn.style.display = visible ? '' : 'none';
-    }
-
-    function showMain() {
-      document.getElementById('login-section').style.display = 'none';
-      document.getElementById('main-section').style.display = '';
-      setLogoutButtonVisible(true);
-      CATEGORIES.forEach(cat=>{
-        if(localStorage.getItem('col-'+cat)==='true') setCollapsed(cat,true);
-      });
-    }
-    function updateDateTime() {
-      const now = new Date();
-      document.getElementById('datetime').textContent =
-        now.toLocaleString('en-AU', {weekday:'long',year:'numeric',month:'short',day:'numeric', hour:'2-digit',minute:'2-digit', second:'2-digit', hour12:true});
-    }
-    setInterval(updateDateTime, 1000);
-    updateDateTime();
-
-    // Listeners
-    function subscribeAllLists() {
-      listeners.forEach(fn => {try {fn();}catch(e){}});
-      listeners = [];
-      db.ref(`/groceryLists`).on('value', snap => {
-        const data = snap.val() || {};
-        groceryData = data;
-        // Save original order for each category (first load only)
-        Object.entries(data).forEach(([cat, items]) => {
-          if (!originalKeyOrder[cat] && items) {
-            originalKeyOrder[cat] = Object.keys(items);
-          }
-        });
-        let allKeys = Object.keys(data);
-        let ordered = [];
-        CATEGORIES.forEach(cat => { if(allKeys.includes(cat)) ordered.push(cat); });
-        allKeys.forEach(cat=>{
-          if(!ordered.includes(cat)) ordered.push(cat);
-        });
-        CATEGORIES = ordered;
-        renderAllTables();
-      });
-      CATEGORIES.forEach(cat => {
-        const ref = db.ref(`/groceryLists/${cat}`);
-        const fn = ref.on('value', snap => {
-          groceryData[cat] = snap.val() || {};
-          renderList(cat);
-          updateHeaderCount(cat);
-        });
-        listeners.push(() => ref.off('value', fn));
-      });
-    }
-
-    // Modal helpers
-    function showModal(title, callback) {
-      const backdrop = document.getElementById('modal-backdrop');
-      const titleEl = document.getElementById('modal-title');
-      const btnNo = document.getElementById('modal-btn-no');
-      const btnYes = document.getElementById('modal-btn-yes');
-      titleEl.textContent = title;
-      backdrop.classList.add('active');
-      btnNo.focus();
-      function cleanup() {
-        backdrop.classList.remove('active');
-        btnNo.onclick = null;
-        btnYes.onclick = null;
-      }
-      btnNo.onclick = ()=>{ cleanup(); callback(false); };
-      btnYes.onclick = ()=>{ cleanup(); callback(true); };
-    }
-
-    // Render all tables
+    // Table Rendering
     function renderAllTables() {
       const area = document.getElementById('tables-area');
       area.innerHTML = '';
-      CATEGORIES.forEach(cat => {
+      CATEGORIES.forEach((cat, idx) => {
         if (!CATEGORY_NAMES[cat]) CATEGORY_NAMES[cat] = cat.charAt(0).toUpperCase() + cat.slice(1);
         if (!CATEGORY_ICONS[cat]) CATEGORY_ICONS[cat] = '';
         const container = document.createElement('div');
         container.className = 'container';
         container.id = `${cat}-container`;
-
         // Header
+        const headerClass = getHeaderClass(cat, idx);
         const header = document.createElement('div');
-        header.className = 'header ' + (CATEGORY_HEADER_CLASSES[cat] || 'default-header');
+        header.className = 'header ' + headerClass;
         header.id = `${cat}-header`;
         header.onclick = ()=>toggleCollapse(cat);
-
         // Long press to delete table
         let headerPressTimer = null;
         header.addEventListener('touchstart', e => {
@@ -878,7 +1039,7 @@
         const headerArrow = document.createElement('span');
         headerArrow.className = 'collapse-arrow';
         headerArrow.id = `${cat}-arrow`;
-        headerArrow.innerHTML = "▾";
+        headerArrow.innerHTML = "&#9654;";
 
         header.appendChild(headerTitle);
         header.appendChild(headerCount);
@@ -914,8 +1075,6 @@
       db.ref(`/groceryLists/${cat}`).remove();
       setTimeout(renderAllTables, 300);
     }
-
-    // Collapse logic
     function toggleCollapse(cat) {
       const ul = document.getElementById(cat);
       const addBtn = document.querySelector(`#${cat}-container .add-btn`);
@@ -934,7 +1093,6 @@
       container.classList.toggle('collapsed', collapsed);
     }
 
-    // Render List
     function renderList(cat) {
       const ul = document.getElementById(cat);
       if (!ul) return;
@@ -943,18 +1101,15 @@
       let items = groceryData[cat] || {};
       let keys = Object.keys(items);
 
-      // If check-zeros mode is active, sort: count>0 first (maintain order), then count==0 (maintain order)
       if (checkZerosActive && originalKeyOrder[cat]) {
-        const origOrder = originalKeyOrder[cat].slice(); // snapshot
+        const origOrder = originalKeyOrder[cat].slice();
         keys.sort((a,b)=>{
           const ia = items[a]?.count>0 ? 0 : 1;
           const ib = items[b]?.count>0 ? 0 : 1;
           if (ia !== ib) return ia-ib;
-          // maintain original order within each group
           return origOrder.indexOf(a) - origOrder.indexOf(b);
         });
       } else if (originalKeyOrder[cat]) {
-        // Always show in original order if not sorting
         keys = originalKeyOrder[cat].slice();
       }
 
@@ -998,7 +1153,7 @@
 
         // Name (edit on double click)
         const name = document.createElement('div');
-        name.className = 'name' + (item.count > 0 ? ' active' : '');
+        name.className = 'name';
         name.textContent = item.name;
         name.ondblclick = (e) => {
           e.stopPropagation();
@@ -1008,7 +1163,7 @@
 
         // Counter
         const cnt = document.createElement('div');
-        cnt.className = 'counter' + (item.count > 0 ? ' active' : '');
+        cnt.className = 'counter';
         const minus = document.createElement('button');
         minus.textContent = '-';
         minus.onclick = (e) => {
@@ -1037,16 +1192,12 @@
       db.ref(`/groceryLists/${cat}/${key}`).remove();
       setTimeout(()=>renderList(cat), 300);
     }
-
-    // Modern UI for add item
     function addItem(cat) {
       showInputModal('Enter new item name:', 'e.g. Carrots', function(name) {
         if(!name) return;
         db.ref(`/groceryLists/${cat}`).push({name: name, count: 0, checked: false});
       });
     }
-
-    // Modern UI for add table
     function addNewTablePrompt() {
       showInputModal('Enter table name (e.g. Pharmacy):', 'e.g. Pharmacy', function(tname) {
         if(!tname) return;
@@ -1064,7 +1215,8 @@
           }
           CATEGORY_NAMES[catKey] = tname;
           CATEGORY_ICONS[catKey] = '';
-          CATEGORY_HEADER_CLASSES[catKey] = 'default-header';
+          const idx = CATEGORIES.length;
+          CATEGORY_HEADER_CLASSES[catKey] = getHeaderClass(catKey, idx);
           db.ref(`/groceryLists/${catKey}`).set(items);
         });
       });
@@ -1077,11 +1229,9 @@
       v = Math.max(0, Math.min(50, v));
       db.ref(`/groceryLists/${cat}/${key}`).update({ count: v });
     }
-
     function toggleChecked(cat, key, val) {
       db.ref(`/groceryLists/${cat}/${key}`).update({ checked: !!val });
     }
-
     function editNameInline(cat, key, nameDiv, oldItem) {
       if(nameDiv.classList.contains('editing')) return;
       const prevName = oldItem.name;
@@ -1115,75 +1265,65 @@
       nameDiv.onblur = finishEdit;
     }
 
-    // RESET ALL: Uncheck all, set count=0, restore order
-    function resetAll() {
-      showModal("Reset all counters to 0 and uncheck all items in all tables?", function(yes) {
-        if (!yes) return;
-        checkZerosActive = false;
-        CATEGORIES.forEach(cat => {
-          const items = groceryData[cat] || {};
-          Object.entries(items).forEach(([key, item]) => {
-            if (item && typeof item === 'object') {
-              db.ref(`/groceryLists/${cat}/${key}`).update({
-                count: 0,
-                checked: false
-              });
-            }
-          });
-        });
-        setTimeout(() => {
-          renderAllTables();
-        }, 350);
+document.getElementById('static-reset-btn').onclick = function() {
+  showModal("Reset all counters to 0 and uncheck all items in all tables?", function(yes) {
+    if (!yes) return;
+    checkZerosActive = false;
+    CATEGORIES.forEach(cat=>{
+      const items = groceryData[cat] || {};
+      Object.entries(items).forEach(([key, item]) => {
+        db.ref(`/groceryLists/${cat}/${key}`).update({count:0, checked:false});
       });
-    }
+    });
+    setTimeout(()=>{
+      renderAllTables();
+    }, 350);
+  });
+};
 
-    // "Check Zeros": check all items with count==0, sort count>0 to top, count==0 to bottom
-    function checkZeros() {
-      checkZerosActive = true;
-      CATEGORIES.forEach(cat=>{
-        const items = groceryData[cat] || {};
-        Object.entries(items).forEach(([key, item]) => {
-          if(item.count==0 && !item.checked) {
-            db.ref(`/groceryLists/${cat}/${key}`).update({checked:true});
-          }
-        });
+document.getElementById('check-zeros-btn').onclick = function() {
+  showModal("Do you want to check all 'zero' items (highlight items to buy)?", function(yes) {
+    if (!yes) return;
+    checkZerosActive = true;
+    CATEGORIES.forEach(cat=>{
+      const items = groceryData[cat] || {};
+      Object.entries(items).forEach(([key, item]) => {
+        if(item.count==0 && !item.checked) {
+          db.ref(`/groceryLists/${cat}/${key}`).update({checked:true});
+        }
       });
-      setTimeout(()=>{
-        renderAllTables();
-      }, 350);
-    }
+    });
+    setTimeout(()=>{
+      renderAllTables();
+    }, 350);
+  });
+};
 
-    // Handle static and floating reset/check buttons
-    document.getElementById('static-reset-btn').onclick = resetAll;
-    document.getElementById('floating-reset-btn').onclick = resetAll;
-    document.getElementById('check-zeros-btn').onclick = checkZeros;
+    // document.getElementById('static-reset-btn').onclick = resetAll;
+    // document.getElementById('check-zeros-btn').onclick = checkZeros;
 
     function updateHeaderCount(cat){
       const items = groceryData[cat] || {};
       const count = Object.values(items).filter(x=>x && typeof x === "object" && !x.checked && x.count>0).length;
-      const total = Object.values(items).filter(x=>x && typeof x === "object" && x.count>0).length;
       const el = document.getElementById(cat+'-count');
       if(!el) return;
-      
-      if (total === 0) {
-        el.textContent = "0";
-        el.className = 'header-count zero';
-      } else if (count === 0) {
-        el.innerHTML = '<span class="checkmark">✓</span>';
-        el.className = 'header-check';
-      } else {
+      if(count>0) {
         el.textContent = count;
         el.className = 'header-count';
+      } else {
+        el.innerHTML = '<span class="header-check">&#10003;</span>';
+        el.className = '';
       }
     }
 
+    // Auth state change
     auth.onAuthStateChanged(user => {
       if (user && (!ALLOWED_USERS.length || ALLOWED_USERS.includes(user.email))) {
         showMain();
         subscribeAllLists();
       } else {
         document.getElementById('main-section').style.display = 'none';
-        document.getElementById('login-section').style.display = '';
+        document.getElementById('login-bg').style.display = '';
         setLogoutButtonVisible(false);
       }
     });
