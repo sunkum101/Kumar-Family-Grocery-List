@@ -733,3 +733,23 @@ li.has-count:not(.checked) > .name, li.has-count:not(.checked) .name {
   background: #e8f5e9 !important;
   box-shadow: 0 0 8px rgba(0,0,0,0.1);
 }
+
+
+.collapse-arrow {
+  margin-left: auto;
+  font-size: 1.15rem;
+  transition: transform 0.18s;
+  display: inline-block;
+  opacity: 0.67;
+  cursor: pointer;
+  padding: 8px 12px;
+}
+
+.collapsed .collapse-arrow {
+  transform: rotate(-90deg);
+}
+
+/* Make sure drag handle doesn't interfere */
+.header .drag-handle {
+  margin-right: auto;
+}
