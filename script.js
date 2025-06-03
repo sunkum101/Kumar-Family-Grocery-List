@@ -201,23 +201,22 @@ updateDateTime();
 function subscribeAllLists() {
   listeners.forEach(fn => {try {fn();}catch(e){}});
   listeners = [];
+  
   db.ref(`/groceryLists`).on('value', snap => {
     const data = snap.val() || {};
     groceryData = data;
+    
+    // Initialize originalKeyOrder if not exists
     Object.entries(data).forEach(([cat, items]) => {
       if (!originalKeyOrder[cat] && items) {
         originalKeyOrder[cat] = Object.keys(items);
       }
     });
-    let allKeys = Object.keys(data);
-    let ordered = [];
-    CATEGORIES.forEach(cat => { if(allKeys.includes(cat)) ordered.push(cat); });
-    allKeys.forEach(cat=>{
-      if(!ordered.includes(cat)) ordered.push(cat);
-    });
-    CATEGORIES = ordered;
+    
     renderAllTables();
   });
+
+  // Keep your existing category listeners
   CATEGORIES.forEach(cat => {
     const ref = db.ref(`/groceryLists/${cat}`);
     const fn = ref.on('value', snap => {
@@ -360,7 +359,7 @@ function renderList(cat) {
   ul.innerHTML = '';
 
   let items = groceryData[cat] || {};
-  let keys = originalKeyOrder[cat] || Object.keys(items); // Use original order or fallback to Firebase keys
+  let keys = originalKeyOrder[cat] || Object.keys(items);
 
   keys.forEach(key => {
     const item = items[key];
@@ -374,10 +373,11 @@ function renderList(cat) {
     if(item.count > 0) li.classList.add('has-count');
     li.style.position = 'relative';
 
-    // Add drag handle (only visible in reorder mode)
+    // Drag handle (only visible in reorder mode)
     const dragHandle = document.createElement('div');
     dragHandle.className = 'drag-handle';
     dragHandle.innerHTML = '<i class="fas fa-ellipsis-v"></i>';
+    dragHandle.style.display = isReorderMode ? 'flex' : 'none';
     li.appendChild(dragHandle);
 
     // Checkbox (hidden in reorder mode)
@@ -385,13 +385,49 @@ function renderList(cat) {
     cb.type = 'checkbox';
     cb.checked = !!item.checked;
     cb.onchange = () => toggleChecked(cat, key, cb.checked);
+    cb.style.display = isReorderMode ? 'none' : 'block';
     li.appendChild(cb);
 
-    // Rest of your item rendering code...
-    // [Keep all your existing item rendering logic here]
-    
+    // Name (edit on double click)
+    const name = document.createElement('div');
+    name.className = 'name';
+    name.textContent = item.name;
+    name.ondblclick = (e) => {
+      e.stopPropagation();
+      editNameInline(cat, key, name, item);
+    };
+    li.appendChild(name);
+
+    // Counter
+    const cnt = document.createElement('div');
+    cnt.className = 'counter';
+    const minus = document.createElement('button');
+    minus.textContent = '-';
+    minus.onclick = (e) => {
+      e.stopPropagation();
+      updateCount(cat, key, -1);
+    };
+    const count = document.createElement('span');
+    count.className = 'count';
+    count.textContent = item.count || 0;
+    const plus = document.createElement('button');
+    plus.textContent = '+';
+    plus.onclick = (e) => {
+      e.stopPropagation();
+      updateCount(cat, key, +1);
+    };
+    cnt.appendChild(minus);
+    cnt.appendChild(count);
+    cnt.appendChild(plus);
+    li.appendChild(cnt);
+
     ul.appendChild(li);
   });
+
+  // Initialize sorting if in reorder mode
+  if (isReorderMode) {
+    setupSortable();
+  }
 }
 
 function deleteTable(cat) {
