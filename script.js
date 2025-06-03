@@ -127,6 +127,9 @@ function setLogoutButtonVisible(visible) {
   if (btn) btn.style.display = visible ? '' : 'none';
 }
 
+let sortableTables = [];
+let sortableItems = [];
+
 // Grocery Logic
 let CATEGORIES = [
   'veggies',
@@ -650,14 +653,15 @@ function getDragAfterItem(container, y) {
   }, { offset: Number.NEGATIVE_INFINITY }).element;
 }
 
-// Modify the saveNewOrder function to update Firebase:
 function saveNewOrder() {
+  if (!isReorderMode) return;
+
   // Save table order
   const tablesArea = document.getElementById('tables-area');
   const newTableOrder = Array.from(tablesArea.querySelectorAll('.container'))
     .map(table => table.dataset.category);
-  
-  // Update item orders for each table
+
+  // Save item orders for each table
   CATEGORIES.forEach(cat => {
     const ul = document.getElementById(cat);
     if (!ul) return;
@@ -665,28 +669,27 @@ function saveNewOrder() {
     const newItemOrder = Array.from(ul.querySelectorAll('li'))
       .map(li => li.dataset.key);
     
-    // Update the originalKeyOrder to maintain the new order
     originalKeyOrder[cat] = newItemOrder;
     
-    // Get the current items from Firebase data
+    // Get current items
     const items = groceryData[cat] || {};
-    
-    // Create a new ordered object
     const orderedItems = {};
+    
+    // Create new ordered object
     newItemOrder.forEach(key => {
       if (items[key]) {
         orderedItems[key] = items[key];
       }
     });
     
-    // Update Firebase with the new order
-    db.ref(`/groceryLists/${cat}`).set(orderedItems);
+    // Update Firebase
+    db.ref(`/groceryLists/${cat}`).set(orderedItems)
+      .catch(error => console.error("Error saving order:", error));
   });
-  
-  // Update categories order if needed
+
+  // Update categories order if changed
   if (JSON.stringify(newTableOrder) !== JSON.stringify(CATEGORIES)) {
     CATEGORIES = newTableOrder;
-    // You might want to save this order to Firebase if you want to persist table order
   }
 }
 
@@ -704,3 +707,61 @@ auth.onAuthStateChanged(user => {
 
 // Initialize add table button
 document.getElementById('add-table-btn').onclick = addNewTablePrompt;
+
+
+function setupSortable() {
+  // Clean up previous instances
+  sortableTables.forEach(instance => instance.destroy());
+  sortableItems.forEach(instance => instance.destroy());
+  
+  sortableTables = [];
+  sortableItems = [];
+
+  // Make tables sortable
+  document.querySelectorAll('.container').forEach(container => {
+    const sortable = new Sortable(container, {
+      handle: '.drag-handle',
+      animation: 150,
+      ghostClass: 'sortable-ghost',
+      chosenClass: 'sortable-chosen',
+      onEnd: () => saveNewOrder()
+    });
+    sortableTables.push(sortable);
+  });
+
+  // Make items sortable within each list
+  document.querySelectorAll('ul').forEach(list => {
+    const sortable = new Sortable(list, {
+      handle: '.drag-handle',
+      animation: 150,
+      ghostClass: 'sortable-ghost',
+      chosenClass: 'sortable-chosen',
+      onEnd: () => saveNewOrder()
+    });
+    sortableItems.push(sortable);
+  });
+}
+
+function toggleReorderMode() {
+  isReorderMode = !isReorderMode;
+  document.body.classList.toggle('reorder-mode', isReorderMode);
+  document.getElementById('reorder-toggle-btn').classList.toggle('active', isReorderMode);
+  
+  if (isReorderMode) {
+    setupSortable();
+  } else {
+    saveNewOrder();
+    // Clean up - SortableJS will maintain its instances
+  }
+  
+  // Update drag handles and checkbox visibility
+  document.querySelectorAll('.drag-handle').forEach(handle => {
+    handle.style.display = isReorderMode ? 'flex' : 'none';
+  });
+  document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+    checkbox.style.display = isReorderMode ? 'none' : 'block';
+  });
+}
+
+// Update your reorder button click handler
+document.getElementById('reorder-toggle-btn').onclick = toggleReorderMode;
