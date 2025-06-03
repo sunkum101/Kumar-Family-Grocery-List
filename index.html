@@ -150,7 +150,12 @@
     li { display: flex; align-items: center; gap: 11px; padding: 16px 18px 16px 21px; border-bottom: 1px solid #e3e9f2; background: #fff; font-size: 1.7rem; font-family: 'Inter', 'Segoe UI', Arial, sans-serif;}
     li.checked { background: #f1f1f1 !important; color: #444 !important; opacity: .75;}
     input[type="checkbox"]{ width:28px; height:28px; cursor:pointer; margin-top:2px; accent-color:#666; border-radius:5px; border: 1px solid #d3dbe6;}
-    .name { flex: 1; min-width: 0; font-size: 1.8rem; font-weight: 700; color: #232323; user-select: none; border-radius: 6px;}
+    .name { flex: 1; min-width: 0; font-size: 2.2rem; font-weight: 700; color: #232323; user-select: none; border-radius: 6px;}
+    @media (max-width:600px){
+  .name {
+    font-size: 2.4rem;
+  }
+}
     .name.editing { background: #fffbe9; color: #333; }
     .counter { display: flex; align-items: center; gap: 10px; font-size: 1.5rem; font-family: 'Inter', 'Segoe UI', Arial, sans-serif; user-select: none; background: #f7f7f7; border-radius: 12px; padding: 4px 14px; margin-right: 2px; min-width: 85px; justify-content: center;}
     .counter button { width: 30px; height: 30px; border: none; border-radius: 50%; color: #fff; font-size: 1.25rem; cursor: pointer; background: #7ba5d6; font-weight: 700;}
@@ -179,6 +184,71 @@
     .modal-btn-yes, .input-modal-btn-ok { background:linear-gradient(90deg,#f44336 60%, #f87954 100%); color:#fff;}
     .modal-btn-yes:active, .input-modal-btn-ok:active {background:linear-gradient(90deg,#d32f2f 60%,#f87954 100%);}
     .input-modal-input { font-size: 1.07rem; padding: 7px 9px; border-radius: 7px; border: 1px solid #c7d1e6; background: #f7fafd; width: 100%; box-sizing: border-box; margin-bottom: 6px;}
+  
+  .row-menu-btn, .table-menu-btn {
+      background: none;
+      border: none;
+      font-size: 1.88em;
+      color: #374151 !important; /* dark slate, always visible */
+      margin-left: auto;
+      margin-right: 0;
+      cursor: pointer;
+      padding: 0 10px;
+      opacity: 0.9;
+      transition: color 0.18s, background 0.13s;
+      vertical-align: middle;
+    }
+    .row-menu-btn:hover, .table-menu-btn:hover { 
+      color: #1976d2 !important; 
+      background: #e3e7ee;
+      opacity: 1;
+      border-radius: 12px;
+    }
+
+    .edit-mode .counter,
+    .edit-mode .counter button {
+      display: none !important;
+    }
+    .edit-mode .row-menu-btn, 
+    .edit-mode .table-menu-btn {
+      display: inline-block !important;
+    }
+    .counter {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 1.5rem;
+      font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+      user-select: none;
+      background: #f7f7f7;
+      border-radius: 12px;
+      padding: 4px 14px;
+      margin-right: 2px;
+      min-width: 85px;
+      justify-content: center;
+    }
+    /* If not in edit mode, hide menu buttons */
+    .row-menu-btn, .table-menu-btn { display: none; }
+    .edit-mode .row-menu-btn, .edit-mode .table-menu-btn { display: inline-block !important; }
+
+    /* Make menu button larger/touchable on mobile */
+    @media (max-width:600px) {
+      .row-menu-btn, .table-menu-btn {
+        font-size: 2.15em;
+        padding: 0 14px;
+      }
+      .name { font-size: 2.4rem; }
+    }
+    .name {
+      flex: 1;
+      min-width: 0;
+      font-size: 2.2rem; /* larger for all screens */
+      font-weight: 700;
+      color: #232323;
+      user-select: none;
+      border-radius: 6px;
+    }
+
   </style>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -399,27 +469,54 @@
 
     // Context Menu
     function showContextMenu(x, y, opts) {
+  removeContextMenu();
+  const menu = document.createElement('div');
+  menu.className = 'context-menu';
+  menu.style.position = 'fixed'; // Ensures it's relative to viewport
+
+  // Temporarily set offscreen to measure
+  menu.style.left = "0px";
+  menu.style.top = "0px";
+  menu.style.visibility = "hidden";
+  opts.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.textContent = opt.label;
+    btn.disabled = !!opt.disabled;
+    btn.onclick = () => {
       removeContextMenu();
-      const menu = document.createElement('div');
-      menu.className = 'context-menu';
-      menu.style.left = x + 'px';
-      menu.style.top = y + 'px';
-      opts.forEach(opt => {
-        const btn = document.createElement('button');
-        btn.textContent = opt.label;
-        btn.disabled = !!opt.disabled;
-        btn.onclick = () => {
-          removeContextMenu();
-          opt.action();
-        };
-        menu.appendChild(btn);
-      });
-      document.body.appendChild(menu);
-      setTimeout(() => {
-        document.addEventListener('mousedown', removeContextMenu, { once: true });
-        document.addEventListener('touchstart', removeContextMenu, { once: true });
-      }, 0);
-    }
+      opt.action();
+    };
+    menu.appendChild(btn);
+  });
+  document.body.appendChild(menu);
+
+  // Now measure and adjust position
+  menu.style.visibility = "visible";
+  const menuRect = menu.getBoundingClientRect();
+  const padding = 8;
+  let left = x;
+  let top = y;
+
+  // Prevent overflow right
+  if (left + menuRect.width + padding > window.innerWidth) {
+    left = window.innerWidth - menuRect.width - padding;
+  }
+  // Prevent overflow bottom
+  if (top + menuRect.height + padding > window.innerHeight) {
+    top = window.innerHeight - menuRect.height - padding;
+  }
+  // Prevent negative
+  left = Math.max(padding, left);
+  top = Math.max(padding, top);
+
+  menu.style.left = left + "px";
+  menu.style.top = top + "px";
+
+  setTimeout(() => {
+    document.addEventListener('mousedown', removeContextMenu, { once: true });
+    document.addEventListener('touchstart', removeContextMenu, { once: true });
+  }, 0);
+}
     function removeContextMenu() {
       document.querySelectorAll('.context-menu').forEach(e => e.remove());
     }
