@@ -150,10 +150,7 @@
     li { display: flex; align-items: center; gap: 11px; padding: 16px 18px 16px 21px; border-bottom: 1px solid #e3e9f2; background: #fff; font-size: 1.7rem; font-family: 'Inter', 'Segoe UI', Arial, sans-serif;}
     li.checked { background: #f1f1f1 !important; color: #444 !important; opacity: .75;}
     input[type="checkbox"]{ width:28px; height:28px; cursor:pointer; margin-top:2px; accent-color:#666; border-radius:5px; border: 1px solid #d3dbe6;}
-    .name { flex: 1; min-width: 0; font-size: 2.0rem; font-weight: 700; color: #232323; user-select: none; border-radius: 6px;}
-    @media (max-width:600px){
-      .name {font-size: 2.0rem;}
-    }
+    .name { flex: 1; min-width: 0; font-size: 1.8rem; font-weight: 700; color: #232323; user-select: none; border-radius: 6px;}
     .name.editing { background: #fffbe9; color: #333; }
     .counter { display: flex; align-items: center; gap: 10px; font-size: 1.5rem; font-family: 'Inter', 'Segoe UI', Arial, sans-serif; user-select: none; background: #f7f7f7; border-radius: 12px; padding: 4px 14px; margin-right: 2px; min-width: 85px; justify-content: center;}
     .counter button { width: 30px; height: 30px; border: none; border-radius: 50%; color: #fff; font-size: 1.25rem; cursor: pointer; background: #7ba5d6; font-weight: 700;}
@@ -182,71 +179,6 @@
     .modal-btn-yes, .input-modal-btn-ok { background:linear-gradient(90deg,#f44336 60%, #f87954 100%); color:#fff;}
     .modal-btn-yes:active, .input-modal-btn-ok:active {background:linear-gradient(90deg,#d32f2f 60%,#f87954 100%);}
     .input-modal-input { font-size: 1.07rem; padding: 7px 9px; border-radius: 7px; border: 1px solid #c7d1e6; background: #f7fafd; width: 100%; box-sizing: border-box; margin-bottom: 6px;}
-  
-  .row-menu-btn, .table-menu-btn {
-      background: none;
-      border: none;
-      font-size: 1.88em;
-      color: #374151 !important; /* dark slate, always visible */
-      margin-left: auto;
-      margin-right: 0;
-      cursor: pointer;
-      padding: 0 10px;
-      opacity: 0.9;
-      transition: color 0.18s, background 0.13s;
-      vertical-align: middle;
-    }
-    .row-menu-btn:hover, .table-menu-btn:hover { 
-      color: #1976d2 !important; 
-      background: #e3e7ee;
-      opacity: 1;
-      border-radius: 12px;
-    }
-
-    .edit-mode .counter,
-    .edit-mode .counter button {
-      display: none !important;
-    }
-    .edit-mode .row-menu-btn, 
-    .edit-mode .table-menu-btn {
-      display: inline-block !important;
-    }
-    .counter {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 1.5rem;
-      font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
-      user-select: none;
-      background: #f7f7f7;
-      border-radius: 12px;
-      padding: 4px 14px;
-      margin-right: 2px;
-      min-width: 85px;
-      justify-content: center;
-    }
-    /* If not in edit mode, hide menu buttons */
-    .row-menu-btn, .table-menu-btn { display: none; }
-    .edit-mode .row-menu-btn, .edit-mode .table-menu-btn { display: inline-block !important; }
-
-    /* Make menu button larger/touchable on mobile */
-    @media (max-width:600px) {
-      .row-menu-btn, .table-menu-btn {
-        font-size: 2.15em;
-        padding: 0 14px;
-      }
-      .name { font-size: 2.4rem; }
-    }
-    .name {
-      flex: 1;
-      min-width: 0;
-      font-size: 2.2rem; /* larger for all screens */
-      font-weight: 700;
-      color: #232323;
-      user-select: none;
-      border-radius: 6px;
-    }
-
   </style>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -310,83 +242,6 @@
     </div>
   </div>
   <script>
-    // Place at top of script
-let lastUndo = null;
-let undoTimer = null;
-
-// Show undo UI
-function showUndo(message, undoFn) {
-  clearUndo();
-  lastUndo = undoFn;
-  // Create undo bar if not exists
-  let bar = document.getElementById('undo-bar');
-  if (!bar) {
-    bar = document.createElement('div');
-    bar.id = 'undo-bar';
-    bar.style.position = 'fixed';
-    bar.style.bottom = '20px';
-    bar.style.right = '20px';
-    bar.style.background = '#323232';
-    bar.style.color = '#fff';
-    bar.style.padding = '14px 22px';
-    bar.style.borderRadius = '9px';
-    bar.style.fontSize = '1.1rem';
-    bar.style.boxShadow = '0 8px 24px rgba(0,0,0,0.15)';
-    bar.style.zIndex = '9999';
-    bar.style.display = 'flex';
-    bar.style.alignItems = 'center';
-    bar.style.gap = '18px';
-    bar.innerHTML = `
-      <span id="undo-msg">${message}</span>
-      <button id="do-undo-btn" style="background:#ffe082;color:#333;border:none;padding:7px 18px;border-radius:8px;font-size:1.06rem;cursor:pointer;font-weight:700;">UNDO</button>
-    `;
-    document.body.appendChild(bar);
-  } else {
-    document.getElementById('undo-msg').textContent = message;
-    bar.style.display = 'flex';
-  }
-  document.getElementById('do-undo-btn').onclick = () => {
-    if (lastUndo) lastUndo();
-    clearUndo();
-  };
-  undoTimer = setTimeout(clearUndo, 7000);
-}
-function clearUndo() {
-  let bar = document.getElementById('undo-bar');
-  if (bar) bar.style.display = 'none';
-  lastUndo = null;
-  if (undoTimer) clearTimeout(undoTimer);
-}
-
-// Example: Use in deleteRow
-function deleteRow(cat, key) {
-  const item = groceryData[cat][key];
-  db.ref(`/groceryLists/${cat}/${key}`).remove();
-  showUndo(`Deleted "${item.name}".`, function() {
-    db.ref(`/groceryLists/${cat}/${key}`).set(item);
-  });
-  setTimeout(()=>renderList(cat), 300);
-}
-
-// Example: Use in moveRow
-function moveRow(cat, key, direction) {
-  let arr = originalKeyOrder[cat];
-  if (!arr) arr = originalKeyOrder[cat] = Object.keys(groceryData[cat] || {});
-  const idx = arr.indexOf(key);
-  if (idx < 0) return;
-  const swapWith = idx + direction;
-  if (swapWith < 0 || swapWith >= arr.length) return;
-  [arr[idx], arr[swapWith]] = [arr[swapWith], arr[idx]];
-  renderList(cat);
-  showUndo('Moved item.', function() {
-    // Undo: swap back
-    [arr[idx], arr[swapWith]] = [arr[swapWith], arr[idx]];
-    renderList(cat);
-  });
-}
-
-// Do the same for deleteTable/moveTable if desired, storing/restoring as needed.
-
     // --- User restriction & login
     const ALLOWED_USERS = [
       "sunil.kumar101@gmail.com",
@@ -516,12 +371,12 @@ function moveRow(cat, key, direction) {
     // --- Table/category config
     let CATEGORIES = ["veggies", "grocery", "indian", "kmart_bigw_target", "pharmacy", "others"];
     let CATEGORY_NAMES = {
-      veggies: "🥦 Veggies",
-      grocery: "🛒 Grocery",
-      indian: "🇮🇳 India Store",
-      kmart_bigw_target: "🛍️ Kmart/Big W/Target",
-      pharmacy: "🏥 Pharmacy",
-      others: "🔖 Others"
+      veggies: "Veggies",
+      grocery: "Grocery",
+      indian: "India Store",
+      kmart_bigw_target: "Kmart/Big W/Target",
+      pharmacy: "Pharmacy",
+      others: "Others"
     };
     let CATEGORY_HEADER_CLASSES = {
       veggies:"veggies-header",grocery:"grocery-header",indian:"indian-header",
@@ -544,54 +399,27 @@ function moveRow(cat, key, direction) {
 
     // Context Menu
     function showContextMenu(x, y, opts) {
-  removeContextMenu();
-  const menu = document.createElement('div');
-  menu.className = 'context-menu';
-  menu.style.position = 'fixed'; // Ensures it's relative to viewport
-
-  // Temporarily set offscreen to measure
-  menu.style.left = "0px";
-  menu.style.top = "0px";
-  menu.style.visibility = "hidden";
-  opts.forEach(opt => {
-    const btn = document.createElement('button');
-    btn.textContent = opt.label;
-    btn.disabled = !!opt.disabled;
-    btn.onclick = () => {
       removeContextMenu();
-      opt.action();
-    };
-    menu.appendChild(btn);
-  });
-  document.body.appendChild(menu);
-
-  // Now measure and adjust position
-  menu.style.visibility = "visible";
-  const menuRect = menu.getBoundingClientRect();
-  const padding = 8;
-  let left = x;
-  let top = y;
-
-  // Prevent overflow right
-  if (left + menuRect.width + padding > window.innerWidth) {
-    left = window.innerWidth - menuRect.width - padding;
-  }
-  // Prevent overflow bottom
-  if (top + menuRect.height + padding > window.innerHeight) {
-    top = window.innerHeight - menuRect.height - padding;
-  }
-  // Prevent negative
-  left = Math.max(padding, left);
-  top = Math.max(padding, top);
-
-  menu.style.left = left + "px";
-  menu.style.top = top + "px";
-
-  setTimeout(() => {
-    document.addEventListener('mousedown', removeContextMenu, { once: true });
-    document.addEventListener('touchstart', removeContextMenu, { once: true });
-  }, 0);
-}
+      const menu = document.createElement('div');
+      menu.className = 'context-menu';
+      menu.style.left = x + 'px';
+      menu.style.top = y + 'px';
+      opts.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.textContent = opt.label;
+        btn.disabled = !!opt.disabled;
+        btn.onclick = () => {
+          removeContextMenu();
+          opt.action();
+        };
+        menu.appendChild(btn);
+      });
+      document.body.appendChild(menu);
+      setTimeout(() => {
+        document.addEventListener('mousedown', removeContextMenu, { once: true });
+        document.addEventListener('touchstart', removeContextMenu, { once: true });
+      }, 0);
+    }
     function removeContextMenu() {
       document.querySelectorAll('.context-menu').forEach(e => e.remove());
     }
@@ -829,33 +657,13 @@ function moveRow(cat, key, direction) {
     }
 
     function showRowMenu(e, cat, key, keys, keyIdx, item) {
-  let x = e.clientX, y = e.clientY;
-  showContextMenu(x, y, [
-    { label: "Move to position…", action: () => moveRowToPositionPrompt(cat, key, keys, keyIdx) },
-    { label: "Delete", action: () => showModal(`Delete item "${item.name}" from "${CATEGORY_NAMES[cat]}"?`, (yes) => { if(yes) deleteRow(cat, key); }) }
-  ]);
-}
-    function moveRowToPositionPrompt(cat, key, keys, keyIdx) {
-  showInputModal(
-    `Move "${groceryData[cat][key].name}" to position (1-${keys.length}):`,
-    `${keyIdx + 1}`,
-    (input) => {
-      if (!input) return;
-      const newIndex = Math.max(0, Math.min(keys.length - 1, parseInt(input) - 1));
-      moveRowToPosition(cat, key, newIndex);
+      let x = e.clientX, y = e.clientY;
+      showContextMenu(x, y, [
+        { label: "Move Up", disabled: keyIdx === 0, action: () => moveRow(cat, key, -1) },
+        { label: "Move Down", disabled: keyIdx === keys.length-1, action: () => moveRow(cat, key, 1) },
+        { label: "Delete", action: () => showModal(`Delete item "${item.name}" from "${CATEGORY_NAMES[cat]}"?`, (yes) => { if(yes) deleteRow(cat, key); }) }
+      ]);
     }
-  );
-}
-
-function moveRowToPosition(cat, key, newIndex) {
-  let arr = originalKeyOrder[cat];
-  if (!arr) arr = originalKeyOrder[cat] = Object.keys(groceryData[cat] || {});
-  const oldIndex = arr.indexOf(key);
-  if (oldIndex === -1 || newIndex === oldIndex) return;
-  arr.splice(oldIndex, 1);
-  arr.splice(newIndex, 0, key);
-  renderList(cat);
-}
 
     function moveRow(cat, key, direction) {
       let arr = originalKeyOrder[cat];
