@@ -506,11 +506,22 @@ function toggleCollapse(cat) {
 function setCollapsed(cat, collapsed) {
   const ul = document.getElementById(cat);
   const addBtn = document.querySelector(`#${cat}-container .add-btn`);
-  const container = document.getElementById(cat+'-container');
-  if (!ul || !addBtn || !container) return;
-  ul.style.display = collapsed?'none':'';
-  addBtn.style.display = collapsed?'none':'';
-  container.classList.toggle('collapsed', collapsed);
+  const container = document.getElementById(`${cat}-container`);
+  const arrow = document.getElementById(`${cat}-arrow`);
+  
+  if (!ul || !addBtn || !container || !arrow) return;
+  
+  if (collapsed) {
+    ul.style.display = 'none';
+    addBtn.style.display = 'none';
+    arrow.style.transform = 'rotate(-90deg)';
+    container.classList.add('collapsed');
+  } else {
+    ul.style.display = '';
+    addBtn.style.display = '';
+    arrow.style.transform = 'rotate(0deg)';
+    container.classList.remove('collapsed');
+  }
 }
 
 function deleteRow(cat, key) {
@@ -839,25 +850,23 @@ function setupSortable() {
   });
 }
 
-function toggleReorderMode() {
-  isReorderMode = !isReorderMode;
-  document.body.classList.toggle('reorder-mode', isReorderMode);
-  document.getElementById('reorder-toggle-btn').classList.toggle('active', isReorderMode);
-  
-  if (isReorderMode) {
-    setupSortable();
-  } else {
-    saveNewOrder();
-    // Clean up - SortableJS will maintain its instances
-  }
-  
-  // Update drag handles and checkbox visibility
-  document.querySelectorAll('.drag-handle').forEach(handle => {
-    handle.style.display = isReorderMode ? 'flex' : 'none';
-  });
-  document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-    checkbox.style.display = isReorderMode ? 'none' : 'block';
-  });
+.collapse-arrow {
+  margin-left: auto;
+  font-size: 1.15rem;
+  transition: transform 0.18s;
+  display: inline-block;
+  opacity: 0.67;
+  cursor: pointer;
+  padding: 8px 12px;
+}
+
+.collapsed .collapse-arrow {
+  transform: rotate(-90deg);
+}
+
+/* Make sure drag handle doesn't interfere */
+.header .drag-handle {
+  margin-right: auto;
 }
 
 // Update your reorder button click handler
