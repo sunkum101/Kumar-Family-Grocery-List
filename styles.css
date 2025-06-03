@@ -683,13 +683,29 @@ li.has-count:not(.checked) > .name, li.has-count:not(.checked) .name {
 }
 
 .reorder-mode li {
-  cursor: move;
+  cursor: grab;
+  transition: transform 0.2s;
+}
+
+.reorder-mode li:active {
+  cursor: grabbing;
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.sortable-ghost {
+  opacity: 0.5;
+  background: #e3f2fd !important;
+}
+
+.sortable-chosen {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
 .reorder-mode .drag-handle {
   display: flex !important;
-  cursor: move;
-  padding: 0 8px;
+  cursor: grab;
+  padding: 0 12px 0 8px;
   color: #666;
   font-size: 1.2rem;
 }
