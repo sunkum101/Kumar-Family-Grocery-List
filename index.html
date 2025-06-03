@@ -1120,13 +1120,18 @@
       showModal("Reset all counters to 0 and uncheck all items in all tables?", function(yes) {
         if (!yes) return;
         checkZerosActive = false;
-        CATEGORIES.forEach(cat=>{
+        CATEGORIES.forEach(cat => {
           const items = groceryData[cat] || {};
           Object.entries(items).forEach(([key, item]) => {
-            db.ref(`/groceryLists/${cat}/${key}`).update({count:0, checked:false});
+            if (item && typeof item === 'object') {
+              db.ref(`/groceryLists/${cat}/${key}`).update({
+                count: 0,
+                checked: false
+              });
+            }
           });
         });
-        setTimeout(()=>{
+        setTimeout(() => {
           renderAllTables();
         }, 350);
       });
