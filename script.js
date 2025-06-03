@@ -45,6 +45,7 @@ function renderAllowedList() {
     ul.appendChild(li);
   });
 }
+
 let selectedEmail = null;
 function selectAllowedEmail(email, li) {
   selectedEmail = email;
@@ -127,9 +128,6 @@ function setLogoutButtonVisible(visible) {
   if (btn) btn.style.display = visible ? '' : 'none';
 }
 
-let sortableTables = [];
-let sortableItems = [];
-
 // Grocery Logic
 let CATEGORIES = [
   'veggies',
@@ -181,8 +179,8 @@ let listeners = [];
 let checkZerosActive = false;
 let originalKeyOrder = {};
 let isReorderMode = false;
-let draggedItem = null;
-let draggedTable = null;
+let sortableTables = [];
+let sortableItems = [];
 
 // Main UI
 function showMain() {
@@ -282,6 +280,7 @@ function showInputModal(title, placeholder, callback) {
 function renderAllTables() {
   const area = document.getElementById('tables-area');
   area.innerHTML = '';
+  
   CATEGORIES.forEach((cat, idx) => {
     if (!CATEGORY_NAMES[cat]) CATEGORY_NAMES[cat] = cat.charAt(0).toUpperCase() + cat.slice(1);
     if (!CATEGORY_ICONS[cat]) CATEGORY_ICONS[cat] = '';
@@ -290,14 +289,7 @@ function renderAllTables() {
     container.id = `${cat}-container`;
     container.dataset.category = cat;
     
-    // Header
-    const headerClass = getHeaderClass(cat, idx);
-    const header = document.createElement('div');
-    header.className = 'header ' + headerClass;
-    header.id = `${cat}-header`;
-    header.dataset.category = cat;
-
-     // Header with collapse functionality
+    // Header with collapse functionality
     const header = document.createElement('div');
     header.className = 'header ' + getHeaderClass(cat, idx);
     header.id = `${cat}-header`;
@@ -307,6 +299,7 @@ function renderAllTables() {
     const headerDragHandle = document.createElement('div');
     headerDragHandle.className = 'drag-handle';
     headerDragHandle.innerHTML = '<i class="fas fa-ellipsis-v"></i>';
+    headerDragHandle.style.display = isReorderMode ? 'flex' : 'none';
     header.appendChild(headerDragHandle);
     
     // Header title
@@ -326,6 +319,7 @@ function renderAllTables() {
     headerArrow.className = 'collapse-arrow';
     headerArrow.id = `${cat}-arrow`;
     headerArrow.innerHTML = "&#9654;";
+    headerArrow.style.display = isReorderMode ? 'none' : 'block';
     headerArrow.onclick = (e) => {
       e.stopPropagation();
       toggleCollapse(cat);
@@ -334,34 +328,11 @@ function renderAllTables() {
     
     // Make entire header clickable for collapse (except drag handle)
     header.onclick = (e) => {
-      if (!e.target.classList.contains('drag-handle') {
+      if (!isReorderMode && !e.target.classList.contains('drag-handle')) {
         toggleCollapse(cat);
       }
     };
     
-    // Add drag handle to header
-    const headerDragHandle = document.createElement('div');
-    headerDragHandle.className = 'drag-handle';
-    headerDragHandle.innerHTML = '<i class="fas fa-ellipsis-v"></i>';
-    header.appendChild(headerDragHandle);
-    
-    const headerTitle = document.createElement('span');
-    headerTitle.className = 'header-title';
-    headerTitle.innerHTML = (CATEGORY_ICONS[cat] ? CATEGORY_ICONS[cat] + " " : "") + CATEGORY_NAMES[cat];
-
-    const headerCount = document.createElement('span');
-    headerCount.className = 'header-count';
-    headerCount.id = `${cat}-count`;
-
-    const headerArrow = document.createElement('span');
-    headerArrow.className = 'collapse-arrow';
-    headerArrow.id = `${cat}-arrow`;
-    headerArrow.innerHTML = "&#9654;";
-
-    header.appendChild(headerTitle);
-    header.appendChild(headerCount);
-    header.appendChild(headerArrow);
-
     container.appendChild(header);
 
     // List
@@ -382,19 +353,18 @@ function renderAllTables() {
 
     area.appendChild(container);
 
-    if(localStorage.getItem('col-'+cat)==='true') setCollapsed(cat,true);
-
-    renderList(cat);
-    updateHeaderCount(cat);
+    // Set initial collapsed state
+    if(localStorage.getItem(`col-${cat}`) === 'true') {
+      setCollapsed(cat, true);
+    }
   });
   
-  // Setup drag and drop events if in reorder mode
+  // Initialize sorting if in reorder mode
   if (isReorderMode) {
-    setupDragAndDrop();
+    setupSortable();
   }
 }
 
-// In the renderList function, modify it to maintain Firebase data while supporting reordering:
 function renderList(cat) {
   const ul = document.getElementById(cat);
   if (!ul) return;
@@ -410,7 +380,6 @@ function renderList(cat) {
     const li = document.createElement('li');
     li.dataset.key = key;
     li.dataset.category = cat;
-    li.setAttribute('draggable', isReorderMode);
     if(item.checked) li.classList.add('checked');
     if(item.count > 0) li.classList.add('has-count');
     li.style.position = 'relative';
@@ -472,10 +441,39 @@ function renderList(cat) {
   }
 }
 
-function deleteTable(cat) {
-  db.ref(`/groceryLists/${cat}`).remove();
-  setTimeout(renderAllTables, 300);
+function setupSortable() {
+  // Clean up previous instances
+  sortableTables.forEach(instance => instance.destroy());
+  sortableItems.forEach(instance => instance.destroy());
+  
+  sortableTables = [];
+  sortableItems = [];
+
+  // Make tables sortable
+  document.querySelectorAll('.container').forEach(container => {
+    const sortable = new Sortable(container, {
+      handle: '.drag-handle',
+      animation: 150,
+      ghostClass: 'sortable-ghost',
+      chosenClass: 'sortable-chosen',
+      onEnd: () => saveNewOrder()
+    });
+    sortableTables.push(sortable);
+  });
+
+  // Make items sortable within each list
+  document.querySelectorAll('ul').forEach(list => {
+    const sortable = new Sortable(list, {
+      handle: '.drag-handle',
+      animation: 150,
+      ghostClass: 'sortable-ghost',
+      chosenClass: 'sortable-chosen',
+      onEnd: () => saveNewOrder()
+    });
+    sortableItems.push(sortable);
+  });
 }
+
 function toggleCollapse(cat) {
   if (isReorderMode) return; // Disable collapsing in reorder mode
   
@@ -524,16 +522,98 @@ function setCollapsed(cat, collapsed) {
   }
 }
 
+function toggleReorderMode() {
+  isReorderMode = !isReorderMode;
+  document.body.classList.toggle('reorder-mode', isReorderMode);
+  document.getElementById('reorder-toggle-btn').classList.toggle('active', isReorderMode);
+  
+  // Show/hide drag handles and checkboxes
+  document.querySelectorAll('.drag-handle').forEach(handle => {
+    handle.style.display = isReorderMode ? 'flex' : 'none';
+  });
+  
+  document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+    checkbox.style.display = isReorderMode ? 'none' : 'block';
+  });
+  
+  // Show/hide collapse arrows
+  document.querySelectorAll('.collapse-arrow').forEach(arrow => {
+    arrow.style.display = isReorderMode ? 'none' : 'block';
+  });
+  
+  if (isReorderMode) {
+    setupSortable();
+    // Expand all tables for easier reordering
+    CATEGORIES.forEach(cat => {
+      setCollapsed(cat, false);
+    });
+  } else {
+    saveNewOrder();
+    // Restore collapsed state from localStorage
+    CATEGORIES.forEach(cat => {
+      if (localStorage.getItem(`col-${cat}`) === 'true') {
+        setCollapsed(cat, true);
+      }
+    });
+  }
+}
+
+function saveNewOrder() {
+  // Save table order
+  const tablesArea = document.getElementById('tables-area');
+  const newTableOrder = Array.from(tablesArea.querySelectorAll('.container'))
+    .map(table => table.dataset.category);
+  
+  // Update item orders for each table
+  CATEGORIES.forEach(cat => {
+    const ul = document.getElementById(cat);
+    if (!ul) return;
+    
+    const newItemOrder = Array.from(ul.querySelectorAll('li'))
+      .map(li => li.dataset.key);
+    
+    // Update the originalKeyOrder to maintain the new order
+    originalKeyOrder[cat] = newItemOrder;
+    
+    // Get the current items from Firebase data
+    const items = groceryData[cat] || {};
+    
+    // Create a new ordered object
+    const orderedItems = {};
+    newItemOrder.forEach(key => {
+      if (items[key]) {
+        orderedItems[key] = items[key];
+      }
+    });
+    
+    // Update Firebase with the new order
+    db.ref(`/groceryLists/${cat}`).set(orderedItems)
+      .catch(error => console.error("Error saving order:", error));
+  });
+  
+  // Update categories order if changed
+  if (JSON.stringify(newTableOrder) !== JSON.stringify(CATEGORIES)) {
+    CATEGORIES = newTableOrder;
+  }
+}
+
+function deleteTable(cat) {
+  db.ref(`/groceryLists/${cat}`).remove();
+  setTimeout(renderAllTables, 300);
+}
+
 function deleteRow(cat, key) {
   db.ref(`/groceryLists/${cat}/${key}`).remove();
   setTimeout(()=>renderList(cat), 300);
 }
+
 function addItem(cat) {
   showInputModal('Enter new item name:', 'e.g. Carrots', function(name) {
     if(!name) return;
     db.ref(`/groceryLists/${cat}`).push({name: name, count: 0, checked: false});
   });
 }
+
 function addNewTablePrompt() {
   showInputModal('Enter table name (e.g. Pharmacy):', 'e.g. Pharmacy', function(tname) {
     if(!tname) return;
@@ -565,9 +645,11 @@ function updateCount(cat, key, delta) {
   v = Math.max(0, Math.min(50, v));
   db.ref(`/groceryLists/${cat}/${key}`).update({ count: v });
 }
+
 function toggleChecked(cat, key, val) {
   db.ref(`/groceryLists/${cat}/${key}`).update({ checked: !!val });
 }
+
 function editNameInline(cat, key, nameDiv, oldItem) {
   if(nameDiv.classList.contains('editing')) return;
   const prevName = oldItem.name;
@@ -635,6 +717,9 @@ document.getElementById('check-zeros-btn').onclick = function() {
   });
 };
 
+document.getElementById('reorder-toggle-btn').onclick = toggleReorderMode;
+document.getElementById('add-table-btn').onclick = addNewTablePrompt;
+
 function updateHeaderCount(cat){
   const items = groceryData[cat] || {};
   const count = Object.values(items).filter(x=>x && typeof x === "object" && !x.checked && x.count>0).length;
@@ -649,158 +734,6 @@ function updateHeaderCount(cat){
   }
 }
 
-// Reorder mode functionality
-document.getElementById('reorder-toggle-btn').onclick = function() {
-  isReorderMode = !isReorderMode;
-  document.body.classList.toggle('reorder-mode', isReorderMode);
-  this.classList.toggle('active', isReorderMode);
-  
-  if (isReorderMode) {
-    setupDragAndDrop();
-  } else {
-    // Save the new order to Firebase when exiting reorder mode
-    saveNewOrder();
-  }
-  
-  renderAllTables();
-};
-
-function setupDragAndDrop() {
-  if (!isReorderMode) return;
-  
-  // Setup table drag and drop
-  const tables = document.querySelectorAll('.container');
-  tables.forEach(table => {
-    table.draggable = true;
-    
-    table.addEventListener('dragstart', (e) => {
-      draggedTable = table;
-      setTimeout(() => {
-        table.classList.add('dragging');
-      }, 0);
-    });
-    
-    table.addEventListener('dragend', () => {
-      table.classList.remove('dragging');
-      draggedTable = null;
-    });
-  });
-  
-  // Setup item drag and drop within each table
-  const items = document.querySelectorAll('li');
-  items.forEach(item => {
-    item.draggable = true;
-    
-    item.addEventListener('dragstart', (e) => {
-      draggedItem = item;
-      setTimeout(() => {
-        item.classList.add('dragging');
-      }, 0);
-    });
-    
-    item.addEventListener('dragend', () => {
-      item.classList.remove('dragging');
-      draggedItem = null;
-    });
-  });
-  
-  // Setup drop zones for tables
-  const tablesArea = document.getElementById('tables-area');
-  tablesArea.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    const afterElement = getDragAfterTable(tablesArea, e.clientY);
-    if (afterElement) {
-      tablesArea.insertBefore(draggedTable, afterElement);
-    } else {
-      tablesArea.appendChild(draggedTable);
-    }
-  });
-  
-  // Setup drop zones for items
-  const lists = document.querySelectorAll('ul');
-  lists.forEach(list => {
-    list.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      const afterElement = getDragAfterItem(list, e.clientY);
-      if (afterElement) {
-        list.insertBefore(draggedItem, afterElement);
-      } else {
-        list.appendChild(draggedItem);
-      }
-    });
-  });
-}
-
-function getDragAfterTable(container, y) {
-  const draggableElements = [...container.querySelectorAll('.container:not(.dragging)')];
-  
-  return draggableElements.reduce((closest, child) => {
-    const box = child.getBoundingClientRect();
-    const offset = y - box.top - box.height / 2;
-    
-    if (offset < 0 && offset > closest.offset) {
-      return { offset: offset, element: child };
-    } else {
-      return closest;
-    }
-  }, { offset: Number.NEGATIVE_INFINITY }).element;
-}
-
-function getDragAfterItem(container, y) {
-  const draggableElements = [...container.querySelectorAll('li:not(.dragging)')];
-  
-  return draggableElements.reduce((closest, child) => {
-    const box = child.getBoundingClientRect();
-    const offset = y - box.top - box.height / 2;
-    
-    if (offset < 0 && offset > closest.offset) {
-      return { offset: offset, element: child };
-    } else {
-      return closest;
-    }
-  }, { offset: Number.NEGATIVE_INFINITY }).element;
-}
-
-function saveNewOrder() {
-  if (!isReorderMode) return;
-
-  // Save table order
-  const tablesArea = document.getElementById('tables-area');
-  const newTableOrder = Array.from(tablesArea.querySelectorAll('.container'))
-    .map(table => table.dataset.category);
-
-  // Save item orders for each table
-  CATEGORIES.forEach(cat => {
-    const ul = document.getElementById(cat);
-    if (!ul) return;
-    
-    const newItemOrder = Array.from(ul.querySelectorAll('li'))
-      .map(li => li.dataset.key);
-    
-    originalKeyOrder[cat] = newItemOrder;
-    
-    // Get current items
-    const items = groceryData[cat] || {};
-    const orderedItems = {};
-    
-    // Create new ordered object
-    newItemOrder.forEach(key => {
-      if (items[key]) {
-        orderedItems[key] = items[key];
-      }
-    });
-    
-    // Update Firebase
-    db.ref(`/groceryLists/${cat}`).set(orderedItems)
-      .catch(error => console.error("Error saving order:", error));
-  });
-
-  // Update categories order if changed
-  if (JSON.stringify(newTableOrder) !== JSON.stringify(CATEGORIES)) {
-    CATEGORIES = newTableOrder;
-  }
-}
-
 // Auth state change
 auth.onAuthStateChanged(user => {
   if (user && (!ALLOWED_USERS.length || ALLOWED_USERS.includes(user.email))) {
@@ -812,62 +745,3 @@ auth.onAuthStateChanged(user => {
     setLogoutButtonVisible(false);
   }
 });
-
-// Initialize add table button
-document.getElementById('add-table-btn').onclick = addNewTablePrompt;
-
-
-function setupSortable() {
-  // Clean up previous instances
-  sortableTables.forEach(instance => instance.destroy());
-  sortableItems.forEach(instance => instance.destroy());
-  
-  sortableTables = [];
-  sortableItems = [];
-
-  // Make tables sortable
-  document.querySelectorAll('.container').forEach(container => {
-    const sortable = new Sortable(container, {
-      handle: '.drag-handle',
-      animation: 150,
-      ghostClass: 'sortable-ghost',
-      chosenClass: 'sortable-chosen',
-      onEnd: () => saveNewOrder()
-    });
-    sortableTables.push(sortable);
-  });
-
-  // Make items sortable within each list
-  document.querySelectorAll('ul').forEach(list => {
-    const sortable = new Sortable(list, {
-      handle: '.drag-handle',
-      animation: 150,
-      ghostClass: 'sortable-ghost',
-      chosenClass: 'sortable-chosen',
-      onEnd: () => saveNewOrder()
-    });
-    sortableItems.push(sortable);
-  });
-}
-
-.collapse-arrow {
-  margin-left: auto;
-  font-size: 1.15rem;
-  transition: transform 0.18s;
-  display: inline-block;
-  opacity: 0.67;
-  cursor: pointer;
-  padding: 8px 12px;
-}
-
-.collapsed .collapse-arrow {
-  transform: rotate(-90deg);
-}
-
-/* Make sure drag handle doesn't interfere */
-.header .drag-handle {
-  margin-right: auto;
-}
-
-// Update your reorder button click handler
-document.getElementById('reorder-toggle-btn').onclick = toggleReorderMode;
