@@ -654,10 +654,120 @@
     .input-modal-btn-ok:active {
       background: linear-gradient(90deg,#3070b3 0%,#2b79c2 100%);
     }
+
+    .move-delete-toggle {
+  position: fixed;
+  bottom: 19px;
+  right: 19px;
+  z-index: 2000;
+  background: #ff9800;
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  padding: 7px 18px;
+  font-size: 0.97rem;
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+  font-weight: 700;
+  box-shadow: 0 2px 10px rgba(60,80,130,0.13);
+  cursor: pointer;
+  transition: background 0.14s, box-shadow 0.14s;
+  display: none; /* hidden by default, shown after login */
+}
+.move-delete-toggle:hover {
+  background: #f57c00;
+  box-shadow: 0 4px 18px rgba(60,80,130,0.22);
+}
+
+
+.trash-icon, .move-icon {
+  width: 30px;
+  height: 30px;
+  margin-right: 6px;
+  margin-left: 6px;
+  background: none;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.77;
+  transition: opacity 0.14s;
+}
+.trash-icon:hover, .move-icon:hover { opacity: 1; }
+.trash-icon svg, .move-icon svg { width: 24px; height: 24px; }
+.undo-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 80px;
+  transform: translateX(-50%);
+  background: #222;
+  color: #fff;
+  padding: 13px 28px;
+  border-radius: 22px;
+  font-size: 1.15rem;
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  z-index: 4000;
+  box-shadow: 0 3px 16px rgba(40,40,60,0.13);
+  animation: fadeIn 0.22s;
+}
+.undo-toast button {
+  background: #f9c148;
+  color: #222;
+  border: none;
+  border-radius: 9px;
+  font-weight: 700;
+  font-size: 1rem;
+  padding: 6px 20px;
+  margin-left: 12px;
+  cursor: pointer;
+  transition: background 0.13s;
+}
+.undo-toast button:hover { background: #ffe082; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+li.dragging {
+  opacity: 0.7;
+  background: #e3f2fd !important;
+  box-shadow: 0 4px 16px #1976d277;
+  z-index: 200;
+}
+
+li.drop-before::before {
+  content: "";
+  display: block;
+  height: 0;
+  border-top: 3px solid #4385f5;
+  margin-top: -7px;
+  margin-bottom: 7px;
+}
+
+li.drop-after::after {
+  content: "";
+  display: block;
+  height: 0;
+  border-bottom: 3px solid #4385f5;
+  margin-top: 7px;
+  margin-bottom: -7px;
+}
+
+li.push-down {
+  transition: margin 0.18s cubic-bezier(.4,1.5,.7,1);
+  margin-top: 30px !important;
+}
+
+li.push-up {
+  transition: margin 0.18s cubic-bezier(.4,1.5,.7,1);
+  margin-bottom: 30px !important;
+}
+
   </style>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 </head>
 <body>
   <button class="logout-btn-top" id="logout-btn-top" title="Logout" style="display:none;">
@@ -714,6 +824,8 @@
       </div>
     </div>
   </div>
+  <button id="move-delete-toggle" class="move-delete-toggle" style="display:none;">Move or Delete</button>
+
   <script>
     // Allowed Users & Avatars
     const ALLOWED_USERS = [
@@ -726,6 +838,10 @@
       "manju4sun@gmail.com": "https://www.gravatar.com/avatar/6fa6e4ea6e7a5c3f4aec7f4bba50f1a4?d=identicon",
       "yashvi.k.australia@gmail.com": "https://www.gravatar.com/avatar/cfe5c6e9c1e7a9b7ed7b3e1b3d5f2c2d?d=identicon"
     };
+
+    let moveDeleteMode = false; // Track if move/delete mode is on
+    let deletedRowBackup = null; // For undo support
+    let deletedRowTimer = null;  // For undo support
 
     function renderAllowedList() {
       const ul = document.getElementById('allowed-list');
@@ -839,10 +955,12 @@
         if (yes) logout();
       });
     };
-    function setLogoutButtonVisible(visible) {
-      var btn = document.getElementById('logout-btn-top');
-      if (btn) btn.style.display = visible ? '' : 'none';
-    }
+
+function setLogoutButtonVisible(visible) {
+  var btn = document.getElementById('logout-btn-top');
+  if (btn) btn.style.display = visible ? '' : 'none';
+  document.getElementById('move-delete-toggle').style.display = visible ? "" : "none";
+}
 
     // Grocery Logic
     let CATEGORIES = [
@@ -896,11 +1014,12 @@
     let originalKeyOrder = {};
 
     // Main UI
-    function showMain() {
-      document.getElementById('login-bg').style.display = 'none';
-      document.getElementById('main-section').style.display = '';
-      setLogoutButtonVisible(true);
-    }
+function showMain() {
+  document.getElementById('login-bg').style.display = 'none';
+  document.getElementById('main-section').style.display = '';
+  setLogoutButtonVisible(true);
+  document.getElementById('move-delete-toggle').style.display = ""; // <--- SHOW BUTTON
+}
     function updateDateTime() {
       const now = new Date();
       document.getElementById('datetime').textContent =
@@ -989,6 +1108,23 @@
         if (e.key === "Escape") { btnCancel.click(); }
       };
     }
+
+    function showUndoToast(msg, onUndo, onExpire) {
+  let toast = document.createElement('div');
+  toast.className = 'undo-toast';
+  toast.innerHTML = msg + '<button id="undo-btn">UNDO</button>';
+  document.body.appendChild(toast);
+  document.getElementById('undo-btn').onclick = function() {
+    document.body.removeChild(toast);
+    if (onUndo) onUndo();
+  };
+  setTimeout(() => {
+    if (document.body.contains(toast)) {
+      document.body.removeChild(toast);
+      if (onExpire) onExpire();
+    }
+  }, 3000);
+}
 
     // Table Rendering
     function renderAllTables() {
@@ -1093,100 +1229,151 @@
       container.classList.toggle('collapsed', collapsed);
     }
 
-    function renderList(cat) {
-      const ul = document.getElementById(cat);
-      if (!ul) return;
-      ul.innerHTML = '';
+function renderList(cat) {
+  const ul = document.getElementById(cat);
+  if (!ul) return;
+  ul.innerHTML = '';
 
-      let items = groceryData[cat] || {};
-      let keys = Object.keys(items);
+  let items = groceryData[cat] || {};
+  let keys = Object.keys(items);
 
-      if (checkZerosActive && originalKeyOrder[cat]) {
-        const origOrder = originalKeyOrder[cat].slice();
-        keys.sort((a,b)=>{
-          const ia = items[a]?.count>0 ? 0 : 1;
-          const ib = items[b]?.count>0 ? 0 : 1;
-          if (ia !== ib) return ia-ib;
-          return origOrder.indexOf(a) - origOrder.indexOf(b);
-        });
-      } else if (originalKeyOrder[cat]) {
-        keys = originalKeyOrder[cat].slice();
-      }
+  if (checkZerosActive && originalKeyOrder[cat]) {
+    const origOrder = originalKeyOrder[cat].slice();
+    keys.sort((a, b) => {
+      const ia = items[a]?.count > 0 ? 0 : 1;
+      const ib = items[b]?.count > 0 ? 0 : 1;
+      if (ia !== ib) return ia - ib;
+      return origOrder.indexOf(a) - origOrder.indexOf(b);
+    });
+  } else if (originalKeyOrder[cat]) {
+    keys = originalKeyOrder[cat].slice();
+  }
 
-      keys.forEach(key => {
-        const item = items[key];
-        if (!item || typeof item !== 'object' || typeof item.name !== 'string') return;
-        const li = document.createElement('li');
-        li.setAttribute('draggable', 'false');
-        if(item.checked) li.classList.add('checked');
-        if(item.count > 0) li.classList.add('has-count');
-        li.style.position = 'relative';
+  keys.forEach((key) => {
+    const item = items[key];
+    if (!item || typeof item !== 'object' || typeof item.name !== 'string') return;
+    const li = document.createElement('li');
+    li.dataset.key = key;
+    if (item.checked) li.classList.add('checked');
+    if (item.count > 0) li.classList.add('has-count');
+    li.style.position = 'relative';
 
-        // Long press to delete row
-        let rowPressTimer = null;
-        li.addEventListener('touchstart', e => {
-          rowPressTimer = setTimeout(()=>{
-            showModal(`Delete item "${item.name}" from "${CATEGORY_NAMES[cat]}"?`, (yes) => {
-              if(yes) deleteRow(cat, key);
-            });
-          }, 2000);
-        });
-        li.addEventListener('touchend', e => {clearTimeout(rowPressTimer);});
-        li.addEventListener('touchmove', e => {clearTimeout(rowPressTimer);});
-        li.addEventListener('mousedown', e => {
-          if(e.button!==0) return;
-          rowPressTimer = setTimeout(()=>{
-            showModal(`Delete item "${item.name}" from "${CATEGORY_NAMES[cat]}"?`, (yes) => {
-              if(yes) deleteRow(cat, key);
-            });
-          }, 2000);
-        });
-        li.addEventListener('mouseup', e => {clearTimeout(rowPressTimer);});
-        li.addEventListener('mouseleave', e => {clearTimeout(rowPressTimer);});
+    // Checkbox
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = !!item.checked;
+    cb.onchange = () => toggleChecked(cat, key, cb.checked);
+    li.appendChild(cb);
 
-        // Checkbox
-        const cb = document.createElement('input');
-        cb.type = 'checkbox';
-        cb.checked = !!item.checked;
-        cb.onchange = () => toggleChecked(cat, key, cb.checked);
-        li.appendChild(cb);
+    // Name (edit on double click)
+    const name = document.createElement('div');
+    name.className = 'name';
+    name.textContent = item.name;
+    name.ondblclick = (e) => {
+      e.stopPropagation();
+      editNameInline(cat, key, name, item);
+    };
+    li.appendChild(name);
 
-        // Name (edit on double click)
-        const name = document.createElement('div');
-        name.className = 'name';
-        name.textContent = item.name;
-        name.ondblclick = (e) => {
-          e.stopPropagation();
-          editNameInline(cat, key, name, item);
-        };
-        li.appendChild(name);
+    if (!moveDeleteMode) {
+      // Normal counter
+      const cnt = document.createElement('div');
+      cnt.className = 'counter';
+      const minus = document.createElement('button');
+      minus.textContent = '-';
+      minus.onclick = (e) => {
+        e.stopPropagation();
+        updateCount(cat, key, -1);
+      };
+      const count = document.createElement('span');
+      count.className = 'count';
+      count.textContent = item.count || 0;
+      const plus = document.createElement('button');
+      plus.textContent = '+';
+      plus.onclick = (e) => {
+        e.stopPropagation();
+        updateCount(cat, key, +1);
+      };
+      cnt.appendChild(minus);
+      cnt.appendChild(count);
+      cnt.appendChild(plus);
+      li.appendChild(cnt);
+    } else {
+      // Trash icon
+      const trash = document.createElement('button');
+      trash.className = 'trash-icon';
+      trash.title = 'Delete (with undo)';
+      trash.innerHTML =
+        `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <path stroke="#e53935" stroke-width="2" d="M5 7h14M10 11v6m4-6v6M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12m-9-2h4a2 2 0 0 1 2 2v0H7v0a2 2 0 0 1 2-2z"/>
+        </svg>`;
+      trash.onclick = () => {
+        let idx = keys.indexOf(key);
+        let backupItem = { ...item };
+        deletedRowBackup = { cat, key, item: backupItem, idx };
+        li.style.display = 'none';
+        deletedRowTimer = setTimeout(() => {
+          db.ref(`/groceryLists/${cat}/${key}`).remove();
+          deletedRowBackup = null;
+          deletedRowTimer = null;
+        }, 3000);
+        showUndoToast(
+          'Item deleted.',
+          () => {
+            if (deletedRowTimer) clearTimeout(deletedRowTimer);
+            db.ref(`/groceryLists/${cat}/${key}`).set(backupItem);
+            deletedRowBackup = null;
+            deletedRowTimer = null;
+            renderList(cat);
+          },
+          () => { }
+        );
+      };
+      li.appendChild(trash);
 
-        // Counter
-        const cnt = document.createElement('div');
-        cnt.className = 'counter';
-        const minus = document.createElement('button');
-        minus.textContent = '-';
-        minus.onclick = (e) => {
-          e.stopPropagation();
-          updateCount(cat, key, -1);
-        };
-        const count = document.createElement('span');
-        count.className = 'count';
-        count.textContent = item.count || 0;
-        const plus = document.createElement('button');
-        plus.textContent = '+';
-        plus.onclick = (e) => {
-          e.stopPropagation();
-          updateCount(cat, key, +1);
-        };
-        cnt.appendChild(minus);
-        cnt.appendChild(count);
-        cnt.appendChild(plus);
-        li.appendChild(cnt);
+      // Move icon (triple lines)
+      const move = document.createElement('button');
+      move.className = 'move-icon';
+      move.title = 'Drag to reorder';
+      move.innerHTML =
+        `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+          <rect width="24" height="24" fill="none"/>
+          <rect x="5" y="7" width="14" height="2" rx="1" fill="#666"/>
+          <rect x="5" y="11" width="14" height="2" rx="1" fill="#666"/>
+          <rect x="5" y="15" width="14" height="2" rx="1" fill="#666"/>
+        </svg>`;
+      li.appendChild(move);
+    }
 
-        ul.appendChild(li);
+    ul.appendChild(li);
+  });
+
+  // Enable SortableJS drag-and-drop only in move/delete mode
+  if (moveDeleteMode) {
+    if (!ul.sortableInstance) {
+      ul.sortableInstance = Sortable.create(ul, {
+        animation: 180,
+        handle: '.move-icon',
+        ghostClass: 'dragging',
+        onEnd: function (evt) {
+          // Update key order after drag
+          let newOrder = [];
+          ul.querySelectorAll('li').forEach(li => {
+            if (li.dataset.key) newOrder.push(li.dataset.key);
+          });
+          originalKeyOrder[cat] = newOrder;
+          renderList(cat);
+        }
       });
     }
+  } else {
+    if (ul.sortableInstance) {
+      ul.sortableInstance.destroy();
+      ul.sortableInstance = null;
+    }
+  }
+}
+
 
     function deleteRow(cat, key) {
       db.ref(`/groceryLists/${cat}/${key}`).remove();
@@ -1327,6 +1514,18 @@ document.getElementById('check-zeros-btn').onclick = function() {
         setLogoutButtonVisible(false);
       }
     });
+
+  // At the end of your script, keep the button at the end of body
+  window.onload = function() {
+    document.getElementById('move-delete-toggle').onclick = function() {
+      moveDeleteMode = !moveDeleteMode;
+      this.textContent = moveDeleteMode ? 'Done' : 'Move or Delete';
+      renderAllTables();
+    };
+  };
+
+
   </script>
+
 </body>
 </html>
