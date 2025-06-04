@@ -567,18 +567,18 @@ li.checked > .name, li.checked .name {
 @media(max-width:600px){
   .container{margin:12px 2px 24px 2px;}
   .header{font-size:1.09rem; padding:11px 11px 9px 12px;}
-  .header-title{font-size:1rem;}
-  .name{font-size:1.15rem;}
-  .header-count{font-size:1.02rem;padding:2px 6px;}
-  .header-check{font-size:1.03rem;padding:2px 6px;}
-  .add-table-btn{width:32px;height:32px;font-size:1.3rem;}
-  li{font-size:1.15rem; padding:11px 7px 11px 9px;}
-  .counter{font-size:1.1rem; min-width: 60px;}
-  .counter span.count{font-size:1.1rem;}
-  .counter button{width:22px;height:22px;font-size:0.93rem;}
-  .add-table-btn-wrap {margin: 24px 0 0 0; padding-left:7px;}
+  .header-title{font-size:1.1rem;}
+  .name{font-size:1.35rem;}
+  .header-count{font-size:1.08rem;padding:2px 7px;}
+  .header-check{font-size:1.09rem;padding:2px 7px;}
+  .add-table-btn{width:32px;height:32px;font-size:1.5rem;}
+  li{font-size:1.32rem; padding:13px 9px 13px 11px;}
+  .counter{font-size:1.22rem; min-width: 70px;}
+  .counter span.count{font-size:1.22rem;}
+  .counter button{width:25px;height:25px;font-size:1.1rem;}
+  .add-table-btn-wrap {margin: 24px 0 0 0; padding-left:9px;}
   li.has-count:not(.checked) > .name, li.has-count:not(.checked) .name {
-    font-size:1rem !important;
+    font-size:1.18rem !important;
   }
 }
 li.checked {
@@ -795,7 +795,7 @@ li.has-count:not(.checked) > .name, li.has-count:not(.checked) .name {
 .undo-toast {
   position: fixed;
   left: 50%;
-  bottom: 80px;
+  bottom: 12px; /* or 0, or a small value for visual padding */
   transform: translateX(-50%);
   background: #222;
   color: #fff;
@@ -821,6 +821,17 @@ li.has-count:not(.checked) > .name, li.has-count:not(.checked) .name {
   cursor: pointer;
   transition: background 0.13s;
 }
+@media (max-width:600px) {
+  .undo-toast {
+    bottom: 6px;
+    width: calc(100vw - 20px);
+    max-width: 440px;
+    min-width: 0;
+    padding: 10px 8px;
+    font-size: 1.01rem;
+  }
+}
+
 .undo-toast button:hover { background: #ffe082; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 li.dragging {

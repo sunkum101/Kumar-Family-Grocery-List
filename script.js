@@ -209,9 +209,7 @@ document.addEventListener("DOMContentLoaded", function() {
       const data = snap.val() || {};
       groceryData = data;
       Object.entries(data).forEach(([cat, items]) => {
-        if (!originalKeyOrder[cat] && items) {
-          originalKeyOrder[cat] = Object.keys(items);
-        }
+        originalKeyOrder[cat] = Object.keys(items || {});
       });
       let allKeys = Object.keys(data);
       let ordered = [];
@@ -221,17 +219,6 @@ document.addEventListener("DOMContentLoaded", function() {
       });
       CATEGORIES = ordered;
       renderAllTables();
-    });
-    CATEGORIES.forEach(cat => {
-      const ref = db.ref(`/groceryLists/${cat}`);
-      const fn = ref.on('value', snap => {
-        groceryData[cat] = snap.val() || {};
-        // Always reset originalKeyOrder to match the DB
-        originalKeyOrder[cat] = Object.keys(groceryData[cat]);
-        renderList(cat);
-        updateHeaderCount(cat);
-      });
-      listeners.push(() => ref.off('value', fn));
     });
   }
 
@@ -546,21 +533,13 @@ document.addEventListener("DOMContentLoaded", function() {
   }
 
   function addItem(cat) {
-    showInputModal('Enter new item name:', 'e.g. Carrots', function(name) {
-      if (!name) return;
-      const ref = db.ref(`/groceryLists/${cat}`).push({name: name, count: 0, checked: false});
-      ref.then(() => {
-        const key = ref.key;
-        if (originalKeyOrder[cat]) {
-          originalKeyOrder[cat].push(key);
-        } else {
-          originalKeyOrder[cat] = [key];
-        }
-      }).catch((err) => {
-        alert("Failed to add item: " + err.message);
-      });
-    });
-  }
+  showInputModal('Enter new item name:', 'e.g. Carrots', function(name) {
+    if (!name) return;
+    db.ref(`/groceryLists/${cat}`).push({name: name, count: 0, checked: false});
+    // Do not manually update originalKeyOrder here.
+    // The Firebase listener will pick up the change and update the UI.
+  });
+}
   function addNewTablePrompt() {
     showInputModal('Enter table name (e.g. Pharmacy):', 'e.g. Pharmacy', function(tname) {
       if(!tname) return;
