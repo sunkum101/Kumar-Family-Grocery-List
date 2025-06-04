@@ -6,6 +6,116 @@
   <title>Kumar Family Grocery</title>
   <link href="https://fonts.googleapis.com/css?family=Inter:400,500,700&display=swap" rel="stylesheet">
   <style>
+
+    .move-delete-toggle, .subtle-btn {
+  position: absolute;   /* NOT fixed! */
+  bottom: 18px;
+  right: 18px;
+  /* ...other styles... */
+}
+
+#main-section {
+  position: relative;
+}
+
+    .colored-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: linear-gradient(90deg, #1976d2 70%, #2196f3 100%);
+  color: #fff !important;
+  border: none;
+  border-radius: 10px;
+  padding: 9px 20px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(33, 150, 243, 0.10);
+  cursor: pointer;
+  transition: background 0.15s, transform 0.10s, box-shadow 0.13s;
+  outline: none;
+  margin-right: 7px;
+}
+.colored-btn .btn-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 1px;
+}
+.colored-btn:hover {
+  background: linear-gradient(90deg, #1565c0 70%, #1976d2 100%);
+  box-shadow: 0 4px 16px rgba(33,150,243,0.16);
+  transform: scale(1.04);
+}
+.colored-btn:active {
+  background: #1976d2;
+  box-shadow: 0 1px 4px rgba(33,150,243,0.11);
+  transform: scale(0.97);
+}
+.colored-btn svg {
+  stroke: #fff !important;
+}
+
+.green-btn {
+  background: linear-gradient(90deg, #388e3c 70%, #4caf50 100%);
+}
+.green-btn:hover {
+  background: linear-gradient(90deg, #2e7031 70%, #388e3c 100%);
+}
+.green-btn:active {
+  background: #388e3c;
+}
+
+.subtle-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: linear-gradient(90deg,#ff9800 70%,#ffb74d 100%);
+  color: #fff !important;
+  border: none;
+  border-radius: 16px;
+  padding: 8px 18px 8px 13px;
+  font-size: 1.03rem;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(255,152,0,0.10);
+  cursor: pointer;
+  opacity: 0.95;
+  transition: background 0.13s, box-shadow 0.11s, transform 0.11s;
+  outline: none;
+  min-width: 0;
+  min-height: 0;
+  position: absolute;
+  bottom: 14px;
+  right: 14px;
+  z-index: 2;
+}
+.subtle-btn:hover {
+  background: linear-gradient(90deg,#fb8c00 70%,#ffd54f 100%);
+  box-shadow: 0 5px 18px rgba(255,152,0,0.13);
+  opacity: 1;
+  transform: scale(1.04);
+}
+.subtle-btn:active {
+  background: linear-gradient(90deg,#f57c00 70%,#ffb74d 100%);
+  box-shadow: 0 2px 8px rgba(255,152,0,0.09);
+  transform: scale(0.97);
+}
+.subtle-btn svg {
+  stroke: #fff !important;
+}
+
+@media (max-width:600px) {
+  .subtle-btn {
+    bottom: 8px;
+    right: 8px;
+    padding: 6px 10px 6px 8px;
+    font-size: 0.97rem;
+  }
+  .colored-btn {
+    padding: 7px 12px;
+    font-size: 0.98rem;
+  }
+}
+
     body {
       font: 17px 'Inter', 'Segoe UI', Arial, sans-serif;
       background: #f5f7fa;
@@ -948,14 +1058,11 @@
       };
 
       function setLogoutButtonVisible(visible) {
-  console.log("setLogoutButtonVisible called with", visible);
-  var btn = document.getElementById('logout-btn-top');
-  if (btn) btn.style.display = visible ? '' : 'none';
-  var mdbtn = document.getElementById('move-delete-toggle');
-  if (mdbtn) mdbtn.style.display = visible ? "block" : "none";
-}
-
-
+        var btn = document.getElementById('logout-btn-top');
+        if (btn) btn.style.display = visible ? '' : 'none';
+        var mdbtn = document.getElementById('move-delete-toggle');
+        if (mdbtn) mdbtn.style.display = visible ? "block" : "none";
+      }
 
       // --- Grocery Logic ---
       let CATEGORIES = [
@@ -1010,11 +1117,10 @@
 
       // --- Main UI ---
       function showMain() {
-  console.log("showMain called");
-  document.getElementById('login-bg').style.display = 'none';
-  document.getElementById('main-section').style.display = '';
-  setLogoutButtonVisible(true);
-}
+        document.getElementById('login-bg').style.display = 'none';
+        document.getElementById('main-section').style.display = '';
+        setLogoutButtonVisible(true);
+      }
 
       function updateDateTime() {
         const now = new Date();
@@ -1408,7 +1514,15 @@
         nameDiv.setAttribute('spellcheck', 'false');
         nameDiv.style.userSelect = "text";
         nameDiv.focus();
-        nameDiv.setSelectionRange && nameDiv.setSelectionRange(prevName.length, prevName.length);
+        // Fix: For contenteditable, use Range to set caret at end:
+        if (window.getSelection && document.createRange) {
+          const range = document.createRange();
+          range.selectNodeContents(nameDiv);
+          range.collapse(false);
+          const selection = window.getSelection();
+          selection.removeAllRanges();
+          selection.addRange(range);
+        }
 
         let finished = false;
         function finishEdit() {
