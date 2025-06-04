@@ -54,19 +54,6 @@
   background: linear-gradient(90deg, #ea580c 70%, #fbbf24 100%);
 }
 
-@media (max-width: 600px) {
-  .top-actions {
-    padding-right: 5px;
-    gap: 7px;
-  }
-  .top-btn {
-    min-width: 0;
-    padding: 8px 11px;
-    font-size: 0.98rem;
-    border-radius: 9px;
-  }
-}
-
 /* ---------- General Buttons (for possible additional use) ---------- */
 .colored-btn {
   display: flex;
@@ -112,12 +99,6 @@
 }
 .green-btn:active {
   background: #388e3c;
-}
-@media (max-width:600px) {
-  .colored-btn {
-    padding: 7px 12px;
-    font-size: 0.98rem;
-  }
 }
 
 body {
@@ -302,18 +283,6 @@ html, body {
   width: 19px;
   height: 19px;
   fill: #444;
-}
-@media (max-width:600px) {
-  .logout-btn-top {
-    top: 8px;
-    left: 7px;
-    width: 29px;
-    height: 29px;
-  }
-  .logout-btn-top svg {
-    width: 15px;
-    height: 15px;
-  }
 }
 
 /* ---------- Grocery List / Tables ---------- */
@@ -523,6 +492,7 @@ li.has-count:not(.checked) > .name, li.has-count:not(.checked) .name {
   font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
   text-decoration: none !important;
 }
+
 .counter{
   display:flex;
   align-items:center;
@@ -597,27 +567,6 @@ li.has-count:not(.checked) > .name, li.has-count:not(.checked) .name {
   background: #8b97a6;
   box-shadow: 0 4px 15px rgba(0,0,0,0.11);
   opacity: 1;
-}
-@media(max-width:600px){
-  .container{margin:12px 2px 24px 2px;}
-  .header{font-size:1.09rem; padding:11px 11px 9px 12px;}
-  .header-title{font-size:1.1rem;}
-  .name{font-size:2.0rem;}
-  .header-count{font-size:1.08rem;padding:2px 7px;}
-  .header-check{font-size:1.09rem;padding:2px 7px;}
-  .add-table-btn{width:32px;height:32px;font-size:1.5rem;}
-  li{font-size:1.32rem; padding:13px 9px 13px 11px;}
-  .counter{font-size:1.22rem; min-width: 70px;
-  gap: 1px; /* was more, now much less space between - and + */
-    padding: 2px 4px;
-    min-width: 0; /* optional: allows counter to shrink */
-  }
-  .counter span.count{font-size:1.22rem;}
-  .counter button{width:25px;height:25px;font-size:1.1rem;}
-  .add-table-btn-wrap {margin: 24px 0 0 0; padding-left:9px;}
-  li.has-count:not(.checked) > .name, li.has-count:not(.checked) .name {
-    font-size:1.18rem !important;
-  }
 }
 
 /* ---------- Modal/Dialogs ---------- */
@@ -807,16 +756,7 @@ li.has-count:not(.checked) > .name, li.has-count:not(.checked) .name {
   cursor: pointer;
   transition: background 0.13s;
 }
-@media (max-width:600px) {
-  .undo-toast {
-    bottom: 6px;
-    width: calc(100vw - 20px);
-    max-width: 440px;
-    min-width: 0;
-    padding: 10px 8px;
-    font-size: 1.01rem;
-  }
-}
+
 .undo-toast button:hover { background: #ffe082; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 li.dragging {
@@ -849,3 +789,74 @@ li.push-up {
   transition: margin 0.18s cubic-bezier(.4,1.5,.7,1);
   margin-bottom: 30px !important;
 }
+
+/* ---------- MOBILE OVERRIDES ---------- */
+@media (max-width: 600px) {
+  .top-actions {
+    padding-right: 5px;
+    gap: 7px;
+  }
+  .top-btn {
+    min-width: 0;
+    padding: 8px 11px;
+    font-size: 0.98rem;
+    border-radius: 9px;
+  }
+  .colored-btn {
+    padding: 7px 12px;
+    font-size: 0.98rem;
+  }
+  .logout-btn-top {
+    top: 8px;
+    left: 7px;
+    width: 29px;
+    height: 29px;
+  }
+  .logout-btn-top svg {
+    width: 15px;
+    height: 15px;
+  }
+  .container { margin:12px 2px 24px 2px; }
+  .header { font-size:2.0rem; padding:11px 11px 9px 12px; }
+  .header-title { font-size:1.1rem; }
+  .name {
+    font-size: 1.18rem !important;
+    font-weight: normal !important;
+  }
+  .header-count { font-size:1.08rem; padding:2px 7px; }
+  .header-check { font-size:1.09rem; padding:2px 7px; }
+  .add-table-btn { width:32px; height:32px; font-size:1.5rem; }
+  li { font-size:1.32rem; padding:13px 9px 13px 11px; }
+  .counter {
+    font-size:1.22rem;
+    gap: 1px;
+    padding: 2px 4px;
+    min-width: 0;
+  }
+  .counter span.count { font-size:1.22rem; }
+  .counter button { width:25px; height:25px; font-size:1.1rem; }
+  .add-table-btn-wrap { margin: 24px 0 0 0; padding-left:9px; }
+
+  /* Make checked items bold, unchecked normal */
+  li.checked > .name,
+  li.checked .name {
+    font-weight: bold !important;
+  }
+
+  /* If has-count but not checked, do NOT make bold on mobile; keep background etc. */
+  li.has-count:not(.checked) > .name,
+  li.has-count:not(.checked) .name {
+    font-weight: normal !important;
+    /* background, color, etc. will still apply from main rule */
+  }
+
+  .undo-toast {
+    bottom: 6px;
+    width: calc(100vw - 20px);
+    max-width: 440px;
+    min-width: 0;
+    padding: 10px 8px;
+    font-size: 1.01rem;
+  }
+}
+
