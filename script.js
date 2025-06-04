@@ -531,13 +531,20 @@ document.addEventListener("DOMContentLoaded", function () {
     setTimeout(() => renderList(cat), 300);
   }
 
-  function addItem(cat) {
-    showInputModal('Enter new item name:', 'e.g. Carrots', function (name) {
-      if (!name) return;
-      db.ref(`/groceryLists/${cat}`).push({ name: name, count: 0, checked: false });
-      // The Firebase listener will pick up the change and update the UI.
+function addItem(cat) {
+  showInputModal('Enter new item name:', 'e.g. Carrots', function(name) {
+    if (!name) return;
+    // Push new item
+    const newItemRef = db.ref(`/groceryLists/${cat}`).push({name: name, count: 0, checked: false});
+    // After push, update the order array
+    newItemRef.then(ref => {
+      if (!originalKeyOrder[cat]) originalKeyOrder[cat] = [];
+      originalKeyOrder[cat].push(ref.key);
+      renderList(cat);
     });
-  }
+  });
+}
+
   function addNewTablePrompt() {
     showInputModal('Enter table name (e.g. Pharmacy):', 'e.g. Pharmacy', function (tname) {
       if (!tname) return;
