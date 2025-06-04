@@ -368,7 +368,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
   function toggleCollapse(cat) {
     const ul = document.getElementById(cat);
-    const addBtn = document.querySelector(`#${cat}-container .add-btn`);
+    const addBtn = document.querySelector(`#${cat}-container .add-table-btn`);
     const container = document.getElementById(cat + '-container');
     let collapsed = ul.style.display !== 'none';
     setCollapsed(cat, collapsed);
@@ -376,7 +376,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
   function setCollapsed(cat, collapsed) {
     const ul = document.getElementById(cat);
-    const addBtn = document.querySelector(`#${cat}-container .add-btn`);
+    const addBtn = document.querySelector(`#${cat}-container .add-table-btn`);
     const container = document.getElementById(cat + '-container');
     if (!ul || !addBtn || !container) return;
     ul.style.display = collapsed ? 'none' : '';
