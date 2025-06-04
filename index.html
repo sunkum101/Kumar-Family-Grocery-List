@@ -948,11 +948,14 @@
       };
 
       function setLogoutButtonVisible(visible) {
-        var btn = document.getElementById('logout-btn-top');
-        if (btn) btn.style.display = visible ? '' : 'none';
-        var mdbtn = document.getElementById('move-delete-toggle');
-        if (mdbtn) mdbtn.style.display = visible ? "" : "none";
-      }
+  console.log("setLogoutButtonVisible called with", visible);
+  var btn = document.getElementById('logout-btn-top');
+  if (btn) btn.style.display = visible ? '' : 'none';
+  var mdbtn = document.getElementById('move-delete-toggle');
+  if (mdbtn) mdbtn.style.display = visible ? "block" : "none";
+}
+
+
 
       // --- Grocery Logic ---
       let CATEGORIES = [
@@ -1007,10 +1010,12 @@
 
       // --- Main UI ---
       function showMain() {
-        document.getElementById('login-bg').style.display = 'none';
-        document.getElementById('main-section').style.display = '';
-        setLogoutButtonVisible(true);
-      }
+  console.log("showMain called");
+  document.getElementById('login-bg').style.display = 'none';
+  document.getElementById('main-section').style.display = '';
+  setLogoutButtonVisible(true);
+}
+
       function updateDateTime() {
         const now = new Date();
         document.getElementById('datetime').textContent =
