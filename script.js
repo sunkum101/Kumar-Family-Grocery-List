@@ -346,9 +346,9 @@ document.addEventListener("DOMContentLoaded", function () {
       container.appendChild(ul);
 
       const addBtn = document.createElement('button');
-      addBtn.className = 'add-btn';
+      addBtn.className = 'add-table-btn'; // Now matches your CSS!
       addBtn.textContent = '＋';
-      addBtn.onclick = (e) => {
+      addBtn.onclick = (e)=>{
         e.stopPropagation();
         addItem(cat);
       };
