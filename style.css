@@ -1,13 +1,73 @@
-.move-delete-toggle, .subtle-btn {
-  position: absolute;   /* NOT fixed! */
-  bottom: 18px;
-  right: 18px;
-}
-
+/* Main section positioning */
 #main-section {
   position: relative;
 }
 
+/* ---------- Top Actions Bar & Buttons ---------- */
+.top-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: flex-end;
+  background: #e3e7ee;
+  padding: 10px 18px 9px 0;
+  border-bottom: 1.5px solid #d6dbe2;
+}
+
+.top-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 110px;
+  padding: 10px 20px;
+  font-size: 1.09rem;
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+  font-weight: 700;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(60,80,130,0.10);
+  transition: background 0.16s, box-shadow 0.13s, transform 0.11s;
+  outline: none;
+  letter-spacing: .01em;
+}
+
+.top-btn.reset {
+  background: linear-gradient(90deg, #6366f1 70%, #a5b4fc 100%);
+  color: #fff;
+}
+.top-btn.reset:hover {
+  background: linear-gradient(90deg, #4f46e5 70%, #818cf8 100%);
+}
+.top-btn.check-zeros {
+  background: linear-gradient(90deg, #22c55e 70%, #6ee7b7 100%);
+  color: #fff;
+}
+.top-btn.check-zeros:hover {
+  background: linear-gradient(90deg, #16a34a 70%, #34d399 100%);
+}
+.top-btn.move-delete {
+  background: linear-gradient(90deg, #f59e42 70%, #fecf6e 100%);
+  color: #fff;
+}
+.top-btn.move-delete:hover {
+  background: linear-gradient(90deg, #ea580c 70%, #fbbf24 100%);
+}
+
+@media (max-width: 600px) {
+  .top-actions {
+    padding-right: 5px;
+    gap: 7px;
+  }
+  .top-btn {
+    min-width: 0;
+    padding: 8px 11px;
+    font-size: 0.98rem;
+    border-radius: 9px;
+  }
+}
+
+/* ---------- General Buttons (for possible additional use) ---------- */
 .colored-btn {
   display: flex;
   align-items: center;
@@ -44,7 +104,6 @@
 .colored-btn svg {
   stroke: #fff !important;
 }
-
 .green-btn {
   background: linear-gradient(90deg, #388e3c 70%, #4caf50 100%);
 }
@@ -54,52 +113,7 @@
 .green-btn:active {
   background: #388e3c;
 }
-
-.subtle-btn {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  background: linear-gradient(90deg,#ff9800 70%,#ffb74d 100%);
-  color: #fff !important;
-  border: none;
-  border-radius: 16px;
-  padding: 8px 18px 8px 13px;
-  font-size: 1.03rem;
-  font-weight: 700;
-  box-shadow: 0 2px 6px rgba(255,152,0,0.10);
-  cursor: pointer;
-  opacity: 0.95;
-  transition: background 0.13s, box-shadow 0.11s, transform 0.11s;
-  outline: none;
-  min-width: 0;
-  min-height: 0;
-  position: absolute;
-  bottom: 14px;
-  right: 14px;
-  z-index: 2;
-}
-.subtle-btn:hover {
-  background: linear-gradient(90deg,#fb8c00 70%,#ffd54f 100%);
-  box-shadow: 0 5px 18px rgba(255,152,0,0.13);
-  opacity: 1;
-  transform: scale(1.04);
-}
-.subtle-btn:active {
-  background: linear-gradient(90deg,#f57c00 70%,#ffb74d 100%);
-  box-shadow: 0 2px 8px rgba(255,152,0,0.09);
-  transform: scale(0.97);
-}
-.subtle-btn svg {
-  stroke: #fff !important;
-}
-
 @media (max-width:600px) {
-  .subtle-btn {
-    bottom: 8px;
-    right: 8px;
-    padding: 6px 10px 6px 8px;
-    font-size: 0.97rem;
-  }
   .colored-btn {
     padding: 7px 12px;
     font-size: 0.98rem;
@@ -113,6 +127,18 @@ body {
   padding: 0;
   min-height: 100vh;
 }
+html, body {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  background: #e3e7ee;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+}
+
+/* ---------- Login & Allowed Users ---------- */
 .login-bg {
   min-height: 100vh;
   display: flex;
@@ -247,21 +273,8 @@ body {
   font-size: 1rem;
   text-align: center;
 }
-.top-actions {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  justify-content: flex-end;
-  position: sticky;
-  top: 0;
-  left: 0;
-  z-index: 999;
-  background: #e3e7ee;
-  padding: 8px 13px 7px 0;
-  border-bottom: 1.5px solid #d6dbe2;
-  margin-bottom: 7px;
-  min-height: 38px;
-}
+
+/* ---------- Logout Button ---------- */
 .logout-btn-top {
   position: fixed;
   top: 14px;
@@ -291,9 +304,6 @@ body {
   fill: #444;
 }
 @media (max-width:600px) {
-  .top-actions {
-    padding-right: 4px;
-  }
   .logout-btn-top {
     top: 8px;
     left: 7px;
@@ -305,16 +315,8 @@ body {
     height: 15px;
   }
 }
-html, body {
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
-  background: #e3e7ee;
-  min-height: 100vh;
-  margin: 0;
-  padding: 0;
-}
+
+/* ---------- Grocery List / Tables ---------- */
 h1{
   text-align:center;
   margin:10px 0;
@@ -489,6 +491,38 @@ li.checked > .name, li.checked .name {
   color: #444 !important;
   background: transparent !important;
 }
+li.checked {
+  background: #f1f1f1 !important;
+  color: #444 !important;
+}
+li.checked.has-count > .name, li.checked.has-count .name {
+  font-weight: bold !important;
+  color: #444 !important;
+  background: transparent !important;
+  text-decoration: line-through !important;
+}
+li.checked:not(.has-count) > .name,
+li.checked:not(.has-count) .name {
+  font-weight: normal !important;
+  color: #444 !important;
+  background: transparent !important;
+  text-decoration: line-through !important;
+}
+li.checked > .name, li.checked .name {
+  text-decoration: line-through !important;
+}
+li.has-count:not(.checked) > .name, li.has-count:not(.checked) .name {
+  font-weight: bold !important;
+  color: #222 !important;
+  background: #fdf2c7 !important;
+  border-radius: 5px !important;
+  padding: 2px 8px !important;
+  font-size: 1.6rem !important;
+  letter-spacing: 0.01em !important;
+  transition: background 0.15s, color 0.15s;
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+  text-decoration: none !important;
+}
 .counter{
   display:flex;
   align-items:center;
@@ -581,38 +615,8 @@ li.checked > .name, li.checked .name {
     font-size:1.18rem !important;
   }
 }
-li.checked {
-  background: #f1f1f1 !important;
-  color: #444 !important;
-}
-li.checked.has-count > .name, li.checked.has-count .name {
-  font-weight: bold !important;
-  color: #444 !important;
-  background: transparent !important;
-  text-decoration: line-through !important;
-}
-li.checked:not(.has-count) > .name,
-li.checked:not(.has-count) .name {
-  font-weight: normal !important;
-  color: #444 !important;
-  background: transparent !important;
-  text-decoration: line-through !important;
-}
-li.checked > .name, li.checked .name {
-  text-decoration: line-through !important;
-}
-li.has-count:not(.checked) > .name, li.has-count:not(.checked) .name {
-  font-weight: bold !important;
-  color: #222 !important;
-  background: #fdf2c7 !important;
-  border-radius: 5px !important;
-  padding: 2px 8px !important;
-  font-size: 1.6rem !important;
-  letter-spacing: 0.01em !important;
-  transition: background 0.15s, color 0.15s;
-  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
-  text-decoration: none !important;
-}
+
+/* ---------- Modal/Dialogs ---------- */
 .modal-backdrop {
   position:fixed;
   z-index: 1300;
@@ -750,30 +754,8 @@ li.has-count:not(.checked) > .name, li.has-count:not(.checked) .name {
 .input-modal-btn-ok:active {
   background: linear-gradient(90deg,#3070b3 0%,#2b79c2 100%);
 }
-.move-delete-toggle {
-  position: fixed;
-  bottom: 19px;
-  right: 19px;
-  z-index: 4000;
-  background: #ff9800;
-  color: #fff;
-  border: none;
-  border-radius: 20px;
-  padding: 6px 16px;
-  font-size: 0.97rem;
-  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
-  font-weight: 700;
-  box-shadow: 0 2px 10px rgba(60,80,130,0.13);
-  cursor: pointer;
-  transition: background 0.14s, box-shadow 0.14s;
-  display: none;
-  min-width: 0;
-  min-height: 0;
-}
-.move-delete-toggle:hover {
-  background: #f57c00;
-  box-shadow: 0 4px 18px rgba(60,80,130,0.22);
-}
+
+/* ---------- Move/Delete Icons, Toast, Drag & Drop ---------- */
 .trash-icon, .move-icon {
   width: 26px;
   height: 26px;
@@ -795,7 +777,7 @@ li.has-count:not(.checked) > .name, li.has-count:not(.checked) .name {
 .undo-toast {
   position: fixed;
   left: 50%;
-  bottom: 12px; /* or 0, or a small value for visual padding */
+  bottom: 12px;
   transform: translateX(-50%);
   background: #222;
   color: #fff;
@@ -831,7 +813,6 @@ li.has-count:not(.checked) > .name, li.has-count:not(.checked) .name {
     font-size: 1.01rem;
   }
 }
-
 .undo-toast button:hover { background: #ffe082; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 li.dragging {

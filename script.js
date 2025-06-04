@@ -1,6 +1,5 @@
 // --- AUTH & DOM READY ---
-document.addEventListener("DOMContentLoaded", function() {
-
+document.addEventListener("DOMContentLoaded", function () {
   // --- Allowed Users & Avatars ---
   const ALLOWED_USERS = [
     "sunil.kumar101@gmail.com",
@@ -17,6 +16,7 @@ document.addEventListener("DOMContentLoaded", function() {
   let deletedRowBackup = null;
   let deletedRowTimer = null;
 
+  // --- Render Allowed Users List ---
   function renderAllowedList() {
     const ul = document.getElementById('allowed-list');
     ul.innerHTML = '';
@@ -84,7 +84,7 @@ document.addEventListener("DOMContentLoaded", function() {
       return;
     }
     const provider = new firebase.auth.GoogleAuthProvider();
-    provider.setCustomParameters({login_hint: selectedEmail});
+    provider.setCustomParameters({ login_hint: selectedEmail });
     auth.signInWithPopup(provider)
       .then((result) => {
         const user = result.user;
@@ -114,7 +114,7 @@ document.addEventListener("DOMContentLoaded", function() {
     }
   }
   function logout() {
-    listeners?.forEach(fn => {try {fn();}catch(e){}});
+    listeners?.forEach(fn => { try { fn(); } catch (e) { } });
     listeners = [];
     auth.signOut().finally(() => {
       clearAllCookies();
@@ -123,8 +123,8 @@ document.addEventListener("DOMContentLoaded", function() {
       location.reload();
     });
   }
-  document.getElementById('logout-btn-top').onclick = function() {
-    showModal("Are you sure you want to logout?", function(yes) {
+  document.getElementById('logout-btn-top').onclick = function () {
+    showModal("Are you sure you want to logout?", function (yes) {
       if (yes) logout();
     });
   };
@@ -171,7 +171,7 @@ document.addEventListener("DOMContentLoaded", function() {
   };
   const TABLE_COLOR_CLASSES = [
     "veggies-header", "grocery-header", "indian-header",
-    "kmart_bigw_target-header","pharmacy-header", "others-header", "default-header"
+    "kmart_bigw_target-header", "pharmacy-header", "others-header", "default-header"
   ];
   function getHeaderClass(catKey, idx) {
     if (CATEGORY_HEADER_CLASSES[catKey]) return CATEGORY_HEADER_CLASSES[catKey];
@@ -197,13 +197,13 @@ document.addEventListener("DOMContentLoaded", function() {
   function updateDateTime() {
     const now = new Date();
     document.getElementById('datetime').textContent =
-      now.toLocaleString('en-AU', {weekday:'long',year:'numeric',month:'short',day:'numeric', hour:'2-digit',minute:'2-digit', second:'2-digit', hour12:true});
+      now.toLocaleString('en-AU', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
   }
   setInterval(updateDateTime, 1000);
   updateDateTime();
 
   function subscribeAllLists() {
-    listeners.forEach(fn => {try {fn();}catch(e){}});
+    listeners.forEach(fn => { try { fn(); } catch (e) { } });
     listeners = [];
     db.ref(`/groceryLists`).on('value', snap => {
       const data = snap.val() || {};
@@ -213,9 +213,9 @@ document.addEventListener("DOMContentLoaded", function() {
       });
       let allKeys = Object.keys(data);
       let ordered = [];
-      CATEGORIES.forEach(cat => { if(allKeys.includes(cat)) ordered.push(cat); });
-      allKeys.forEach(cat=>{
-        if(!ordered.includes(cat)) ordered.push(cat);
+      CATEGORIES.forEach(cat => { if (allKeys.includes(cat)) ordered.push(cat); });
+      allKeys.forEach(cat => {
+        if (!ordered.includes(cat)) ordered.push(cat);
       });
       CATEGORIES = ordered;
       renderAllTables();
@@ -235,8 +235,8 @@ document.addEventListener("DOMContentLoaded", function() {
       btnNo.onclick = null;
       btnYes.onclick = null;
     }
-    btnNo.onclick = ()=>{ cleanup(); callback(false); };
-    btnYes.onclick = ()=>{ cleanup(); callback(true); };
+    btnNo.onclick = () => { cleanup(); callback(false); };
+    btnYes.onclick = () => { cleanup(); callback(true); };
   }
 
   function showInputModal(title, placeholder, callback) {
@@ -250,7 +250,6 @@ document.addEventListener("DOMContentLoaded", function() {
     input.value = '';
     input.placeholder = placeholder || '';
     backdrop.classList.add('active');
-
     setTimeout(() => { input.focus(); }, 50);
 
     function cleanup() {
@@ -276,7 +275,7 @@ document.addEventListener("DOMContentLoaded", function() {
     toast.className = 'undo-toast';
     toast.innerHTML = msg + '<button id="undo-btn">UNDO</button>';
     document.body.appendChild(toast);
-    document.getElementById('undo-btn').onclick = function() {
+    document.getElementById('undo-btn').onclick = function () {
       document.body.removeChild(toast);
       if (onUndo) onUndo();
     };
@@ -301,27 +300,27 @@ document.addEventListener("DOMContentLoaded", function() {
       const header = document.createElement('div');
       header.className = 'header ' + headerClass;
       header.id = `${cat}-header`;
-      header.onclick = ()=>toggleCollapse(cat);
+      header.onclick = () => toggleCollapse(cat);
       let headerPressTimer = null;
       header.addEventListener('touchstart', e => {
-        headerPressTimer = setTimeout(()=>{
+        headerPressTimer = setTimeout(() => {
           showModal(`Delete "${CATEGORY_NAMES[cat]}" and all its items?`, (yes) => {
-            if(yes) deleteTable(cat);
+            if (yes) deleteTable(cat);
           });
         }, 2000);
       });
-      header.addEventListener('touchend', e => {clearTimeout(headerPressTimer);});
-      header.addEventListener('touchmove', e => {clearTimeout(headerPressTimer);});
+      header.addEventListener('touchend', e => { clearTimeout(headerPressTimer); });
+      header.addEventListener('touchmove', e => { clearTimeout(headerPressTimer); });
       header.addEventListener('mousedown', e => {
-        if(e.button!==0) return;
-        headerPressTimer = setTimeout(()=>{
+        if (e.button !== 0) return;
+        headerPressTimer = setTimeout(() => {
           showModal(`Delete "${CATEGORY_NAMES[cat]}" and all its items?`, (yes) => {
-            if(yes) deleteTable(cat);
+            if (yes) deleteTable(cat);
           });
         }, 2000);
       });
-      header.addEventListener('mouseup', e => {clearTimeout(headerPressTimer);});
-      header.addEventListener('mouseleave', e => {clearTimeout(headerPressTimer);});
+      header.addEventListener('mouseup', e => { clearTimeout(headerPressTimer); });
+      header.addEventListener('mouseleave', e => { clearTimeout(headerPressTimer); });
 
       const headerTitle = document.createElement('span');
       headerTitle.className = 'header-title';
@@ -349,7 +348,7 @@ document.addEventListener("DOMContentLoaded", function() {
       const addBtn = document.createElement('button');
       addBtn.className = 'add-btn';
       addBtn.textContent = '＋';
-      addBtn.onclick = (e)=>{
+      addBtn.onclick = (e) => {
         e.stopPropagation();
         addItem(cat);
       };
@@ -357,7 +356,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
       area.appendChild(container);
 
-      if(localStorage.getItem('col-'+cat)==='true') setCollapsed(cat,true);
+      if (localStorage.getItem('col-' + cat) === 'true') setCollapsed(cat, true);
 
       renderList(cat);
       updateHeaderCount(cat);
@@ -370,18 +369,18 @@ document.addEventListener("DOMContentLoaded", function() {
   function toggleCollapse(cat) {
     const ul = document.getElementById(cat);
     const addBtn = document.querySelector(`#${cat}-container .add-btn`);
-    const container = document.getElementById(cat+'-container');
-    let collapsed = ul.style.display!=='none';
+    const container = document.getElementById(cat + '-container');
+    let collapsed = ul.style.display !== 'none';
     setCollapsed(cat, collapsed);
-    localStorage.setItem('col-'+cat, collapsed?'true':'');
+    localStorage.setItem('col-' + cat, collapsed ? 'true' : '');
   }
   function setCollapsed(cat, collapsed) {
     const ul = document.getElementById(cat);
     const addBtn = document.querySelector(`#${cat}-container .add-btn`);
-    const container = document.getElementById(cat+'-container');
+    const container = document.getElementById(cat + '-container');
     if (!ul || !addBtn || !container) return;
-    ul.style.display = collapsed?'none':'';
-    addBtn.style.display = collapsed?'none':'';
+    ul.style.display = collapsed ? 'none' : '';
+    addBtn.style.display = collapsed ? 'none' : '';
     container.classList.toggle('collapsed', collapsed);
   }
 
@@ -529,31 +528,30 @@ document.addEventListener("DOMContentLoaded", function() {
 
   function deleteRow(cat, key) {
     db.ref(`/groceryLists/${cat}/${key}`).remove();
-    setTimeout(()=>renderList(cat), 300);
+    setTimeout(() => renderList(cat), 300);
   }
 
   function addItem(cat) {
-  showInputModal('Enter new item name:', 'e.g. Carrots', function(name) {
-    if (!name) return;
-    db.ref(`/groceryLists/${cat}`).push({name: name, count: 0, checked: false});
-    // Do not manually update originalKeyOrder here.
-    // The Firebase listener will pick up the change and update the UI.
-  });
-}
+    showInputModal('Enter new item name:', 'e.g. Carrots', function (name) {
+      if (!name) return;
+      db.ref(`/groceryLists/${cat}`).push({ name: name, count: 0, checked: false });
+      // The Firebase listener will pick up the change and update the UI.
+    });
+  }
   function addNewTablePrompt() {
-    showInputModal('Enter table name (e.g. Pharmacy):', 'e.g. Pharmacy', function(tname) {
-      if(!tname) return;
+    showInputModal('Enter table name (e.g. Pharmacy):', 'e.g. Pharmacy', function (tname) {
+      if (!tname) return;
       tname = tname.trim();
-      let catKey = tname.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'');
+      let catKey = tname.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
       if (!catKey) catKey = 'custom_' + Date.now();
-      if(CATEGORIES.includes(catKey)) {
+      if (CATEGORIES.includes(catKey)) {
         alert('Table already exists!');
         return;
       }
       let items = {};
-      showInputModal('Add an item to this table now? (Optional)', 'First item name', function(itemName) {
-        if(itemName && itemName.trim()) {
-          items = {[db.ref().push().key]: {name:itemName.trim(), count:0, checked:false}};
+      showInputModal('Add an item to this table now? (Optional)', 'First item name', function (itemName) {
+        if (itemName && itemName.trim()) {
+          items = { [db.ref().push().key]: { name: itemName.trim(), count: 0, checked: false } };
         }
         CATEGORY_NAMES[catKey] = tname;
         CATEGORY_ICONS[catKey] = '';
@@ -575,14 +573,14 @@ document.addEventListener("DOMContentLoaded", function() {
     db.ref(`/groceryLists/${cat}/${key}`).update({ checked: !!val });
   }
   function editNameInline(cat, key, nameDiv, oldItem) {
-    if(nameDiv.classList.contains('editing')) return;
+    if (nameDiv.classList.contains('editing')) return;
     const prevName = oldItem.name;
     nameDiv.classList.add('editing');
     nameDiv.setAttribute('contenteditable', 'true');
     nameDiv.setAttribute('spellcheck', 'false');
     nameDiv.style.userSelect = "text";
     nameDiv.focus();
-    // Fix: For contenteditable, use Range to set caret at end:
+    // Set caret at end:
     if (window.getSelection && document.createRange) {
       const range = document.createRange();
       range.selectNodeContents(nameDiv);
@@ -607,53 +605,53 @@ document.addEventListener("DOMContentLoaded", function() {
         db.ref(`/groceryLists/${cat}/${key}`).update({ name: newValue });
       }
     }
-    nameDiv.onkeydown = function(e) {
+    nameDiv.onkeydown = function (e) {
       if (e.key === "Enter") { e.preventDefault(); finishEdit(); }
       if (e.key === "Escape") { nameDiv.textContent = prevName; finishEdit(); }
     };
     nameDiv.onblur = finishEdit;
   }
 
-  document.getElementById('static-reset-btn').onclick = function() {
-    showModal("Reset all counters to 0 and uncheck all items in all tables?", function(yes) {
+  document.getElementById('static-reset-btn').onclick = function () {
+    showModal("Reset all counters to 0 and uncheck all items in all tables?", function (yes) {
       if (!yes) return;
       checkZerosActive = false;
-      CATEGORIES.forEach(cat=>{
+      CATEGORIES.forEach(cat => {
         const items = groceryData[cat] || {};
         Object.entries(items).forEach(([key, item]) => {
-          db.ref(`/groceryLists/${cat}/${key}`).update({count:0, checked:false});
+          db.ref(`/groceryLists/${cat}/${key}`).update({ count: 0, checked: false });
         });
       });
-      setTimeout(()=>{
+      setTimeout(() => {
         renderAllTables();
       }, 350);
     });
   };
 
-  document.getElementById('check-zeros-btn').onclick = function() {
-    showModal("Do you want to check all 'zero' items (highlight items to buy)?", function(yes) {
+  document.getElementById('check-zeros-btn').onclick = function () {
+    showModal("Do you want to check all 'zero' items (highlight items to buy)?", function (yes) {
       if (!yes) return;
       checkZerosActive = true;
-      CATEGORIES.forEach(cat=>{
+      CATEGORIES.forEach(cat => {
         const items = groceryData[cat] || {};
         Object.entries(items).forEach(([key, item]) => {
-          if(item.count==0 && !item.checked) {
-            db.ref(`/groceryLists/${cat}/${key}`).update({checked:true});
+          if (item.count == 0 && !item.checked) {
+            db.ref(`/groceryLists/${cat}/${key}`).update({ checked: true });
           }
         });
       });
-      setTimeout(()=>{
+      setTimeout(() => {
         renderAllTables();
       }, 350);
     });
   };
 
-  function updateHeaderCount(cat){
+  function updateHeaderCount(cat) {
     const items = groceryData[cat] || {};
-    const count = Object.values(items).filter(x=>x && typeof x === "object" && !x.checked && x.count>0).length;
-    const el = document.getElementById(cat+'-count');
-    if(!el) return;
-    if(count>0) {
+    const count = Object.values(items).filter(x => x && typeof x === "object" && !x.checked && x.count > 0).length;
+    const el = document.getElementById(cat + '-count');
+    if (!el) return;
+    if (count > 0) {
       el.textContent = count;
       el.className = 'header-count';
     } else {
@@ -663,7 +661,7 @@ document.addEventListener("DOMContentLoaded", function() {
   }
 
   // --- Move/Delete Toggle Button ---
-  document.getElementById('move-delete-toggle').onclick = function() {
+  document.getElementById('move-delete-toggle').onclick = function () {
     moveDeleteMode = !moveDeleteMode;
     this.textContent = moveDeleteMode ? 'Done' : 'Move or Delete';
     renderAllTables();
