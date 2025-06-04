@@ -602,7 +602,7 @@ li.has-count:not(.checked) > .name, li.has-count:not(.checked) .name {
   .container{margin:12px 2px 24px 2px;}
   .header{font-size:1.09rem; padding:11px 11px 9px 12px;}
   .header-title{font-size:1.1rem;}
-  .name{font-size:2.2rem;}
+  .name{font-size:2.0rem;}
   .header-count{font-size:1.08rem;padding:2px 7px;}
   .header-check{font-size:1.09rem;padding:2px 7px;}
   .add-table-btn{width:32px;height:32px;font-size:1.5rem;}
