@@ -602,12 +602,16 @@ li.has-count:not(.checked) > .name, li.has-count:not(.checked) .name {
   .container{margin:12px 2px 24px 2px;}
   .header{font-size:1.09rem; padding:11px 11px 9px 12px;}
   .header-title{font-size:1.1rem;}
-  .name{font-size:1.35rem;}
+  .name{font-size:2.2rem;}
   .header-count{font-size:1.08rem;padding:2px 7px;}
   .header-check{font-size:1.09rem;padding:2px 7px;}
   .add-table-btn{width:32px;height:32px;font-size:1.5rem;}
   li{font-size:1.32rem; padding:13px 9px 13px 11px;}
-  .counter{font-size:1.22rem; min-width: 70px;}
+  .counter{font-size:1.22rem; min-width: 70px;
+  gap: 1px; /* was more, now much less space between - and + */
+    padding: 2px 4px;
+    min-width: 0; /* optional: allows counter to shrink */
+  }
   .counter span.count{font-size:1.22rem;}
   .counter button{width:25px;height:25px;font-size:1.1rem;}
   .add-table-btn-wrap {margin: 24px 0 0 0; padding-left:9px;}
