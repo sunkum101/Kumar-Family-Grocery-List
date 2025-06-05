@@ -198,8 +198,23 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function updateDateTime() {
     const now = new Date();
-    document.getElementById('datetime').textContent =
-      now.toLocaleString('en-AU', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+    // Modern, short weekday & month
+    const options = {
+      weekday: 'short',    // "Thu"
+      year: 'numeric',     // "2025"
+      month: 'short',      // "Jun"
+      day: 'numeric',      // "5"
+      hour: '2-digit',     // "2"
+      minute: '2-digit',   // "09"
+      hour12: true
+    };
+    // Remove seconds, add a dot separator for modern feel
+    let formatted = now.toLocaleString('en-AU', options)
+        .replace(',', '')    // Remove comma after weekday
+        .replace(',', '');   // Just in case, remove more
+    // Add a dot separator between date and time
+    formatted = formatted.replace(/(\d{4})/, '$1 ·');
+    document.getElementById('datetime').textContent = formatted; // "thu, 5 jun 2025 · 2:09 pm"
   }
   setInterval(updateDateTime, 1000);
   updateDateTime();
