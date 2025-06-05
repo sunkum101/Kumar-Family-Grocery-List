@@ -94,25 +94,28 @@ body, html {
 
 /* Floating collapse button, only icon, no text */
 #collapse-all-btn {
-  position: fixed;
-  top: 9px;
-  right: 9px;
+  /* Remove fixed positioning */
+  position: static;
+  top: unset;
+  right: unset;
+  margin: 12px 0 0 auto;   /* Pushes it to the right (auto left margin) */
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: #fff;
   border: 1.2px solid #bbb;
   padding: 0.15em 0.18em;
   border-radius: 50%;
   box-shadow: 0 2px 8px rgba(0,0,0,0.12);
-  display: flex;
-  align-items: center;
-  justify-content: center;
   cursor: pointer;
-  z-index: 1002;
   min-width: 0;
   min-height: 0;
   width: 33px;
   height: 33px;
   transition: background 0.13s, box-shadow 0.13s, transform 0.11s;
+  z-index: 1;
 }
+
 #collapse-all-btn .collapse-icon {
   display: flex;
   align-items: center;
@@ -258,22 +261,23 @@ input[type="checkbox"] {
   background:#fafbfc;
 }
 .name {
-  flex:1;
-  min-width:0;
-  font-size:1.21rem;
-  line-height:1.22;
-  border:none;
-  background:transparent;
-  outline:none;
-  padding:0 0 0 2px;
+  flex: 1;
+  min-width: 0;
+  font-size: 1.35rem;
+  line-height: 1.3;
+  border: none;
+  background: transparent;
+  outline: none;
+  padding: 0 0 0 2px;
   font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
   font-weight: 700;
   color: #232323;
   user-select: none;
-  letter-spacing:0.01em;
-  border-radius:5px;
-  word-break:break-word;
+  letter-spacing: 0.01em;
+  border-radius: 6px;
+  word-break: break-word;
 }
+
 .name.editing {
   background:#fffbe9;
   border-radius:5px;
@@ -282,44 +286,54 @@ input[type="checkbox"] {
   font-weight: 600;
 }
 .counter {
-  display:flex;
-  align-items:center;
-  gap:7px;
-  font-size:1.09rem;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 1.35rem; /* Match .name size */
   background: #f7f7f7;
-  border-radius: 10px;
-  padding: 2px 8px;
-  min-width: 58px;
+  border-radius: 12px;
+  padding: 6px 17px;
+  min-width: 92px;
   justify-content: center;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+  margin-left: 4px;
+  margin-right: 4px;
 }
 .counter button {
-  width:22px;
-  height:22px;
-  border:none;
-  border-radius:50%;
-  color:#fff;
-  font-size:1.05rem;
-  cursor:pointer;
+  width: 42px;
+  height: 42px;
+  border: none;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 2rem;
+  cursor: pointer;
   background: #7ba5d6;
-  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+  font-family: inherit;
   user-select: none;
-  font-weight:700;
-  transition: background .13s;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.07);
-  outline:none;
+  font-weight: 800;
+  transition: background 0.13s, transform 0.13s;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+  outline: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
+
 .counter button:active {
-  background:#5277ad;
+  background: #5277ad;
+  transform: scale(0.94);
 }
+
 .counter span.count {
-  min-width:20px;
-  text-align:center;
-  font-size:1.09rem;
-  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+  min-width: 32px;
+  text-align: center;
+  font-size: 1.35rem; /* Match .name size */
+  font-family: inherit;
   user-select: none;
-  font-weight:600;
-  color:#1c2331;
+  font-weight: 700;
+  color: #1c2331;
+  letter-spacing: 0.01em;
+  padding: 0 3px;
 }
 .add-table-btn-wrap {
   width: 100%;
@@ -441,4 +455,25 @@ input[type="checkbox"] {
 .input-modal-input:focus {
   border: 1.3px solid #388e3c;
   background: #fff;
+}
+
+
+
+/* On small screens, keep these sizes large for touch */
+@media (max-width: 600px) {
+  .name,
+  .counter,
+  .counter span.count {
+    font-size: 1.35rem !important;
+  }
+  .counter button {
+    width: 42px;
+    height: 42px;
+    font-size: 2rem;
+  }
+  .counter {
+    gap: 12px;
+    padding: 6px 17px;
+    min-width: 92px;
+  }
 }
