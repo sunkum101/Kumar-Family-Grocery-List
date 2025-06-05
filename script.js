@@ -147,7 +147,7 @@ document.addEventListener("DOMContentLoaded", function () {
     var btn = document.getElementById('logout-btn-top');
     if (btn) btn.style.display = visible ? '' : 'none';
     var mdbtn = document.getElementById('move-delete-toggle');
-    if (mdbtn) mdbtn.style.display = visible ? "block" : "none";
+    if (mdbtn) mdbtn.style.display = visible ? "" : "none";
   }
 
   // --- Grocery Logic ---
@@ -792,17 +792,19 @@ document.addEventListener("DOMContentLoaded", function () {
     renderAllTables();
   };
 
-  // --- Auth State ---
+  // Auth State
   auth.onAuthStateChanged(user => {
     if (user && (!ALLOWED_USERS.length || ALLOWED_USERS.includes(user.email))) {
       USER_LIST_KEY = getUserListKey(user);
       showMain();
+      showLoggedInEmail(user.email);
       repairAllOrders();
       subscribeAllLists();
     } else {
       document.getElementById('main-section').style.display = 'none';
       document.getElementById('login-bg').style.display = '';
       setLogoutButtonVisible(false);
+      showLoggedInEmail('');
     }
   });
 
@@ -812,4 +814,12 @@ document.addEventListener("DOMContentLoaded", function () {
       localStorage.setItem('col-' + cat, 'true');
     });
   };
+
+  function showLoggedInEmail(email) {
+    const label = document.getElementById('user-email-label');
+    if (label) {
+      label.textContent = email;
+      label.style.display = email ? '' : 'none';
+    }
+  }
 });
