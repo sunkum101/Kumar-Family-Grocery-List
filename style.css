@@ -826,7 +826,7 @@ li.push-up {
   }
   .header-count { font-size:1.08rem; padding:2px 7px; }
   .header-check { font-size:1.09rem; padding:2px 7px; }
-  .add-table-btn { width:32px; height:32px; font-size:1.5rem; }
+  .add-table-btn { min-width: 110px; height: auto; font-size:1.1rem; padding: 10px 16px; }
   li { font-size:1.52rem; padding:13px 9px 13px 11px; }
   .counter {
     font-size:1.22rem;
