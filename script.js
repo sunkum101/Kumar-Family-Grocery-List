@@ -9,7 +9,8 @@ document.addEventListener("DOMContentLoaded", function () {
   const USER_AVATARS = {
     "sunil.kumar101@gmail.com": "https://www.gravatar.com/avatar/9c6e6f2c4eae64c1e11c6f9d952a8a33?d=identicon",
     "manju4sun@gmail.com": "https://www.gravatar.com/avatar/6fa6e4ea6e7a5c3f4aec7f4bba50f1a4?d=identicon",
-    "yashvi.k.australia@gmail.com": "https://www.gravatar.com/avatar/cfe5c6e9c1e7a9b7ed7b3e1b3d5f2c2d?d=identicon"
+    "yashvi.k.australia@gmail.com": "https://www.gravatar.com/avatar/cfe5c6e9c1e7a9b7ed7b3e1b3d5f2c2d?d=identicon",
+    "rupesh.chand.ggn@gmail.com": "https://www.gravatar.com/avatar/cfe5c6e9c1e7a9b7ed7b3e1b3d5f2c2d?d=identicon"
   };
 
   let moveDeleteMode = false;
