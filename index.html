@@ -32,24 +32,22 @@
     </div>
   </div>
   <div id="main-section" style="display:none; position:relative;">
-    
-  <div class="top-actions">
-    <button class="top-btn reset" id="static-reset-btn" title="Reset counters and uncheck all">
-      Reset All
-    </button>
-    <button class="top-btn check-zeros" id="check-zeros-btn" title="Highlight items to buy">
-      Check Zeros
-    </button>
-    <button class="top-btn move-delete" id="move-delete-toggle" style="display:none;">
-      Move or Delete
-    </button>
-  </div>
-
+    <div class="top-actions">
+      <button class="top-btn reset" id="static-reset-btn" title="Reset counters and uncheck all">
+        Reset All
+      </button>
+      <button class="top-btn check-zeros" id="check-zeros-btn" title="Highlight items to buy">
+        Check Zeros
+      </button>
+      <button class="top-btn move-delete" id="move-delete-toggle" style="display:none;">
+        Move or Delete
+      </button>
+    </div>
     <h1>Kumar Family Grocery</h1>
     <div class="datetime" id="datetime"></div>
     <div id="tables-area"></div>
     <div class="add-table-btn-wrap">
-      <button class="add-table-btn" onclick="addNewTablePrompt()" data-tooltip="Add Table" title="Add Table">＋</button>
+      <button class="add-table-btn" id="add-table-btn-main">＋ Add New Table & Item</button>
     </div>
   </div>
   <div class="modal-backdrop" id="modal-backdrop">
@@ -71,7 +69,6 @@
       </div>
     </div>
   </div>
-  
   <script src="script.js"></script>
 </body>
 </html>
