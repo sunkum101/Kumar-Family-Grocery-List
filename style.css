@@ -820,7 +820,7 @@ li.push-up {
   .header { font-size:2.0rem; padding:11px 11px 9px 12px; }
   .header-title { font-size:1.1rem; }
   .name {
-    font-size: 2.00rem !important;
+    font-size: 1.18rem !important;
     font-weight: normal !important;
   }
   .header-count { font-size:1.08rem; padding:2px 7px; }
@@ -828,9 +828,9 @@ li.push-up {
   .add-table-btn { width:32px; height:32px; font-size:1.5rem; }
   li { font-size:1.32rem; padding:13px 9px 13px 11px; }
   .counter {
-    font-size:2.00rem;
+    font-size:1.22rem;
     gap: 1px;
-    padding: 1px 1px;
+    padding: 2px 4px;
     min-width: 0;
   }
   .counter span.count { font-size:1.22rem; }
@@ -859,4 +859,3 @@ li.push-up {
     font-size: 1.01rem;
   }
 }
-
