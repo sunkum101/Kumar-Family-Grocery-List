@@ -447,7 +447,7 @@ input[type="checkbox"]{
 li.has-count > .name, li.has-count .name {
   font-weight: bold !important;
   color: #232323 !important;
-  background: #fdf2c7 !important;
+  background: #ffd580 !important;
   border-radius: 7px !important;
   padding: 3px 12px !important;
   font-size:1.6rem !important;
