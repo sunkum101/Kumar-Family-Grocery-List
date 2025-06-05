@@ -510,9 +510,10 @@ function subscribeAllLists() {
           ul.querySelectorAll('li').forEach(li => {
             if (li.dataset.key) newOrder.push(li.dataset.key);
           });
-          originalKeyOrder[cat] = newOrder;
-          // Update DB order so reloads use it!
+          // Update the order array in the DB!
           db.ref(`/groceryLists/${cat}/order`).set(newOrder);
+          // (optional: update local state and re-render)
+          originalKeyOrder[cat] = newOrder;
           renderList(cat);
         }
       });
@@ -526,31 +527,65 @@ function subscribeAllLists() {
 }
 
   function deleteRow(cat, key) {
-    db.ref(`/groceryLists/${cat}/${key}`).remove();
-    setTimeout(() => renderList(cat), 300);
+    db.ref(`/groceryLists/${cat}/order`).once('value').then(snap => {
+      let order = snap.val() || [];
+      order = order.filter(k => k !== key);
+      db.ref(`/groceryLists/${cat}/order`).set(order);
+    });
   }
+
+function repairAllOrders() {
+  db.ref('/groceryLists').once('value').then(snap => {
+    const lists = snap.val() || {};
+    Object.keys(lists).forEach(cat => {
+      const items = lists[cat];
+      if (!items) return;
+      // Collect all item keys (excluding 'order')
+      let itemKeys = Object.keys(items).filter(k => k !== 'order');
+      // If the order array is missing or incomplete, fix it!
+      let order = Array.isArray(items.order) ? items.order.filter(k => itemKeys.includes(k)) : [];
+      // Add any missing keys at the end
+      itemKeys.forEach(k => { if (!order.includes(k)) order.push(k); });
+      // Only set if order is missing or out of sync
+      if (!Array.isArray(items.order) || order.length !== itemKeys.length ||
+          JSON.stringify(order) !== JSON.stringify(items.order)) {
+        db.ref(`/groceryLists/${cat}/order`).set(order);
+      }
+    });
+  });
+}
 
 function addItem(cat) {
   showInputModal('Enter new item name:', 'e.g. Carrots', function(name) {
     if (!name) return;
     const itemsRef = db.ref(`/groceryLists/${cat}`);
-    const createdAt = Date.now();
-    const newItemRef = itemsRef.push({name: name, count: 0, checked: false, createdAt});
-    newItemRef.then(ref => {
-      const orderRef = db.ref(`/groceryLists/${cat}/order`);
-      orderRef.once('value').then(snap => {
-        let order = snap.val();
-        if (!Array.isArray(order)) {
-          // First time or after DB reset, build order array from all keys in their DB order (oldest to newest)
-          itemsRef.once('value').then(snap2 => {
-            const allKeys = Object.keys(snap2.val()).filter(k => k !== 'order');
-            order = allKeys;
-            orderRef.set(order);
-          });
-        } else {
-          order.push(ref.key);
-          orderRef.set(order);
+    itemsRef.once('value').then(snap => {
+      const items = snap.val() || {};
+      // Find highest itemN index
+      let maxIdx = 0;
+      Object.keys(items).forEach(key => {
+        const match = key.match(/^item(\d+)$/);
+        if (match) {
+          maxIdx = Math.max(maxIdx, parseInt(match[1], 10));
         }
+      });
+      const newKey = `item${maxIdx + 1}`;
+      const newItem = { name: name, count: 0, checked: false, createdAt: Date.now() };
+      itemsRef.child(newKey).set(newItem).then(() => {
+        const orderRef = db.ref(`/groceryLists/${cat}/order`);
+        orderRef.once('value').then(orderSnap => {
+          let order = orderSnap.val();
+          if (!Array.isArray(order)) {
+            // Build order from all keys in DB order (oldest to newest)
+            itemsRef.once('value').then(snap2 => {
+              const allKeys = Object.keys(snap2.val()).filter(k => k !== 'order');
+              orderRef.set(allKeys);
+            });
+          } else {
+            order.push(newKey);
+            orderRef.set(order);
+          }
+        });
       });
     });
   });
@@ -595,9 +630,16 @@ function fixOrderByCreatedAt(cat, updateLocal = false) {
       }
       let items = {};
       showInputModal('Add an item to this table now? (Optional)', 'First item name', function (itemName) {
+      if (itemName && itemName.trim()) {
+        const newKey = "item1";
+        items = { [newKey]: { name: itemName.trim(), count: 0, checked: false, createdAt: Date.now() } };
+      }
+      // After setting the items:
+      db.ref(`/groceryLists/${catKey}`).set(items).then(() => {
         if (itemName && itemName.trim()) {
-          items = { [db.ref().push().key]: { name: itemName.trim(), count: 0, checked: false } };
+          db.ref(`/groceryLists/${catKey}/order`).set(["item1"]);
         }
+      });
         CATEGORY_NAMES[catKey] = tname;
         CATEGORY_ICONS[catKey] = '';
         const idx = CATEGORIES.length;
@@ -716,6 +758,7 @@ function fixOrderByCreatedAt(cat, updateLocal = false) {
   auth.onAuthStateChanged(user => {
     if (user && (!ALLOWED_USERS.length || ALLOWED_USERS.includes(user.email))) {
       showMain();
+      repairAllOrders(); // <--- ADD THIS LINE
       subscribeAllLists();
     } else {
       document.getElementById('main-section').style.display = 'none';
