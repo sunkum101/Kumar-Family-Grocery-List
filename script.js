@@ -4,6 +4,12 @@ document.addEventListener("DOMContentLoaded", function () {
   const ALLOWED_USERS = [
     "sunil.kumar101@gmail.com",
     "manju4sun@gmail.com",
+    "yashvi.k.australia@gmail.com",
+    "rupesh.chand.ggn@gmail.com"
+  ];
+  const FAMILY_EMAILS = [
+    "sunil.kumar101@gmail.com",
+    "manju4sun@gmail.com",
     "yashvi.k.australia@gmail.com"
   ];
   const USER_AVATARS = {
@@ -13,12 +19,7 @@ document.addEventListener("DOMContentLoaded", function () {
     "rupesh.chand.ggn@gmail.com": "https://www.gravatar.com/avatar/cfe5c6e9c1e7a9b7ed7b3e1b3d5f2c2d?d=identicon"
   };
 
-  let moveDeleteMode = false;
-  let deletedRowBackup = null;
-  let deletedRowTimer = null;
-  let originalOrderBackup = {};
-
-  // --- Render Allowed Users List ---
+  let selectedEmail = null;
   function renderAllowedList() {
     const ul = document.getElementById('allowed-list');
     ul.innerHTML = '';
@@ -53,7 +54,6 @@ document.addEventListener("DOMContentLoaded", function () {
       ul.appendChild(li);
     });
   }
-  let selectedEmail = null;
   function selectAllowedEmail(email, li) {
     selectedEmail = email;
     document.querySelectorAll('.allowed-item').forEach(e => {
@@ -80,6 +80,18 @@ document.addEventListener("DOMContentLoaded", function () {
   const auth = firebase.auth();
   const db = firebase.database();
 
+  // --- DB Key Utilities ---
+  function emailToKey(email) {
+    return email.replace(/\./g, '_dot_').replace(/@/g, '_at_');
+  }
+  function getUserListKey(user) {
+    if (FAMILY_EMAILS.includes(user.email)) {
+      return "family";
+    }
+    return emailToKey(user.email);
+  }
+
+  // --- Auth Logic ---
   function googleSignIn() {
     if (!selectedEmail) {
       document.getElementById('login-error').textContent = "Please select your email address above.";
@@ -95,13 +107,13 @@ document.addEventListener("DOMContentLoaded", function () {
           document.getElementById('login-error').textContent = 'Access denied. Please use an allowed Google account.';
           return;
         }
-        showMain();
-        subscribeAllLists();
+        // No need to call showMain/subscribeAllLists here; handled in onAuthStateChanged
       })
       .catch((err) => {
         document.getElementById('login-error').textContent = err.message;
       });
   }
+
   document.getElementById('google-signin-btn').onclick = googleSignIn;
   renderAllowedList();
 
@@ -187,8 +199,11 @@ document.addEventListener("DOMContentLoaded", function () {
   let groceryData = {};
   window.groceryData = groceryData;
   let listeners = [];
-  let checkZerosActive = false;
+  let moveDeleteMode = false;
+  let deletedRowBackup = null;
+  let deletedRowTimer = null;
   let originalKeyOrder = {};
+  let originalOrderBackup = {};
 
   // --- Main UI ---
   function showMain() {
@@ -197,33 +212,31 @@ document.addEventListener("DOMContentLoaded", function () {
     setLogoutButtonVisible(true);
   }
 
+  // --- Date & Time ---
   function updateDateTime() {
     const now = new Date();
-    // Modern, short weekday & month
     const options = {
-      weekday: 'short',    // "Thu"
-      year: 'numeric',     // "2025"
-      month: 'short',      // "Jun"
-      day: 'numeric',      // "5"
-      hour: '2-digit',     // "2"
-      minute: '2-digit',   // "09"
+      weekday: 'short',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
       hour12: true
     };
-    // Remove seconds, add a dot separator for modern feel
-    let formatted = now.toLocaleString('en-AU', options)
-        .replace(',', '')    // Remove comma after weekday
-        .replace(',', '');   // Just in case, remove more
-    // Add a dot separator between date and time
+    let formatted = now.toLocaleString('en-AU', options).replace(',', '').replace(',', '');
     formatted = formatted.replace(/(\d{4})/, '$1 ·');
-    document.getElementById('datetime').textContent = formatted; // "thu, 5 jun 2025 · 2:09 pm"
+    document.getElementById('datetime').textContent = formatted;
   }
   setInterval(updateDateTime, 1000);
   updateDateTime();
 
+  // --- Subscribe to User's Lists ---
+  let USER_LIST_KEY = null;
   function subscribeAllLists() {
     listeners.forEach(fn => { try { fn(); } catch (e) { } });
     listeners = [];
-    db.ref(`/groceryLists`).on('value', snap => {
+    db.ref(`/userLists/${USER_LIST_KEY}/groceryLists`).on('value', snap => {
       const data = snap.val() || {};
       groceryData = data;
       let allKeys = Object.keys(data);
@@ -237,6 +250,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
+  // --- Modal Helpers ---
   function showModal(title, callback) {
     const backdrop = document.getElementById('modal-backdrop');
     const titleEl = document.getElementById('modal-title');
@@ -253,7 +267,6 @@ document.addEventListener("DOMContentLoaded", function () {
     btnNo.onclick = () => { cleanup(); callback(false); };
     btnYes.onclick = () => { cleanup(); callback(true); };
   }
-
   function showInputModal(title, placeholder, callback) {
     const backdrop = document.getElementById('input-modal-backdrop');
     const titleEl = document.getElementById('input-modal-title');
@@ -284,7 +297,6 @@ document.addEventListener("DOMContentLoaded", function () {
       if (e.key === "Escape") { btnCancel.click(); }
     };
   }
-
   function showUndoToast(msg, onUndo, onExpire) {
     let toast = document.createElement('div');
     toast.className = 'undo-toast';
@@ -302,6 +314,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }, 3000);
   }
 
+  // --- Render Grocery Tables ---
   function renderAllTables() {
     const area = document.getElementById('tables-area');
     area.innerHTML = '';
@@ -316,6 +329,8 @@ document.addEventListener("DOMContentLoaded", function () {
       header.className = 'header ' + headerClass;
       header.id = `${cat}-header`;
       header.onclick = () => toggleCollapse(cat);
+
+      // Long-press to delete table
       let headerPressTimer = null;
       header.addEventListener('touchstart', e => {
         headerPressTimer = setTimeout(() => {
@@ -378,7 +393,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
   function deleteTable(cat) {
-    db.ref(`/groceryLists/${cat}`).remove();
+    db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}`).remove();
     setTimeout(renderAllTables, 300);
   }
   function toggleCollapse(cat) {
@@ -399,6 +414,7 @@ document.addEventListener("DOMContentLoaded", function () {
     container.classList.toggle('collapsed', collapsed);
   }
 
+  // --- Render List ---
   function renderList(cat) {
     const ul = document.getElementById(cat);
     if (!ul) return;
@@ -479,7 +495,7 @@ document.addEventListener("DOMContentLoaded", function () {
           deletedRowBackup = { cat, key, item: backupItem, idx };
           li.style.display = 'none';
           deletedRowTimer = setTimeout(() => {
-            db.ref(`/groceryLists/${cat}/${key}`).remove();
+            db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/${key}`).remove();
             deletedRowBackup = null;
             deletedRowTimer = null;
           }, 3000);
@@ -487,7 +503,7 @@ document.addEventListener("DOMContentLoaded", function () {
             'Item deleted.',
             () => {
               if (deletedRowTimer) clearTimeout(deletedRowTimer);
-              db.ref(`/groceryLists/${cat}/${key}`).set(backupItem);
+              db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/${key}`).set(backupItem);
               deletedRowBackup = null;
               deletedRowTimer = null;
               renderList(cat);
@@ -524,9 +540,7 @@ document.addEventListener("DOMContentLoaded", function () {
             ul.querySelectorAll('li').forEach(li => {
               if (li.dataset.key) newOrder.push(li.dataset.key);
             });
-            // Update the order array in the DB!
-            db.ref(`/groceryLists/${cat}/order`).set(newOrder);
-            // (optional: update local state and re-render)
+            db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/order`).set(newOrder);
             originalKeyOrder[cat] = newOrder;
             renderList(cat);
           }
@@ -541,26 +555,22 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function deleteRow(cat, key) {
-    db.ref(`/groceryLists/${cat}/${key}`).remove();
+    db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/${key}`).remove();
     setTimeout(() => renderList(cat), 300);
   }
 
   function repairAllOrders() {
-    db.ref('/groceryLists').once('value').then(snap => {
+    db.ref(`/userLists/${USER_LIST_KEY}/groceryLists`).once('value').then(snap => {
       const lists = snap.val() || {};
       Object.keys(lists).forEach(cat => {
         const items = lists[cat];
         if (!items) return;
-        // Collect all item keys (excluding 'order')
         let itemKeys = Object.keys(items).filter(k => k !== 'order');
-        // If the order array is missing or incomplete, fix it!
         let order = Array.isArray(items.order) ? items.order.filter(k => itemKeys.includes(k)) : [];
-        // Add any missing keys at the end
         itemKeys.forEach(k => { if (!order.includes(k)) order.push(k); });
-        // Only set if order is missing or out of sync
         if (!Array.isArray(items.order) || order.length !== itemKeys.length ||
             JSON.stringify(order) !== JSON.stringify(items.order)) {
-          db.ref(`/groceryLists/${cat}/order`).set(order);
+          db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/order`).set(order);
         }
       });
     });
@@ -569,10 +579,9 @@ document.addEventListener("DOMContentLoaded", function () {
   function addItem(cat) {
     showInputModal('Enter new item name:', 'e.g. Carrots', function(name) {
       if (!name) return;
-      const itemsRef = db.ref(`/groceryLists/${cat}`);
+      const itemsRef = db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}`);
       itemsRef.once('value').then(snap => {
         const items = snap.val() || {};
-        // Find highest itemN index
         let maxIdx = 0;
         Object.keys(items).forEach(key => {
           const match = key.match(/^item(\d+)$/);
@@ -583,13 +592,12 @@ document.addEventListener("DOMContentLoaded", function () {
         const newKey = `item${maxIdx + 1}`;
         const newItem = { name: name, count: 0, checked: false, createdAt: Date.now() };
         itemsRef.child(newKey).set(newItem).then(() => {
-          const orderRef = db.ref(`/groceryLists/${cat}/order`);
+          const orderRef = db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/order`);
           orderRef.once('value').then(orderSnap => {
             let order = orderSnap.val();
             if (!Array.isArray(order)) {
-              // Build order from all keys in DB order (oldest to newest)
               itemsRef.once('value').then(snap2 => {
-                const allKeys = Object.keys(snap2.val()).filter(k => k !== 'order');
+                const allKeys = Object.keys(snap2.val()).filter(k => k !== "order");
                 orderRef.set(allKeys);
               });
             } else {
@@ -602,7 +610,6 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
-  // Sorts the order array by createdAt, and updates DB if needed
   function fixOrderByCreatedAt(cat, updateLocal = false) {
     const items = groceryData[cat];
     if (!items) return;
@@ -615,10 +622,9 @@ document.addEventListener("DOMContentLoaded", function () {
     arr.sort((a, b) => a.createdAt - b.createdAt);
     const newOrder = arr.map(x => x.key);
 
-    // Only update if order differs
     const dbOrder = Array.isArray(items.order) ? items.order.filter(k => newOrder.includes(k)) : [];
     if (JSON.stringify(dbOrder) !== JSON.stringify(newOrder)) {
-      db.ref(`/groceryLists/${cat}/order`).set(newOrder);
+      db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/order`).set(newOrder);
       if (updateLocal) {
         groceryData[cat].order = newOrder;
         renderList(cat);
@@ -649,15 +655,14 @@ document.addEventListener("DOMContentLoaded", function () {
         const idx = CATEGORIES.length;
         CATEGORY_HEADER_CLASSES[catKey] = getHeaderClass(catKey, idx);
 
-        db.ref(`/groceryLists/${catKey}`).set(items).then(() => {
+        db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${catKey}`).set(items).then(() => {
           if (itemName && itemName.trim()) {
-            db.ref(`/groceryLists/${catKey}/order`).set(["item1"]);
+            db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${catKey}/order`).set(["item1"]);
           }
         });
       });
     });
   }
-  // Attach the event handler for the main "Add Table" button
   document.getElementById('add-table-btn-main').onclick = addNewTablePrompt;
 
   function updateCount(cat, key, delta) {
@@ -665,10 +670,10 @@ document.addEventListener("DOMContentLoaded", function () {
     if (!item || typeof item !== 'object' || typeof item.name !== 'string') return;
     let v = (item.count || 0) + delta;
     v = Math.max(0, Math.min(50, v));
-    db.ref(`/groceryLists/${cat}/${key}`).update({ count: v });
+    db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/${key}`).update({ count: v });
   }
   function toggleChecked(cat, key, val) {
-    db.ref(`/groceryLists/${cat}/${key}`).update({ checked: !!val });
+    db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/${key}`).update({ checked: !!val });
   }
   function editNameInline(cat, key, nameDiv, oldItem) {
     if (nameDiv.classList.contains('editing')) return;
@@ -678,7 +683,6 @@ document.addEventListener("DOMContentLoaded", function () {
     nameDiv.setAttribute('spellcheck', 'false');
     nameDiv.style.userSelect = "text";
     nameDiv.focus();
-    // Set caret at end:
     if (window.getSelection && document.createRange) {
       const range = document.createRange();
       range.selectNodeContents(nameDiv);
@@ -697,10 +701,10 @@ document.addEventListener("DOMContentLoaded", function () {
       nameDiv.style.userSelect = "";
       const newValue = nameDiv.textContent.trim();
       if (!newValue) {
-        db.ref(`/groceryLists/${cat}/${key}`).update({ name: prevName });
+        db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/${key}`).update({ name: prevName });
         nameDiv.textContent = prevName;
       } else if (newValue !== prevName) {
-        db.ref(`/groceryLists/${cat}/${key}`).update({ name: newValue });
+        db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/${key}`).update({ name: newValue });
       }
     }
     nameDiv.onkeydown = function (e) {
@@ -710,67 +714,63 @@ document.addEventListener("DOMContentLoaded", function () {
     nameDiv.onblur = finishEdit;
   }
 
-document.getElementById('static-reset-btn').onclick = function () {
-  showModal("Reset all counters to 0 and uncheck all items in all tables?", function (yes) {
-    if (!yes) return;
+  document.getElementById('static-reset-btn').onclick = function () {
+    showModal("Reset all counters to 0 and uncheck all items in all tables?", function (yes) {
+      if (!yes) return;
 
-    CATEGORIES.forEach(cat => {
-      const items = groceryData[cat] || {};
-      Object.entries(items).forEach(([key, item]) => {
-        db.ref(`/groceryLists/${cat}/${key}`).update({ count: 0, checked: false });
-      });
+      CATEGORIES.forEach(cat => {
+        const items = groceryData[cat] || {};
+        Object.entries(items).forEach(([key, item]) => {
+          db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/${key}`).update({ count: 0, checked: false });
+        });
 
-      // Restore original order if present
-      if (originalOrderBackup[cat]) {
-        db.ref(`/groceryLists/${cat}/order`).set(originalOrderBackup[cat]);
-        delete originalOrderBackup[cat];
-      }
-    });
-
-    setTimeout(() => {
-      renderAllTables();
-    }, 350);
-  });
-};
-
-
-document.getElementById('check-zeros-btn').onclick = function () {
-  showModal("Do you want to check all 'zero' items (highlight items to buy)?", function (yes) {
-    if (!yes) return;
-
-    CATEGORIES.forEach(cat => {
-      const items = groceryData[cat] || {};
-      const keys = Object.keys(items).filter(k => k !== "order");
-
-      // Save original order if not already saved
-      if (!originalOrderBackup[cat] && Array.isArray(items.order)) {
-        originalOrderBackup[cat] = items.order.slice();
-      }
-
-      const aboveZero = [];
-      const zero = [];
-
-      keys.forEach(key => {
-        const item = items[key];
-        if (!item) return;
-        if ((item.count || 0) > 0) {
-          aboveZero.push(key);
-        } else {
-          zero.push(key);
-          db.ref(`/groceryLists/${cat}/${key}`).update({ checked: true });
+        if (originalOrderBackup[cat]) {
+          db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/order`).set(originalOrderBackup[cat]);
+          delete originalOrderBackup[cat];
         }
       });
 
-      const newOrder = aboveZero.concat(zero);
-      db.ref(`/groceryLists/${cat}/order`).set(newOrder);
+      setTimeout(() => {
+        renderAllTables();
+      }, 350);
     });
+  };
 
-    setTimeout(() => {
-      renderAllTables();
-    }, 350);
-  });
-};
+  document.getElementById('check-zeros-btn').onclick = function () {
+    showModal("Do you want to check all 'zero' items (highlight items to buy)?", function (yes) {
+      if (!yes) return;
 
+      CATEGORIES.forEach(cat => {
+        const items = groceryData[cat] || {};
+        const keys = Object.keys(items).filter(k => k !== "order");
+
+        if (!originalOrderBackup[cat] && Array.isArray(items.order)) {
+          originalOrderBackup[cat] = items.order.slice();
+        }
+
+        const aboveZero = [];
+        const zero = [];
+
+        keys.forEach(key => {
+          const item = items[key];
+          if (!item) return;
+          if ((item.count || 0) > 0) {
+            aboveZero.push(key);
+          } else {
+            zero.push(key);
+            db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/${key}`).update({ checked: true });
+          }
+        });
+
+        const newOrder = aboveZero.concat(zero);
+        db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/order`).set(newOrder);
+      });
+
+      setTimeout(() => {
+        renderAllTables();
+      }, 350);
+    });
+  };
 
   function updateHeaderCount(cat) {
     const items = groceryData[cat] || {};
@@ -786,7 +786,6 @@ document.getElementById('check-zeros-btn').onclick = function () {
     }
   }
 
-  // --- Move/Delete Toggle Button ---
   document.getElementById('move-delete-toggle').onclick = function () {
     moveDeleteMode = !moveDeleteMode;
     this.textContent = moveDeleteMode ? 'Done' : 'Move or Delete';
@@ -796,6 +795,7 @@ document.getElementById('check-zeros-btn').onclick = function () {
   // --- Auth State ---
   auth.onAuthStateChanged(user => {
     if (user && (!ALLOWED_USERS.length || ALLOWED_USERS.includes(user.email))) {
+      USER_LIST_KEY = getUserListKey(user);
       showMain();
       repairAllOrders();
       subscribeAllLists();
@@ -807,11 +807,9 @@ document.getElementById('check-zeros-btn').onclick = function () {
   });
 
   document.getElementById('collapse-all-btn').onclick = function() {
-  CATEGORIES.forEach(function(cat) {
-    setCollapsed(cat, true); // Collapse it visually
-    localStorage.setItem('col-' + cat, 'true'); // Store collapsed state
-  });
+    CATEGORIES.forEach(function(cat) {
+      setCollapsed(cat, true);
+      localStorage.setItem('col-' + cat, 'true');
+    });
   };
-
 });
-
