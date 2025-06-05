@@ -3,6 +3,14 @@
   position: relative;
 }
 
+.header-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: 10px;
+  margin-top: 13px; /* adjust as needed */
+}
+
 /* ---------- Top Actions Bar & Buttons ---------- */
 .top-actions {
   display: flex;
@@ -13,6 +21,22 @@
   padding: 10px 18px 9px 0;
   border-bottom: 1.5px solid #d6dbe2;
 }
+
+.main-title {
+  font-size: 2.1rem;
+  font-weight: 700;
+  color: #3d4855;
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+  letter-spacing: 0.01em;
+}
+
+  .header-row {
+    gap: 7px;
+    margin-left: 2px;
+    margin-top: 8px;
+  }
 
 .top-btn {
   display: flex;
@@ -296,13 +320,23 @@ h1{
   letter-spacing:0.01em;
   font-weight:700;
 }
-.datetime{
-  font-size:1.07rem;
-  color:#888;
-  text-align:center;
-  margin-bottom:20px;
-  letter-spacing:0.01em;
+
+.datetime {
+  font-size: 1.08rem;
+  color: #6c7a89;
+  text-align: center;
+  margin-bottom: 20px;
+  letter-spacing: 0.02em;
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+  font-weight: 500;
+  background: none;
+  border-radius: 9px;
+  padding: 3px 0;
+  opacity: 0.92;
+  /* Optionally add a subtle shadow for modern effect */
+  text-shadow: 0 1px 1.5px rgba(200,210,220,0.10);
 }
+
 .container{
   margin:24px 8px 32px 8px;
   background: #fff;
@@ -792,10 +826,6 @@ li.push-up {
 }
 
 .fab-collapse {
-  position: absolute;
-  left: 22px;
-  top: 70px; /* Adjust as needed to be just under the heading */
-  z-index: 10;
   width: 44px;
   height: 44px;
   border-radius: 50%;
@@ -815,7 +845,7 @@ li.push-up {
 .fab-collapse:hover {
   background: #f3f6fa;
   box-shadow: 0 4px 16px rgba(60, 80, 130, 0.20);
-  transform: scale(1.07);
+  transform: scale(1.09);
 }
 
 
@@ -846,13 +876,11 @@ li.push-up {
     width: 15px;
     height: 15px;
   }
-  .fab-collapse {
-    width: 40px;
-    height: 40px;
-    left: 10px;
-    top: 60px;
+.fab-collapse {
+    width: 38px;
+    height: 38px;
   }
-  
+
   .container { margin:12px 2px 24px 2px; }
   .header { font-size:2.0rem; padding:11px 11px 9px 12px; }
   .header-title { font-size:1.1rem; }
