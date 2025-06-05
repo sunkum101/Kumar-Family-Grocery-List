@@ -545,20 +545,21 @@ li.has-count:not(.checked) > .name, li.has-count:not(.checked) .name {
   padding-left:16px;
 }
 .add-table-btn {
-  margin-left: 0;
+  /* Remove width/height to allow auto-sizing */
+  min-width: 120px;
+  height: auto;
+  border-radius: 25px;
+  padding: 10px 16px;
+  font-size: 1.1rem;
+  font-weight: 700;
   background: #aeb9c5;
   color: #fff;
   border: none;
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  font-size: 1.7rem;
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
   cursor: pointer;
-  font-weight: 700;
-  transition: background 0.13s, box-shadow 0.13s;
   display: flex;
   align-items: center;
+  gap: 8px;
   justify-content: center;
   opacity: 0.93;
   position: relative;
@@ -846,8 +847,8 @@ li.push-up {
   /* If has-count but not checked, do NOT make bold on mobile; keep background etc. */
   li.has-count:not(.checked) > .name,
   li.has-count:not(.checked) .name {
-    font-weight: normal !important;
-    /* background, color, etc. will still apply from main rule */
+    font-weight: 700 !important;
+    font-size: 1.64rem !important;
   }
 
   .undo-toast {
