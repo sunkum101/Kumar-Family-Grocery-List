@@ -790,4 +790,12 @@ document.getElementById('check-zeros-btn').onclick = function () {
     }
   });
 
+  document.getElementById('collapse-all-btn').onclick = function() {
+  CATEGORIES.forEach(function(cat) {
+    setCollapsed(cat, true); // Collapse it visually
+    localStorage.setItem('col-' + cat, 'true'); // Store collapsed state
+  });
+  };
+
 });
+
