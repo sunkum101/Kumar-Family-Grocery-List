@@ -820,13 +820,13 @@ li.push-up {
   .header { font-size:2.0rem; padding:11px 11px 9px 12px; }
   .header-title { font-size:1.1rem; }
   .name {
-    font-size: 1.18rem !important;
-    font-weight: normal !important;
+    font-size: 1.54rem !important;
+    font-weight: 600 !important;
   }
   .header-count { font-size:1.08rem; padding:2px 7px; }
   .header-check { font-size:1.09rem; padding:2px 7px; }
   .add-table-btn { width:32px; height:32px; font-size:1.5rem; }
-  li { font-size:1.32rem; padding:13px 9px 13px 11px; }
+  li { font-size:1.52rem; padding:13px 9px 13px 11px; }
   .counter {
     font-size:1.22rem;
     gap: 1px;
@@ -840,7 +840,7 @@ li.push-up {
   /* Make checked items bold, unchecked normal */
   li.checked > .name,
   li.checked .name {
-    font-weight: bold !important;
+    font-weight: 800 !important;
   }
 
   /* If has-count but not checked, do NOT make bold on mobile; keep background etc. */
