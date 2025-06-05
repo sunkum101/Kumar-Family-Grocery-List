@@ -183,6 +183,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   let groceryData = {};
+  window.groceryData = groceryData;
   let listeners = [];
   let checkZerosActive = false;
   let originalKeyOrder = {};
@@ -202,25 +203,24 @@ document.addEventListener("DOMContentLoaded", function () {
   setInterval(updateDateTime, 1000);
   updateDateTime();
 
-  function subscribeAllLists() {
-    listeners.forEach(fn => { try { fn(); } catch (e) { } });
-    listeners = [];
-    db.ref(`/groceryLists`).on('value', snap => {
-      const data = snap.val() || {};
-      groceryData = data;
-      Object.entries(data).forEach(([cat, items]) => {
-        originalKeyOrder[cat] = Object.keys(items || {});
-      });
-      let allKeys = Object.keys(data);
-      let ordered = [];
-      CATEGORIES.forEach(cat => { if (allKeys.includes(cat)) ordered.push(cat); });
-      allKeys.forEach(cat => {
-        if (!ordered.includes(cat)) ordered.push(cat);
-      });
-      CATEGORIES = ordered;
-      renderAllTables();
+function subscribeAllLists() {
+  listeners.forEach(fn => { try { fn(); } catch (e) { } });
+  listeners = [];
+  db.ref(`/groceryLists`).on('value', snap => {
+    const data = snap.val() || {};
+    groceryData = data;
+    // REMOVE THE NEXT LINE:
+    // CATEGORIES.forEach(cat => fixOrderByCreatedAt(cat));
+    let allKeys = Object.keys(data);
+    let ordered = [];
+    CATEGORIES.forEach(cat => { if (allKeys.includes(cat)) ordered.push(cat); });
+    allKeys.forEach(cat => {
+      if (!ordered.includes(cat)) ordered.push(cat);
     });
-  }
+    CATEGORIES = ordered;
+    renderAllTables();
+  });
+}
 
   function showModal(title, callback) {
     const backdrop = document.getElementById('modal-backdrop');
@@ -384,147 +384,146 @@ document.addEventListener("DOMContentLoaded", function () {
     container.classList.toggle('collapsed', collapsed);
   }
 
+  
   function renderList(cat) {
-    const ul = document.getElementById(cat);
-    if (!ul) return;
-    ul.innerHTML = '';
-    let items = groceryData[cat] || {};
-    let keys = [];
-    if (originalKeyOrder[cat]) {
-      keys = originalKeyOrder[cat].slice();
-    } else {
-      keys = Object.keys(items);
-    }
+  const ul = document.getElementById(cat);
+  if (!ul) return;
+  ul.innerHTML = '';
+  let items = groceryData[cat] || {};
+  let keys = [];
 
-    if (checkZerosActive && originalKeyOrder[cat]) {
-      const origOrder = originalKeyOrder[cat].slice();
-      keys.sort((a, b) => {
-        const ia = items[a]?.count > 0 ? 0 : 1;
-        const ib = items[b]?.count > 0 ? 0 : 1;
-        if (ia !== ib) return ia - ib;
-        return origOrder.indexOf(a) - origOrder.indexOf(b);
-      });
-    } else if (originalKeyOrder[cat]) {
-      keys = originalKeyOrder[cat].slice();
-    }
+  if (moveDeleteMode && originalKeyOrder[cat]) {
+    keys = originalKeyOrder[cat].slice();
+  } else if (Array.isArray(items.order)) {
+    keys = items.order.filter(key => typeof items[key] === 'object');
+    const extra = Object.keys(items).filter(k => k !== "order" && !items.order.includes(k));
+    keys = keys.concat(extra);
+  } else {
+    keys = Object.keys(items).filter(k => k !== "order");
+  }
 
-    keys.forEach((key) => {
-      const item = items[key];
-      if (!item || typeof item !== 'object' || typeof item.name !== 'string') return;
-      const li = document.createElement('li');
-      li.dataset.key = key;
-      if (item.checked) li.classList.add('checked');
-      if (item.count > 0) li.classList.add('has-count');
-      li.style.position = 'relative';
+  // Clear in-memory order when not in move/delete mode (so UI always matches DB order)
+  if (!moveDeleteMode) delete originalKeyOrder[cat];
 
-      const cb = document.createElement('input');
-      cb.type = 'checkbox';
-      cb.checked = !!item.checked;
-      cb.onchange = () => toggleChecked(cat, key, cb.checked);
-      li.appendChild(cb);
+  keys.forEach((key) => {
+    const item = items[key];
+    if (!item || typeof item !== 'object' || typeof item.name !== 'string') return;
+    const li = document.createElement('li');
+    li.dataset.key = key;
+    if (item.checked) li.classList.add('checked');
+    if (item.count > 0) li.classList.add('has-count');
+    li.style.position = 'relative';
 
-      const name = document.createElement('div');
-      name.className = 'name';
-      name.textContent = item.name;
-      name.ondblclick = (e) => {
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = !!item.checked;
+    cb.onchange = () => toggleChecked(cat, key, cb.checked);
+    li.appendChild(cb);
+
+    const name = document.createElement('div');
+    name.className = 'name';
+    name.textContent = item.name;
+    name.ondblclick = (e) => {
+      e.stopPropagation();
+      editNameInline(cat, key, name, item);
+    };
+    li.appendChild(name);
+
+    if (!moveDeleteMode) {
+      const cnt = document.createElement('div');
+      cnt.className = 'counter';
+      const minus = document.createElement('button');
+      minus.textContent = '-';
+      minus.onclick = (e) => {
         e.stopPropagation();
-        editNameInline(cat, key, name, item);
+        updateCount(cat, key, -1);
       };
-      li.appendChild(name);
-
-      if (!moveDeleteMode) {
-        const cnt = document.createElement('div');
-        cnt.className = 'counter';
-        const minus = document.createElement('button');
-        minus.textContent = '-';
-        minus.onclick = (e) => {
-          e.stopPropagation();
-          updateCount(cat, key, -1);
-        };
-        const count = document.createElement('span');
-        count.className = 'count';
-        count.textContent = item.count || 0;
-        const plus = document.createElement('button');
-        plus.textContent = '+';
-        plus.onclick = (e) => {
-          e.stopPropagation();
-          updateCount(cat, key, +1);
-        };
-        cnt.appendChild(minus);
-        cnt.appendChild(count);
-        cnt.appendChild(plus);
-        li.appendChild(cnt);
-      } else {
-        const trash = document.createElement('button');
-        trash.className = 'trash-icon';
-        trash.title = 'Delete (with undo)';
-        trash.innerHTML =
-          `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <path stroke="#e53935" stroke-width="2" d="M5 7h14M10 11v6m4-6v6M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12m-9-2h4a2 2 0 0 1 2 2v0H7v0a2 2 0 0 1 2-2z"/>
-          </svg>`;
-        trash.onclick = () => {
-          let idx = keys.indexOf(key);
-          let backupItem = { ...item };
-          deletedRowBackup = { cat, key, item: backupItem, idx };
-          li.style.display = 'none';
-          deletedRowTimer = setTimeout(() => {
-            db.ref(`/groceryLists/${cat}/${key}`).remove();
+      const count = document.createElement('span');
+      count.className = 'count';
+      count.textContent = item.count || 0;
+      const plus = document.createElement('button');
+      plus.textContent = '+';
+      plus.onclick = (e) => {
+        e.stopPropagation();
+        updateCount(cat, key, +1);
+      };
+      cnt.appendChild(minus);
+      cnt.appendChild(count);
+      cnt.appendChild(plus);
+      li.appendChild(cnt);
+    } else {
+      const trash = document.createElement('button');
+      trash.className = 'trash-icon';
+      trash.title = 'Delete (with undo)';
+      trash.innerHTML =
+        `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <path stroke="#e53935" stroke-width="2" d="M5 7h14M10 11v6m4-6v6M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12m-9-2h4a2 2 0 0 1 2 2v0H7v0a2 2 0 0 1 2-2z"/>
+        </svg>`;
+      trash.onclick = () => {
+        let idx = keys.indexOf(key);
+        let backupItem = { ...item };
+        deletedRowBackup = { cat, key, item: backupItem, idx };
+        li.style.display = 'none';
+        deletedRowTimer = setTimeout(() => {
+          db.ref(`/groceryLists/${cat}/${key}`).remove();
+          deletedRowBackup = null;
+          deletedRowTimer = null;
+        }, 3000);
+        showUndoToast(
+          'Item deleted.',
+          () => {
+            if (deletedRowTimer) clearTimeout(deletedRowTimer);
+            db.ref(`/groceryLists/${cat}/${key}`).set(backupItem);
             deletedRowBackup = null;
             deletedRowTimer = null;
-          }, 3000);
-          showUndoToast(
-            'Item deleted.',
-            () => {
-              if (deletedRowTimer) clearTimeout(deletedRowTimer);
-              db.ref(`/groceryLists/${cat}/${key}`).set(backupItem);
-              deletedRowBackup = null;
-              deletedRowTimer = null;
-              renderList(cat);
-            },
-            () => { }
-          );
-        };
-        li.appendChild(trash);
-
-        const move = document.createElement('button');
-        move.className = 'move-icon';
-        move.title = 'Drag to reorder';
-        move.innerHTML =
-          `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-            <rect width="24" height="24" fill="none"/>
-            <rect x="5" y="7" width="14" height="2" rx="1" fill="#666"/>
-            <rect x="5" y="11" width="14" height="2" rx="1" fill="#666"/>
-            <rect x="5" y="15" width="14" height="2" rx="1" fill="#666"/>
-          </svg>`;
-        li.appendChild(move);
-      }
-      ul.appendChild(li);
-    });
-
-    // Enable SortableJS drag-and-drop only in move/delete mode
-    if (moveDeleteMode) {
-      if (!ul.sortableInstance) {
-        ul.sortableInstance = Sortable.create(ul, {
-          animation: 180,
-          handle: '.move-icon',
-          ghostClass: 'dragging',
-          onEnd: function (evt) {
-            let newOrder = [];
-            ul.querySelectorAll('li').forEach(li => {
-              if (li.dataset.key) newOrder.push(li.dataset.key);
-            });
-            originalKeyOrder[cat] = newOrder;
             renderList(cat);
-          }
-        });
-      }
-    } else {
-      if (ul.sortableInstance) {
-        ul.sortableInstance.destroy();
-        ul.sortableInstance = null;
-      }
+          },
+          () => { }
+        );
+      };
+      li.appendChild(trash);
+
+      const move = document.createElement('button');
+      move.className = 'move-icon';
+      move.title = 'Drag to reorder';
+      move.innerHTML =
+        `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+          <rect width="24" height="24" fill="none"/>
+          <rect x="5" y="7" width="14" height="2" rx="1" fill="#666"/>
+          <rect x="5" y="11" width="14" height="2" rx="1" fill="#666"/>
+          <rect x="5" y="15" width="14" height="2" rx="1" fill="#666"/>
+        </svg>`;
+      li.appendChild(move);
+    }
+    ul.appendChild(li);
+  });
+
+  // Enable SortableJS drag-and-drop only in move/delete mode
+  if (moveDeleteMode) {
+    if (!ul.sortableInstance) {
+      ul.sortableInstance = Sortable.create(ul, {
+        animation: 180,
+        handle: '.move-icon',
+        ghostClass: 'dragging',
+        onEnd: function (evt) {
+          let newOrder = [];
+          ul.querySelectorAll('li').forEach(li => {
+            if (li.dataset.key) newOrder.push(li.dataset.key);
+          });
+          originalKeyOrder[cat] = newOrder;
+          // Update DB order so reloads use it!
+          db.ref(`/groceryLists/${cat}/order`).set(newOrder);
+          renderList(cat);
+        }
+      });
+    }
+  } else {
+    if (ul.sortableInstance) {
+      ul.sortableInstance.destroy();
+      ul.sortableInstance = null;
     }
   }
+}
 
   function deleteRow(cat, key) {
     db.ref(`/groceryLists/${cat}/${key}`).remove();
@@ -534,15 +533,54 @@ document.addEventListener("DOMContentLoaded", function () {
 function addItem(cat) {
   showInputModal('Enter new item name:', 'e.g. Carrots', function(name) {
     if (!name) return;
-    // Push new item
-    const newItemRef = db.ref(`/groceryLists/${cat}`).push({name: name, count: 0, checked: false});
-    // After push, update the order array
+    const itemsRef = db.ref(`/groceryLists/${cat}`);
+    const createdAt = Date.now();
+    const newItemRef = itemsRef.push({name: name, count: 0, checked: false, createdAt});
     newItemRef.then(ref => {
-      if (!originalKeyOrder[cat]) originalKeyOrder[cat] = [];
-      originalKeyOrder[cat].push(ref.key);
-      renderList(cat);
+      const orderRef = db.ref(`/groceryLists/${cat}/order`);
+      orderRef.once('value').then(snap => {
+        let order = snap.val();
+        if (!Array.isArray(order)) {
+          // First time or after DB reset, build order array from all keys in their DB order (oldest to newest)
+          itemsRef.once('value').then(snap2 => {
+            const allKeys = Object.keys(snap2.val()).filter(k => k !== 'order');
+            order = allKeys;
+            orderRef.set(order);
+          });
+        } else {
+          order.push(ref.key);
+          orderRef.set(order);
+        }
+      });
     });
   });
+}
+
+// Sorts the order array by createdAt, and updates DB if needed
+function fixOrderByCreatedAt(cat, updateLocal = false) {
+  const items = groceryData[cat];
+  if (!items) return;
+  let arr = [];
+  Object.entries(items).forEach(([k, v]) => {
+    if (k !== "order" && v && typeof v === "object" && typeof v.createdAt === "number") {
+      arr.push({ key: k, createdAt: v.createdAt });
+    }
+  });
+  arr.sort((a, b) => a.createdAt - b.createdAt);
+  const newOrder = arr.map(x => x.key);
+
+  // Only update if order differs
+  const dbOrder = Array.isArray(items.order) ? items.order.filter(k => newOrder.includes(k)) : [];
+  if (JSON.stringify(dbOrder) !== JSON.stringify(newOrder)) {
+    db.ref(`/groceryLists/${cat}/order`).set(newOrder);
+    if (updateLocal) {
+      groceryData[cat].order = newOrder;
+      renderList(cat);
+    }
+  } else if (updateLocal && JSON.stringify(groceryData[cat].order) !== JSON.stringify(newOrder)) {
+    groceryData[cat].order = newOrder;
+    renderList(cat);
+  }
 }
 
   function addNewTablePrompt() {
