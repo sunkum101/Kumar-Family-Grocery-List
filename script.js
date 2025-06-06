@@ -236,17 +236,25 @@ document.addEventListener("DOMContentLoaded", function () {
   function subscribeAllLists() {
     listeners.forEach(fn => { try { fn(); } catch (e) { } });
     listeners = [];
-    db.ref(`/userLists/${USER_LIST_KEY}/groceryLists`).on('value', snap => {
-      const data = snap.val() || {};
-      groceryData = data;
-      let allKeys = Object.keys(data);
-      let ordered = [];
-      CATEGORIES.forEach(cat => { if (allKeys.includes(cat)) ordered.push(cat); });
-      allKeys.forEach(cat => {
-        if (!ordered.includes(cat)) ordered.push(cat);
+    // Load tableNames first
+    db.ref(`/userLists/${USER_LIST_KEY}/tableNames`).once('value').then(snap => {
+      const tableNames = snap.val() || {};
+      Object.keys(tableNames).forEach(cat => {
+        if (tableNames[cat]) CATEGORY_NAMES[cat] = tableNames[cat];
       });
-      CATEGORIES = ordered;
-      renderAllTables();
+      // Now subscribe to groceryLists
+      db.ref(`/userLists/${USER_LIST_KEY}/groceryLists`).on('value', snap => {
+        const data = snap.val() || {};
+        groceryData = data;
+        let allKeys = Object.keys(data);
+        let ordered = [];
+        CATEGORIES.forEach(cat => { if (allKeys.includes(cat)) ordered.push(cat); });
+        allKeys.forEach(cat => {
+          if (!ordered.includes(cat)) ordered.push(cat);
+        });
+        CATEGORIES = ordered;
+        renderAllTables();
+      });
     });
   }
 
@@ -257,15 +265,30 @@ document.addEventListener("DOMContentLoaded", function () {
     const btnNo = document.getElementById('modal-btn-no');
     const btnYes = document.getElementById('modal-btn-yes');
     titleEl.textContent = title;
+    // Change button text for info-only modals
+    if (title && (title.includes('already exists') || title.includes('duplicate'))) {
+      btnNo.style.display = 'none';
+      btnYes.textContent = 'OK';
+      btnYes.onclick = () => {
+        cleanup();
+        if (callback) callback();
+      };
+      btnYes.focus();
+    } else {
+      btnNo.style.display = '';
+      btnYes.textContent = 'YES';
+      btnNo.onclick = () => { cleanup(); callback(false); };
+      btnYes.onclick = () => { cleanup(); callback(true); };
+      btnNo.focus();
+    }
     backdrop.classList.add('active');
-    btnNo.focus();
     function cleanup() {
       backdrop.classList.remove('active');
       btnNo.onclick = null;
       btnYes.onclick = null;
+      btnNo.style.display = '';
+      btnYes.textContent = 'YES';
     }
-    btnNo.onclick = () => { cleanup(); callback(false); };
-    btnYes.onclick = () => { cleanup(); callback(true); };
   }
   function showInputModal(title, placeholder, callback) {
     const backdrop = document.getElementById('input-modal-backdrop');
@@ -479,7 +502,7 @@ document.addEventListener("DOMContentLoaded", function () {
       name.style.textDecoration = item.checked ? 'line-through' : 'none';
       name.style.opacity = item.checked ? '0.77' : '1';
 
-      // Always allow double click to edit item name (use prompt)
+      // Use custom input modal for editing item name
       name.ondblclick = function (e) {
         e.stopPropagation();
         editNameInline(cat, key, name, item);
@@ -680,9 +703,18 @@ document.addEventListener("DOMContentLoaded", function () {
   function addItem(cat) {
     showInputModal('Enter new item name:', 'e.g. Carrots', function(name) {
       if (!name) return;
+      const trimmedName = name.trim().toLowerCase();
       const itemsRef = db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}`);
       itemsRef.once('value').then(snap => {
         const items = snap.val() || {};
+        // Prevent duplicate item names (case-insensitive, trimmed)
+        const existingNames = Object.values(items)
+          .filter(v => v && typeof v.name === 'string')
+          .map(v => v.name.trim().toLowerCase());
+        if (existingNames.includes(trimmedName)) {
+          showModal('This item already exists in this table.', function(){});
+          return;
+        }
         let maxIdx = 0;
         Object.keys(items).forEach(key => {
           const match = key.match(/^item(\d+)$/);
@@ -691,7 +723,7 @@ document.addEventListener("DOMContentLoaded", function () {
           }
         });
         const newKey = `item${maxIdx + 1}`;
-        const newItem = { name: name, count: 0, checked: false, createdAt: Date.now() };
+        const newItem = { name: name.trim(), count: 0, checked: false, createdAt: Date.now() };
         itemsRef.child(newKey).set(newItem).then(() => {
           const orderRef = db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/order`);
           orderRef.once('value').then(orderSnap => {
@@ -736,6 +768,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
+  // --- Save table name to DB when creating a new table ---
   function addNewTablePrompt() {
     showInputModal('Enter table name (e.g. Pharmacy):', 'e.g. Pharmacy', function (tname) {
       if (!tname) return;
@@ -756,6 +789,9 @@ document.addEventListener("DOMContentLoaded", function () {
         const idx = CATEGORIES.length;
         CATEGORY_HEADER_CLASSES[catKey] = getHeaderClass(catKey, idx);
 
+        // Save table name mapping to DB
+        db.ref(`/userLists/${USER_LIST_KEY}/tableNames/${catKey}`).set(tname);
+
         db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${catKey}`).set(items).then(() => {
           if (itemName && itemName.trim()) {
             db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${catKey}/order`).set(["item1"]);
@@ -766,46 +802,69 @@ document.addEventListener("DOMContentLoaded", function () {
   }
   document.getElementById('add-table-btn-main').onclick = addNewTablePrompt;
 
-  function updateCount(cat, key, delta) {
-    const item = groceryData[cat][key];
-    if (!item || typeof item !== 'object' || typeof item.name !== 'string') return;
-    let v = (item.count || 0) + delta;
-    v = Math.max(0, Math.min(50, v));
-    db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/${key}`).update({ count: v });
+  // --- Save table name to DB when editing ---
+  function editTableHeaderInline(cat, headerTitleEl) {
+    const prev = CATEGORY_NAMES[cat];
+    showInputModal('Edit table name:', prev, function (newValue) {
+      if (typeof newValue !== "string") return;
+      const trimmed = newValue.trim();
+      if (trimmed && trimmed !== prev) {
+        CATEGORY_NAMES[cat] = trimmed;
+        db.ref(`/userLists/${USER_LIST_KEY}/tableNames/${cat}`).set(trimmed, function() {
+          renderAllTables();
+        });
+      }
+    });
+    // Ensure input is set and cursor is at end after modal is shown
+    setTimeout(() => {
+      const input = document.getElementById('input-modal-input');
+      if (input) {
+        // Always set value and move cursor to end
+        input.value = prev;
+        input.focus();
+        input.setSelectionRange(prev.length, prev.length);
+      }
+    }, 10);
   }
-  function toggleChecked(cat, key, val) {
-    db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/${key}`).update({ checked: !!val });
-  }
+
+  // --- Inline Edit Table Header ---
   function editTableHeaderInline(cat, headerTitleEl) {
     if (headerTitleEl.classList.contains('editing')) return;
     const prev = CATEGORY_NAMES[cat];
-    // Use prompt for editing (always works)
-    const newValue = prompt('Edit table name:', prev);
-    if (newValue === null) return; // Cancelled
-    const trimmed = newValue.trim();
-    if (trimmed && trimmed !== prev) {
-      CATEGORY_NAMES[cat] = trimmed;
-      renderAllTables();
-    }
+    showInputModal('Edit table name:', prev, function (newValue) {
+      if (typeof newValue !== "string") return;
+      const trimmed = newValue.trim();
+      if (trimmed && trimmed !== prev) {
+        CATEGORY_NAMES[cat] = trimmed;
+        // Save to DB under /userLists/{USER_LIST_KEY}/tableNames/{cat}
+        db.ref(`/userLists/${USER_LIST_KEY}/tableNames/${cat}`).set(trimmed, function() {
+          renderAllTables();
+        });
+      }
+    });
   }
 
   // --- Inline Edit Item Name ---
   function editNameInline(cat, key, nameDiv, oldItem) {
-    // Use prompt for editing (always works)
     const prevName = oldItem.name;
-    const newValue = prompt('Edit item name:', prevName);
-    if (newValue === null) return; // Cancelled
-    const trimmed = newValue.trim();
-    if (!trimmed) {
-      // Don't allow empty name, keep previous
-      return;
-    }
-    if (trimmed !== prevName) {
-      // Update in DB
-      db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/${key}`).update({ name: trimmed });
-      // Update UI immediately for better feedback
-      nameDiv.textContent = trimmed;
-    }
+    showInputModal('Edit item name:', prevName, function (newValue) {
+      if (typeof newValue !== "string") return;
+      const trimmed = newValue.trim();
+      if (!trimmed) return;
+      if (trimmed !== prevName) {
+        db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/${key}`).update({ name: trimmed });
+        nameDiv.textContent = trimmed;
+      }
+    });
+    // Ensure input is set and cursor is at end after modal is shown
+    setTimeout(() => {
+      const input = document.getElementById('input-modal-input');
+      if (input) {
+        input.value = prevName;
+        input.focus();
+        input.setSelectionRange(prevName.length, prevName.length);
+      }
+    }, 1);
   }
 
   document.getElementById('static-reset-btn').onclick = function () {
@@ -938,16 +997,50 @@ document.addEventListener("DOMContentLoaded", function () {
 
 // --- Inline Edit Table Header ---
 function editTableHeaderInline(cat, headerTitleEl) {
-  if (headerTitleEl.classList.contains('editing')) return;
   const prev = CATEGORY_NAMES[cat];
-  // Use prompt for editing (always works)
-  const newValue = prompt('Edit table name:', prev);
-  if (newValue === null) return; // Cancelled
-  const trimmed = newValue.trim();
-  if (trimmed && trimmed !== prev) {
-    CATEGORY_NAMES[cat] = trimmed;
-    renderAllTables();
-  }
+  showInputModal('Edit table name:', prev, function (newValue) {
+    if (typeof newValue !== "string") return;
+    const trimmed = newValue.trim();
+    if (trimmed && trimmed !== prev) {
+      CATEGORY_NAMES[cat] = trimmed;
+      db.ref(`/userLists/${USER_LIST_KEY}/tableNames/${cat}`).set(trimmed, function() {
+        renderAllTables();
+      });
+    }
+  });
+  // Ensure input is set and cursor is at end after modal is shown
+  setTimeout(() => {
+    const input = document.getElementById('input-modal-input');
+    if (input) {
+      // Always set value and move cursor to end
+      input.value = prev;
+      input.focus();
+      input.setSelectionRange(prev.length, prev.length);
+    }
+  }, 10);
+}
+
+// --- Inline Edit Item Name ---
+function editNameInline(cat, key, nameDiv, oldItem) {
+  const prevName = oldItem.name;
+  showInputModal('Edit item name:', prevName, function (newValue) {
+    if (typeof newValue !== "string") return;
+    const trimmed = newValue.trim();
+    if (!trimmed) return;
+    if (trimmed !== prevName) {
+      db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/${key}`).update({ name: trimmed });
+      nameDiv.textContent = trimmed;
+    }
+  });
+  // Ensure input is set and cursor is at end after modal is shown
+  setTimeout(() => {
+    const input = document.getElementById('input-modal-input');
+    if (input) {
+      input.value = prevName;
+      input.focus();
+      input.setSelectionRange(prevName.length, prevName.length);
+    }
+  }, 1);
 }
 
 // --- Render Grocery Tables (patch for double click) ---
@@ -1094,7 +1187,7 @@ function renderList(cat) {
     name.style.textDecoration = item.checked ? 'line-through' : 'none';
     name.style.opacity = item.checked ? '0.77' : '1';
 
-    // Always allow double click to edit item name (use prompt)
+    // Use custom input modal for editing item name
     name.ondblclick = function (e) {
       e.stopPropagation();
       editNameInline(cat, key, name, item);
