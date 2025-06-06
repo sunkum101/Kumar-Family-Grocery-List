@@ -12,93 +12,89 @@ body, html {
           user-select: none;
 }
 
-/* Main action area at the top */
-.actions-mobile {
+/* --- Modern Top Bar --- */
+.top-bar {
   display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 11px;
-  max-width: 98vw;
-  margin: 14px auto 0 auto;
-  padding: 0 2vw;
-}
-
-#user-email-label {
-  background: #f9f9f9;
-  color: #333;
-  font-size: 1em;
-  padding: 0.32em 1.2em;
-  border-radius: 1.2em;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-  align-self: flex-start;
-  margin-bottom: 2px;
-  font-weight: 500;
-}
-
-.action-btn {
-  width: 100%;
-  min-height: 39px;
-  font-size: 1.05rem;
-  font-weight: 700;
-  border: none;
-  border-radius: 11px;
-  cursor: pointer;
-  box-shadow: 0 1px 5px rgba(60,80,130,0.11);
-  letter-spacing: .01em;
-  display: flex;
+  flex-direction: row;
   align-items: center;
-  justify-content: center;
-  transition: background 0.14s, box-shadow 0.11s, transform 0.11s;
+  justify-content: space-between;
+  gap: 8px;
+  background: #f8fafc;
+  border-radius: 0 0 18px 18px;
+  box-shadow: 0 2px 8px rgba(60,80,130,0.07);
+  padding: 7px 10px 7px 7px;
+  margin: 0 0 7px 0;
+  min-height: 44px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
-.action-btn.move-delete {
-  background: linear-gradient(90deg, #f59e42 70%, #fecf6e 100%);
-  color: #fff;
+/* Top bar: compact, no extra white space */
+.top-bar.compact {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 5px;
+  background: #f8fafc;
+  border-radius: 0 0 18px 18px;
+  box-shadow: 0 2px 8px rgba(60,80,130,0.07);
+  padding: 4px 6px 4px 6px;
+  margin: 0 0 2px 0;
+  min-height: 36px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
-.action-btn.reset {
-  background: linear-gradient(90deg, #6366f1 70%, #a5b4fc 100%);
-  color: #fff;
-}
-.action-btn.check-zeros {
-  background: linear-gradient(90deg, #22c55e 70%, #6ee7b7 100%);
-  color: #fff;
-}
+
+/* Logout button: leftmost, round, subtle */
 .action-btn.logout {
   background: #f5f7fa;
   color: #444;
   border-radius: 50%;
-  width: 35px;
-  height: 35px;
-  min-width: 35px;
-  min-height: 35px;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
   padding: 0;
-  align-self: flex-end;
-  margin-top: 0.5em;
+  margin: 0;
   box-shadow: 0 1px 4px rgba(30,30,30,0.10);
-  opacity: 0.84;
+  opacity: 0.90;
   display: flex;
   align-items: center;
   justify-content: center;
+  order: 0;
+  border: none;
+  transition: background 0.13s, box-shadow 0.13s;
 }
 .action-btn.logout svg {
-  width: 17px;
-  height: 17px;
+  width: 18px;
+  height: 18px;
 }
 
-.row-btns {
-  display: flex;
-  flex-direction: row;
-  gap: 8px;
-  width: 100%;
+/* Email label: next to logout, no extra margin */
+#user-email-label {
+  background: #f9f9f9;
+  color: #333;
+  font-size: 0.88em;
+  padding: 0.13em 0.7em;
+  border-radius: 1.2em;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  margin: 0;
+  font-weight: 500;
+  min-width: 0;
+  max-width: 60vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  align-self: center;
 }
 
-/* Floating collapse button, only icon, no text */
+/* Collapse All: rightmost, round */
 #collapse-all-btn {
-  /* Remove fixed positioning */
   position: static;
-  top: unset;
-  right: unset;
-  margin: 12px 0 0 auto;   /* Pushes it to the right (auto left margin) */
+  margin: 0 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -114,8 +110,8 @@ body, html {
   height: 33px;
   transition: background 0.13s, box-shadow 0.13s, transform 0.11s;
   z-index: 1;
+  order: 2;
 }
-
 #collapse-all-btn .collapse-icon {
   display: flex;
   align-items: center;
@@ -132,15 +128,155 @@ body, html {
   transform: scale(1.07);
 }
 
-/* Heading */
-h1 {
-  text-align:center;
-  margin:16px 0 10px 0;
-  font-size:1.55rem;
-  color:#343c4e;
+/* --- Modern Action Buttons --- */
+.actions-mobile {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  max-width: 99vw;
+  margin: 0 auto 0 auto;
+  padding: 0 2vw;
+}
+
+/* Remove extra white space below top bar */
+.actions-mobile.compact-actions {
+  margin: 0 auto 0 auto;
+  padding: 0 2vw;
+  gap: 0;
+}
+
+.action-btn.move-delete {
+  background: linear-gradient(90deg, #f59e42 70%, #fecf6e 100%);
+  color: #fff;
+  font-size: 1.08rem;
+  border-radius: 10px;
+  min-height: 38px;
+  margin-bottom: 2px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  box-shadow: 0 1px 4px rgba(60,80,130,0.09);
+}
+
+.row-btns {
+  display: flex;
+  flex-direction: row;
+  gap: 7px;
+  width: 100%;
+  margin-bottom: 2px;
+}
+
+.action-btn.reset {
+  background: linear-gradient(90deg, #6366f1 70%, #a5b4fc 100%);
+  color: #fff;
+  border-radius: 10px;
+  font-size: 1.08rem;
+  min-height: 38px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  box-shadow: 0 1px 4px rgba(60,80,130,0.09);
+}
+
+.action-btn.check-zeros {
+  background: linear-gradient(90deg, #22c55e 70%, #6ee7b7 100%);
+  color: #fff;
+  border-radius: 10px;
+  font-size: 1.08rem;
+  min-height: 38px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  box-shadow: 0 1px 4px rgba(60,80,130,0.09);
+}
+
+/* Force the three main buttons to always be in a single horizontal line */
+.actions-mobile .row-btns,
+.actions-mobile .row-btns.one-line-btns,
+.actions-mobile .compact-row-btns,
+.actions-mobile .row-btns.compact-row-btns {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 3px !important;
+  width: 100%;
+  margin-bottom: 2px;
+  justify-content: space-between;
+}
+
+/* Make the buttons as compact as possible */
+.action-btn.compact-btn,
+.action-btn.move-delete,
+.action-btn.reset,
+.action-btn.check-zeros {
+  font-size: 0.89rem;
+  min-height: 27px;
+  padding: 0 3px;
+  border-radius: 6px;
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(60,80,130,0.05);
+  flex: 1 1 0;
+  max-width: 33.3%;
+  white-space: nowrap;
+  line-height: 1.1;
+  margin: 0;
+}
+
+/* Remove extra margin from .action-btn.move-delete */
+.action-btn.move-delete {
+  margin-bottom: 0;
+}
+
+/* On small screens, keep them horizontal unless extremely narrow */
+@media (max-width: 350px) {
+  .actions-mobile .row-btns,
+  .actions-mobile .row-btns.one-line-btns,
+  .actions-mobile .compact-row-btns,
+  .actions-mobile .row-btns.compact-row-btns {
+    flex-direction: column !important;
+    gap: 5px !important;
+  }
+}
+
+/* Responsive: stack buttons on very small screens */
+@media (max-width: 430px) {
+  .row-btns {
+    flex-direction: column;
+    gap: 7px;
+  }
+  .top-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    padding: 7px 5px 7px 5px;
+  }
+  #user-email-label {
+    max-width: 90vw;
+    margin: 0 0 0 0;
+  }
+  .row-btns.one-line-btns {
+    flex-direction: column;
+    gap: 5px;
+  }
+}
+
+/* Center the title */
+.center-title {
+  text-align: center;
+  margin: 8px 0 0 0 !important;
+  font-size: 1.55rem;
+  color: #343c4e;
   font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
-  font-weight:700;
-  letter-spacing:0.01em;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+/* Remove space between title and clock */
+.tight-datetime {
+  font-size: 1.06rem;
+  color: #6c7a89;
+  text-align: center;
+  margin-top: 2px;
+  margin-bottom: 13px;
+  font-weight: 500;
+  opacity: 0.92;
 }
 
 /* Datetime display */
@@ -232,7 +368,7 @@ li {
   display:flex;
   align-items:center;
   gap:10px;
-  padding:12px 10px 12px 14px;
+  padding:12px 0 12px 4px; /* Reduce left padding, remove right padding */
   border-bottom:1px solid #e3e9f2;
   background: #fff;
   font-size:1.21rem;
@@ -259,6 +395,7 @@ input[type="checkbox"] {
   box-shadow:0 1px 4px rgba(80,80,80,0.07);
   border: 1px solid #d3dbe6;
   background:#fafbfc;
+  margin-left: 2px; /* Move checkbox a little right from the edge */
 }
 .name {
   flex: 1;
@@ -289,15 +426,15 @@ input[type="checkbox"] {
   display: flex;
   align-items: center;
   gap: 12px;
-  font-size: 1.35rem; /* Match .name size */
+  font-size: 1.35rem;
   background: #f7f7f7;
   border-radius: 12px;
-  padding: 6px 17px;
+  padding: 6px 0 6px 17px; /* Remove right padding, keep left for spacing */
   min-width: 92px;
-  justify-content: center;
+  justify-content: flex-end; /* Push buttons to the right edge */
   box-shadow: 0 1px 4px rgba(0,0,0,0.07);
   margin-left: 4px;
-  margin-right: 4px;
+  margin-right: 0; /* Remove extra right margin */
 }
 .counter button {
   width: 42px;
@@ -338,14 +475,15 @@ input[type="checkbox"] {
 .add-table-btn-wrap {
   width: 100%;
   display: flex;
-  justify-content: flex-start;
-  margin: 20px 0 0 0;
-  padding-left:10px;
+  justify-content: center;      /* Center horizontally */
+  align-items: center;
+  margin: 38px 0 0 0;          /* Move downward (increase top margin) */
+  padding-left: 0;              /* Remove left padding */
 }
 .add-table-btn {
-  min-width: 110px;
-  border-radius: 22px;
-  padding: 8px 13px;
+  min-width: 60px;              /* Smaller width */
+  border-radius: 18px;
+  padding: 5px 13px;            /* Less vertical padding */
   font-size: 1.05rem;
   font-weight: 700;
   background: #aeb9c5;
@@ -457,6 +595,10 @@ input[type="checkbox"] {
   background: #fff;
 }
 
+/* Add space below the top bar (email address) and above the three buttons */
+#main-section .actions-mobile {
+  margin-top: 10px;
+}
 
 
 /* On small screens, keep these sizes large for touch */
