@@ -596,14 +596,13 @@ document.addEventListener("DOMContentLoaded", function () {
         plus.style.textDecoration = counterTextDecoration;
         plus.style.opacity = counterOpacity;
         plus.onclick = (e) => {
-          e.stopPropagation();
-          // Fix: If count is undefined, treat as 0 before incrementing
-          let current = typeof item.count === 'number' ? item.count : 0;
-          updateCount(cat, key, 1 - current); // If count is 0 or undefined, set to 1
-          if (typeof item.count === 'number') {
-            updateCount(cat, key, +1);
-          }
-        };
+  e.stopPropagation();
+  let current = typeof item.count === 'number' ? item.count : 0;
+  updateCount(cat, key, 1 - current); // If count is 0 or undefined, set to 1
+  if (typeof item.count === 'number') {
+    updateCount(cat, key, +1); // No max limit!
+  }
+};
 
         cnt.appendChild(minus);
         cnt.appendChild(count);
