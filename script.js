@@ -324,37 +324,34 @@ document.addEventListener("DOMContentLoaded", function () {
       const container = document.createElement('div');
       container.className = 'container';
       container.id = `${cat}-container`;
+
       const headerClass = getHeaderClass(cat, idx);
       const header = document.createElement('div');
       header.className = 'header ' + headerClass;
       header.id = `${cat}-header`;
-      header.onclick = () => toggleCollapse(cat);
 
-      // Long-press to delete table
-      let headerPressTimer = null;
-      header.addEventListener('touchstart', e => {
-        headerPressTimer = setTimeout(() => {
-          showModal(`Delete "${CATEGORY_NAMES[cat]}" and all its items?`, (yes) => {
-            if (yes) deleteTable(cat);
-          });
-        }, 2000);
-      });
-      header.addEventListener('touchend', e => { clearTimeout(headerPressTimer); });
-      header.addEventListener('touchmove', e => { clearTimeout(headerPressTimer); });
-      header.addEventListener('mousedown', e => {
-        if (e.button !== 0) return;
-        headerPressTimer = setTimeout(() => {
-          showModal(`Delete "${CATEGORY_NAMES[cat]}" and all its items?`, (yes) => {
-            if (yes) deleteTable(cat);
-          });
-        }, 2000);
-      });
-      header.addEventListener('mouseup', e => { clearTimeout(headerPressTimer); });
-      header.addEventListener('mouseleave', e => { clearTimeout(headerPressTimer); });
-
+      // --- Editable Table Header Title ---
       const headerTitle = document.createElement('span');
       headerTitle.className = 'header-title';
       headerTitle.innerHTML = (CATEGORY_ICONS[cat] ? CATEGORY_ICONS[cat] + " " : "") + CATEGORY_NAMES[cat];
+      headerTitle.style.cursor = "pointer";
+      headerTitle.ondblclick = function (e) {
+        e.stopPropagation();
+        editTableHeaderInline(cat, headerTitle);
+      };
+
+      // --- Collapse on header background click only ---
+      header.onclick = function (e) {
+        // Only collapse if click is NOT on headerTitle or any icon/button
+        if (
+          e.target === header ||
+          e.target.classList.contains('header') ||
+          e.target.classList.contains('header-count') ||
+          e.target.classList.contains('collapse-arrow')
+        ) {
+          toggleCollapse(cat);
+        }
+      };
 
       const headerCount = document.createElement('span');
       headerCount.className = 'header-count';
@@ -440,54 +437,148 @@ document.addEventListener("DOMContentLoaded", function () {
       if (!item || typeof item !== 'object' || typeof item.name !== 'string') return;
       const li = document.createElement('li');
       li.dataset.key = key;
-      if (item.checked) li.classList.add('checked');
-      if (item.count > 0) li.classList.add('has-count');
       li.style.position = 'relative';
+      li.style.display = 'flex';
+      li.style.alignItems = 'center';
+      li.style.paddingLeft = '0';
+      li.style.paddingRight = '0';
+      li.style.paddingTop = '7px';
+      li.style.paddingBottom = '7px';
+      li.style.fontSize = '1.08rem';
+
+      // Checked: gray background and strikethrough, else highlight if count > 0
+      if (item.checked) {
+        li.style.background = '#f1f1f1';
+        li.style.color = '#444';
+      } else if (item.count > 0) {
+        li.style.background = '#FFF8D6';
+        li.style.color = '#b26a00';
+      } else {
+        li.style.background = '#fff';
+        li.style.color = '';
+      }
 
       const cb = document.createElement('input');
       cb.type = 'checkbox';
       cb.checked = !!item.checked;
       cb.onchange = () => toggleChecked(cat, key, cb.checked);
+      cb.style.margin = '0 1px 0 9px';
+      cb.style.flex = '0 0 auto';
+      cb.style.width = '20px';
+      cb.style.height = '20px';
       li.appendChild(cb);
 
       const name = document.createElement('div');
       name.className = 'name';
       name.textContent = item.name;
-      name.ondblclick = (e) => {
+      name.style.flex = '1 1 auto';
+      name.style.overflow = 'hidden';
+      name.style.textOverflow = 'ellipsis';
+      name.style.whiteSpace = 'nowrap';
+      name.style.margin = '0 2px';
+      name.style.textDecoration = item.checked ? 'line-through' : 'none';
+      name.style.opacity = item.checked ? '0.77' : '1';
+
+      // Always allow double click to edit item name (use prompt)
+      name.ondblclick = function (e) {
         e.stopPropagation();
         editNameInline(cat, key, name, item);
       };
+
       li.appendChild(name);
 
       if (!moveDeleteMode) {
         const cnt = document.createElement('div');
         cnt.className = 'counter';
+        cnt.style.display = 'inline-flex';
+        cnt.style.alignItems = 'center';
+        cnt.style.gap = '2px';
+        cnt.style.background = 'none';
+        cnt.style.boxShadow = 'none';
+        cnt.style.border = 'none';
+        cnt.style.marginLeft = 'auto';
+        cnt.style.marginRight = '0';
+        cnt.style.position = 'static';
+
+        // If checked, cross out the entire counter (plus, minus, count)
+        const counterTextDecoration = item.checked ? 'line-through' : 'none';
+        const counterOpacity = item.checked ? '0.77' : '1';
+
         const minus = document.createElement('button');
         minus.textContent = '-';
+        minus.style.fontSize = '0.95em';
+        minus.style.width = '1.4em';
+        minus.style.height = '1.4em';
+        minus.style.lineHeight = '1.2em';
+        minus.style.padding = '0';
+        minus.style.background = 'none';
+        minus.style.border = '1px solid #222';
+        minus.style.borderRadius = '4px';
+        minus.style.margin = '0 2px 0 0';
+        minus.style.cursor = 'pointer';
+        minus.style.color = '#222';
+        minus.style.textDecoration = counterTextDecoration;
+        minus.style.opacity = counterOpacity;
         minus.onclick = (e) => {
           e.stopPropagation();
           updateCount(cat, key, -1);
         };
+
         const count = document.createElement('span');
         count.className = 'count';
         count.textContent = item.count || 0;
+        count.style.display = 'inline-block';
+        count.style.minWidth = '1.2em';
+        count.style.textAlign = 'center';
+        count.style.fontSize = '1em';
+        count.style.margin = '0 2px';
+        count.style.background = 'none';
+        count.style.boxShadow = 'none';
+        count.style.border = 'none';
+        count.style.textDecoration = counterTextDecoration;
+        count.style.opacity = counterOpacity;
+
         const plus = document.createElement('button');
         plus.textContent = '+';
+        plus.style.fontSize = '0.95em';
+        plus.style.width = '1.4em';
+        plus.style.height = '1.4em';
+        plus.style.lineHeight = '1.2em';
+        plus.style.padding = '0';
+        plus.style.background = 'none';
+        plus.style.border = '1px solid #222';
+        plus.style.borderRadius = '4px';
+        plus.style.margin = '0 0 0 2px';
+        plus.style.cursor = 'pointer';
+        plus.style.color = '#222';
+        plus.style.textDecoration = counterTextDecoration;
+        plus.style.opacity = counterOpacity;
         plus.onclick = (e) => {
           e.stopPropagation();
           updateCount(cat, key, +1);
         };
+
         cnt.appendChild(minus);
         cnt.appendChild(count);
         cnt.appendChild(plus);
         li.appendChild(cnt);
       } else {
+        // Trash icon (bigger for touch)
         const trash = document.createElement('button');
         trash.className = 'trash-icon';
         trash.title = 'Delete (with undo)';
+        trash.style.width = '38px';
+        trash.style.height = '38px';
+        trash.style.display = 'flex';
+        trash.style.alignItems = 'center';
+        trash.style.justifyContent = 'center';
+        trash.style.background = 'none';
+        trash.style.border = 'none';
+        trash.style.marginLeft = '4px';
+        trash.style.cursor = 'pointer';
         trash.innerHTML =
-          `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <path stroke="#e53935" stroke-width="2" d="M5 7h14M10 11v6m4-6v6M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12m-9-2h4a2 2 0 0 1 2 2v0H7v0a2 2 0 0 1 2-2z"/>
+          `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 28 28" width="28" height="28">
+            <path stroke="#e53935" stroke-width="2.2" d="M6 8h16M12 12v7m4-7v7M6 8l1.2 13a2.2 2.2 0 0 0 2.2 2h8.4a2.2 2.2 0 0 0 2.2-2L22 8m-10-3h4a2 2 0 0 1 2 2v0H10v0a2 2 0 0 1 2-2z"/>
           </svg>`;
         trash.onclick = () => {
           let idx = keys.indexOf(key);
@@ -513,15 +604,25 @@ document.addEventListener("DOMContentLoaded", function () {
         };
         li.appendChild(trash);
 
+        // Move icon (bigger for touch)
         const move = document.createElement('button');
         move.className = 'move-icon';
         move.title = 'Drag to reorder';
+        move.style.width = '38px';
+        move.style.height = '38px';
+        move.style.display = 'flex';
+        move.style.alignItems = 'center';
+        move.style.justifyContent = 'center';
+        move.style.background = 'none';
+        move.style.border = 'none';
+        move.style.marginLeft = '4px';
+        move.style.cursor = 'grab';
         move.innerHTML =
-          `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-            <rect width="24" height="24" fill="none"/>
-            <rect x="5" y="7" width="14" height="2" rx="1" fill="#666"/>
-            <rect x="5" y="11" width="14" height="2" rx="1" fill="#666"/>
-            <rect x="5" y="15" width="14" height="2" rx="1" fill="#666"/>
+          `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 28" width="28" height="28">
+            <rect width="28" height="28" fill="none"/>
+            <rect x="7" y="9" width="14" height="2.8" rx="1.2" fill="#666"/>
+            <rect x="7" y="13" width="14" height="2.8" rx="1.2" fill="#666"/>
+            <rect x="7" y="17" width="14" height="2.8" rx="1.2" fill="#666"/>
           </svg>`;
         li.appendChild(move);
       }
@@ -675,64 +776,71 @@ document.addEventListener("DOMContentLoaded", function () {
   function toggleChecked(cat, key, val) {
     db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/${key}`).update({ checked: !!val });
   }
-  function editNameInline(cat, key, nameDiv, oldItem) {
-    if (nameDiv.classList.contains('editing')) return;
-    const prevName = oldItem.name;
-    nameDiv.classList.add('editing');
-    nameDiv.setAttribute('contenteditable', 'true');
-    nameDiv.setAttribute('spellcheck', 'false');
-    nameDiv.style.userSelect = "text";
-    nameDiv.focus();
-    if (window.getSelection && document.createRange) {
-      const range = document.createRange();
-      range.selectNodeContents(nameDiv);
-      range.collapse(false);
-      const selection = window.getSelection();
-      selection.removeAllRanges();
-      selection.addRange(range);
+  function editTableHeaderInline(cat, headerTitleEl) {
+    if (headerTitleEl.classList.contains('editing')) return;
+    const prev = CATEGORY_NAMES[cat];
+    // Use prompt for editing (always works)
+    const newValue = prompt('Edit table name:', prev);
+    if (newValue === null) return; // Cancelled
+    const trimmed = newValue.trim();
+    if (trimmed && trimmed !== prev) {
+      CATEGORY_NAMES[cat] = trimmed;
+      renderAllTables();
     }
+  }
 
-    let finished = false;
-    function finishEdit() {
-      if (finished) return;
-      finished = true;
-      nameDiv.classList.remove('editing');
-      nameDiv.removeAttribute('contenteditable');
-      nameDiv.style.userSelect = "";
-      const newValue = nameDiv.textContent.trim();
-      if (!newValue) {
-        db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/${key}`).update({ name: prevName });
-        nameDiv.textContent = prevName;
-      } else if (newValue !== prevName) {
-        db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/${key}`).update({ name: newValue });
-      }
+  // --- Inline Edit Item Name ---
+  function editNameInline(cat, key, nameDiv, oldItem) {
+    // Use prompt for editing (always works)
+    const prevName = oldItem.name;
+    const newValue = prompt('Edit item name:', prevName);
+    if (newValue === null) return; // Cancelled
+    const trimmed = newValue.trim();
+    if (!trimmed) {
+      // Don't allow empty name, keep previous
+      return;
     }
-    nameDiv.onkeydown = function (e) {
-      if (e.key === "Enter") { e.preventDefault(); finishEdit(); }
-      if (e.key === "Escape") { nameDiv.textContent = prevName; finishEdit(); }
-    };
-    nameDiv.onblur = finishEdit;
+    if (trimmed !== prevName) {
+      // Update in DB
+      db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/${key}`).update({ name: trimmed });
+      // Update UI immediately for better feedback
+      nameDiv.textContent = trimmed;
+    }
   }
 
   document.getElementById('static-reset-btn').onclick = function () {
     showModal("Reset all counters to 0 and uncheck all items in all tables?", function (yes) {
       if (!yes) return;
 
+      // Only update items, do NOT remove any tables
       CATEGORIES.forEach(cat => {
         const items = groceryData[cat] || {};
         Object.entries(items).forEach(([key, item]) => {
-          db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/${key}`).update({ count: 0, checked: false });
+          // Only update items, skip "order" property
+          if (key !== "order") {
+            // Use setTimeout to batch updates and avoid UI freeze
+            setTimeout(() => {
+              db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/${key}`).update({ count: 0, checked: false });
+            }, 0);
+          }
         });
 
+        // Restore original order if backup exists
         if (originalOrderBackup[cat]) {
           db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/order`).set(originalOrderBackup[cat]);
           delete originalOrderBackup[cat];
         }
+        // Restore markZerosOrderBackup if used
+        if (typeof markZerosOrderBackup !== "undefined" && markZerosOrderBackup[cat]) {
+          db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/order`).set(markZerosOrderBackup[cat]);
+          delete markZerosOrderBackup[cat];
+        }
       });
 
+      // Delay renderAllTables to allow batched updates to process
       setTimeout(() => {
         renderAllTables();
-      }, 350);
+      }, 100);
     });
   };
 
@@ -758,7 +866,10 @@ document.addEventListener("DOMContentLoaded", function () {
             aboveZero.push(key);
           } else {
             zero.push(key);
-            db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/${key}`).update({ checked: true });
+            // Use setTimeout to batch updates and avoid UI freeze
+            setTimeout(() => {
+              db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/${key}`).update({ checked: true });
+            }, 0);
           }
         });
 
@@ -766,9 +877,10 @@ document.addEventListener("DOMContentLoaded", function () {
         db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/order`).set(newOrder);
       });
 
+      // Delay renderAllTables to allow batched updates to process
       setTimeout(() => {
         renderAllTables();
-      }, 350);
+      }, 100);
     });
   };
 
@@ -823,3 +935,337 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 });
+
+// --- Inline Edit Table Header ---
+function editTableHeaderInline(cat, headerTitleEl) {
+  if (headerTitleEl.classList.contains('editing')) return;
+  const prev = CATEGORY_NAMES[cat];
+  // Use prompt for editing (always works)
+  const newValue = prompt('Edit table name:', prev);
+  if (newValue === null) return; // Cancelled
+  const trimmed = newValue.trim();
+  if (trimmed && trimmed !== prev) {
+    CATEGORY_NAMES[cat] = trimmed;
+    renderAllTables();
+  }
+}
+
+// --- Render Grocery Tables (patch for double click) ---
+function renderAllTables() {
+  const area = document.getElementById('tables-area');
+  area.innerHTML = '';
+  CATEGORIES.forEach((cat, idx) => {
+    if (!CATEGORY_NAMES[cat]) CATEGORY_NAMES[cat] = cat.charAt(0).toUpperCase() + cat.slice(1);
+    if (!CATEGORY_ICONS[cat]) CATEGORY_ICONS[cat] = '';
+    const container = document.createElement('div');
+    container.className = 'container';
+    container.id = `${cat}-container`;
+
+    const headerClass = getHeaderClass(cat, idx);
+    const header = document.createElement('div');
+    header.className = 'header ' + headerClass;
+    header.id = `${cat}-header`;
+
+    // --- Editable Table Header Title ---
+    const headerTitle = document.createElement('span');
+    headerTitle.className = 'header-title';
+    headerTitle.innerHTML = (CATEGORY_ICONS[cat] ? CATEGORY_ICONS[cat] + " " : "") + CATEGORY_NAMES[cat];
+    headerTitle.style.cursor = "pointer";
+    headerTitle.ondblclick = function (e) {
+      e.stopPropagation();
+      editTableHeaderInline(cat, headerTitle);
+    };
+
+    // --- Collapse on header background click only ---
+    header.onclick = function (e) {
+      // Only collapse if click is NOT on headerTitle or any icon/button
+      if (
+        e.target === header ||
+        e.target.classList.contains('header') ||
+        e.target.classList.contains('header-count') ||
+        e.target.classList.contains('collapse-arrow')
+      ) {
+        toggleCollapse(cat);
+      }
+    };
+
+    const headerCount = document.createElement('span');
+    headerCount.className = 'header-count';
+    headerCount.id = `${cat}-count`;
+
+    const headerArrow = document.createElement('span');
+    headerArrow.className = 'collapse-arrow';
+    headerArrow.id = `${cat}-arrow`;
+    headerArrow.innerHTML = "&#9654;";
+
+    header.appendChild(headerTitle);
+    header.appendChild(headerCount);
+    header.appendChild(headerArrow);
+
+    container.appendChild(header);
+
+    const ul = document.createElement('ul');
+    ul.id = cat;
+    container.appendChild(ul);
+
+    const addBtn = document.createElement('button');
+    addBtn.className = 'add-table-btn';
+    addBtn.textContent = '＋';
+    addBtn.onclick = (e)=>{
+      e.stopPropagation();
+      addItem(cat);
+    };
+    container.appendChild(addBtn);
+
+    area.appendChild(container);
+
+    if (localStorage.getItem('col-' + cat) === 'true') setCollapsed(cat, true);
+
+    renderList(cat);
+    updateHeaderCount(cat);
+  });
+}
+
+// --- Render List (patch for double click) ---
+function renderList(cat) {
+  const ul = document.getElementById(cat);
+  if (!ul) return;
+  ul.innerHTML = '';
+  let items = groceryData[cat] || {};
+  let keys = [];
+
+  if (moveDeleteMode && originalKeyOrder[cat]) {
+    keys = originalKeyOrder[cat].slice();
+  } else if (Array.isArray(items.order)) {
+    keys = items.order.filter(key => typeof items[key] === 'object');
+    const extra = Object.keys(items).filter(k => k !== "order" && !items.order.includes(k));
+    keys = keys.concat(extra);
+  } else {
+    keys = Object.keys(items).filter(k => k !== "order");
+  }
+
+  // Clear in-memory order when not in move/delete mode (so UI always matches DB order)
+  if (!moveDeleteMode) delete originalKeyOrder[cat];
+
+  keys.forEach((key) => {
+    const item = items[key];
+    if (!item || typeof item !== 'object' || typeof item.name !== 'string') return;
+    const li = document.createElement('li');
+    li.dataset.key = key;
+    li.style.position = 'relative';
+    li.style.display = 'flex';
+    li.style.alignItems = 'center';
+    li.style.paddingLeft = '0';
+    li.style.paddingRight = '0';
+    li.style.paddingTop = '7px';
+    li.style.paddingBottom = '7px';
+    li.style.fontSize = '1.08rem';
+
+    // Checked: gray background and strikethrough, else highlight if count > 0
+    if (item.checked) {
+      li.style.background = '#f1f1f1';
+      li.style.color = '#444';
+    } else if (item.count > 0) {
+      li.style.background = '#FFF8D6';
+      li.style.color = '#b26a00';
+    } else {
+      li.style.background = '#fff';
+      li.style.color = '';
+    }
+
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = !!item.checked;
+    cb.onchange = () => toggleChecked(cat, key, cb.checked);
+    cb.style.margin = '0 1px 0 9px';
+    cb.style.flex = '0 0 auto';
+    cb.style.width = '20px';
+    cb.style.height = '20px';
+    li.appendChild(cb);
+
+    const name = document.createElement('div');
+    name.className = 'name';
+    name.textContent = item.name;
+    name.style.flex = '1 1 auto';
+    name.style.overflow = 'hidden';
+    name.style.textOverflow = 'ellipsis';
+    name.style.whiteSpace = 'nowrap';
+    name.style.margin = '0 2px';
+    name.style.textDecoration = item.checked ? 'line-through' : 'none';
+    name.style.opacity = item.checked ? '0.77' : '1';
+
+    // Always allow double click to edit item name (use prompt)
+    name.ondblclick = function (e) {
+      e.stopPropagation();
+      editNameInline(cat, key, name, item);
+    };
+
+    li.appendChild(name);
+
+    if (!moveDeleteMode) {
+      const cnt = document.createElement('div');
+      cnt.className = 'counter';
+      cnt.style.display = 'inline-flex';
+      cnt.style.alignItems = 'center';
+      cnt.style.gap = '2px';
+      cnt.style.background = 'none';
+      cnt.style.boxShadow = 'none';
+      cnt.style.border = 'none';
+      cnt.style.marginLeft = 'auto';
+      cnt.style.marginRight = '0';
+      cnt.style.position = 'static';
+
+      // If checked, cross out the entire counter (plus, minus, count)
+      const counterTextDecoration = item.checked ? 'line-through' : 'none';
+      const counterOpacity = item.checked ? '0.77' : '1';
+
+      const minus = document.createElement('button');
+      minus.textContent = '-';
+      minus.style.fontSize = '0.95em';
+      minus.style.width = '1.4em';
+      minus.style.height = '1.4em';
+      minus.style.lineHeight = '1.2em';
+      minus.style.padding = '0';
+      minus.style.background = 'none';
+      minus.style.border = '1px solid #222';
+      minus.style.borderRadius = '4px';
+      minus.style.margin = '0 2px 0 0';
+      minus.style.cursor = 'pointer';
+      minus.style.color = '#222';
+      minus.style.textDecoration = counterTextDecoration;
+      minus.style.opacity = counterOpacity;
+      minus.onclick = (e) => {
+        e.stopPropagation();
+        updateCount(cat, key, -1);
+      };
+
+      const count = document.createElement('span');
+      count.className = 'count';
+      count.textContent = item.count || 0;
+      count.style.display = 'inline-block';
+      count.style.minWidth = '1.2em';
+      count.style.textAlign = 'center';
+      count.style.fontSize = '1em';
+      count.style.margin = '0 2px';
+      count.style.background = 'none';
+      count.style.boxShadow = 'none';
+      count.style.border = 'none';
+      count.style.textDecoration = counterTextDecoration;
+      count.style.opacity = counterOpacity;
+
+      const plus = document.createElement('button');
+      plus.textContent = '+';
+      plus.style.fontSize = '0.95em';
+      plus.style.width = '1.4em';
+      plus.style.height = '1.4em';
+      plus.style.lineHeight = '1.2em';
+      plus.style.padding = '0';
+      plus.style.background = 'none';
+      plus.style.border = '1px solid #222';
+      plus.style.borderRadius = '4px';
+      plus.style.margin = '0 0 0 2px';
+      plus.style.cursor = 'pointer';
+      plus.style.color = '#222';
+      plus.style.textDecoration = counterTextDecoration;
+      plus.style.opacity = counterOpacity;
+      plus.onclick = (e) => {
+        e.stopPropagation();
+        updateCount(cat, key, +1);
+      };
+
+      cnt.appendChild(minus);
+      cnt.appendChild(count);
+      cnt.appendChild(plus);
+      li.appendChild(cnt);
+    } else {
+      // Trash icon (bigger for touch)
+      const trash = document.createElement('button');
+      trash.className = 'trash-icon';
+      trash.title = 'Delete (with undo)';
+      trash.style.width = '38px';
+      trash.style.height = '38px';
+      trash.style.display = 'flex';
+      trash.style.alignItems = 'center';
+      trash.style.justifyContent = 'center';
+      trash.style.background = 'none';
+      trash.style.border = 'none';
+      trash.style.marginLeft = '4px';
+      trash.style.cursor = 'pointer';
+      trash.innerHTML =
+        `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 28 28" width="28" height="28">
+          <path stroke="#e53935" stroke-width="2.2" d="M6 8h16M12 12v7m4-7v7M6 8l1.2 13a2.2 2.2 0 0 0 2.2 2h8.4a2.2 2.2 0 0 0 2.2-2L22 8m-10-3h4a2 2 0 0 1 2 2v0H10v0a2 2 0 0 1 2-2z"/>
+        </svg>`;
+      trash.onclick = () => {
+        let idx = keys.indexOf(key);
+        let backupItem = { ...item };
+        deletedRowBackup = { cat, key, item: backupItem, idx };
+        li.style.display = 'none';
+        deletedRowTimer = setTimeout(() => {
+          db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/${key}`).remove();
+          deletedRowBackup = null;
+          deletedRowTimer = null;
+        }, 3000);
+        showUndoToast(
+          'Item deleted.',
+          () => {
+            if (deletedRowTimer) clearTimeout(deletedRowTimer);
+            db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/${key}`).set(backupItem);
+            deletedRowBackup = null;
+            deletedRowTimer = null;
+            renderList(cat);
+          },
+          () => { }
+        );
+      };
+      li.appendChild(trash);
+
+      // Move icon (bigger for touch)
+      const move = document.createElement('button');
+      move.className = 'move-icon';
+      move.title = 'Drag to reorder';
+      move.style.width = '38px';
+      move.style.height = '38px';
+      move.style.display = 'flex';
+      move.style.alignItems = 'center';
+      move.style.justifyContent = 'center';
+      move.style.background = 'none';
+      move.style.border = 'none';
+      move.style.marginLeft = '4px';
+      move.style.cursor = 'grab';
+      move.innerHTML =
+        `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 28" width="28" height="28">
+          <rect width="28" height="28" fill="none"/>
+          <rect x="7" y="9" width="14" height="2.8" rx="1.2" fill="#666"/>
+          <rect x="7" y="13" width="14" height="2.8" rx="1.2" fill="#666"/>
+          <rect x="7" y="17" width="14" height="2.8" rx="1.2" fill="#666"/>
+        </svg>`;
+      li.appendChild(move);
+    }
+    ul.appendChild(li);
+  });
+
+  // Enable SortableJS drag-and-drop only in move/delete mode
+  if (moveDeleteMode) {
+    if (!ul.sortableInstance) {
+      ul.sortableInstance = Sortable.create(ul, {
+        animation: 180,
+        handle: '.move-icon',
+        ghostClass: 'dragging',
+        onEnd: function (evt) {
+          let newOrder = [];
+          ul.querySelectorAll('li').forEach(li => {
+            if (li.dataset.key) newOrder.push(li.dataset.key);
+          });
+          db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/order`).set(newOrder);
+          originalKeyOrder[cat] = newOrder;
+          renderList(cat);
+        }
+      });
+    }
+  } else {
+    if (ul.sortableInstance) {
+      ul.sortableInstance.destroy();
+      ul.sortableInstance = null;
+    }
+  }
+}
