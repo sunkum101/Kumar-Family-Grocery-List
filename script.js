@@ -232,6 +232,24 @@ document.addEventListener("DOMContentLoaded", function () {
   updateDateTime();
 
   // --- Subscribe to User's Lists ---
+  // Move repairAllOrders definition ABOVE its first use!
+  function repairAllOrders() {
+    db.ref(`/userLists/${USER_LIST_KEY}/groceryLists`).once('value').then(snap => {
+      const lists = snap.val() || {};
+      Object.keys(lists).forEach(cat => {
+        const items = lists[cat];
+        if (!items) return;
+        let itemKeys = Object.keys(items).filter(k => k !== 'order');
+        let order = Array.isArray(items.order) ? items.order.filter(k => itemKeys.includes(k)) : [];
+        itemKeys.forEach(k => { if (!order.includes(k)) order.push(k); });
+        if (!Array.isArray(items.order) || order.length !== itemKeys.length ||
+            JSON.stringify(order) !== JSON.stringify(items.order)) {
+          db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/order`).set(order);
+        }
+      });
+    });
+  }
+
   let USER_LIST_KEY = null;
   function subscribeAllLists() {
     listeners.forEach(fn => { try { fn(); } catch (e) { } });
@@ -549,7 +567,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const count = document.createElement('span');
         count.className = 'count';
-        count.textContent = item.count || 0;
+        // Always show at least 0 (not falsy)
+        count.textContent = typeof item.count === 'number' ? item.count : 0;
         count.style.display = 'inline-block';
         count.style.minWidth = '1.2em';
         count.style.textAlign = 'center';
@@ -578,7 +597,12 @@ document.addEventListener("DOMContentLoaded", function () {
         plus.style.opacity = counterOpacity;
         plus.onclick = (e) => {
           e.stopPropagation();
-          updateCount(cat, key, +1);
+          // Fix: If count is undefined, treat as 0 before incrementing
+          let current = typeof item.count === 'number' ? item.count : 0;
+          updateCount(cat, key, 1 - current); // If count is 0 or undefined, set to 1
+          if (typeof item.count === 'number') {
+            updateCount(cat, key, +1);
+          }
         };
 
         cnt.appendChild(minus);
@@ -678,193 +702,19 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-  function deleteRow(cat, key) {
-    db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/${key}`).remove();
-    setTimeout(() => renderList(cat), 300);
+  // --- updateCount function ---
+  // Move this function INSIDE the DOMContentLoaded handler, after db is defined!
+  function updateCount(cat, key, delta) {
+    const item = groceryData[cat]?.[key];
+    let current = (item && typeof item.count === "number") ? item.count : 0;
+    let newCount = current + delta;
+    if (newCount < 0) newCount = 0;
+    db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/${key}`).update({ count: newCount });
   }
 
-  function repairAllOrders() {
-    db.ref(`/userLists/${USER_LIST_KEY}/groceryLists`).once('value').then(snap => {
-      const lists = snap.val() || {};
-      Object.keys(lists).forEach(cat => {
-        const items = lists[cat];
-        if (!items) return;
-        let itemKeys = Object.keys(items).filter(k => k !== 'order');
-        let order = Array.isArray(items.order) ? items.order.filter(k => itemKeys.includes(k)) : [];
-        itemKeys.forEach(k => { if (!order.includes(k)) order.push(k); });
-        if (!Array.isArray(items.order) || order.length !== itemKeys.length ||
-            JSON.stringify(order) !== JSON.stringify(items.order)) {
-          db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/order`).set(order);
-        }
-      });
-    });
-  }
-
-  function addItem(cat) {
-    showInputModal('Enter new item name:', 'e.g. Carrots', function(name) {
-      if (!name) return;
-      const trimmedName = name.trim().toLowerCase();
-      const itemsRef = db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}`);
-      itemsRef.once('value').then(snap => {
-        const items = snap.val() || {};
-        // Prevent duplicate item names (case-insensitive, trimmed)
-        const existingNames = Object.values(items)
-          .filter(v => v && typeof v.name === 'string')
-          .map(v => v.name.trim().toLowerCase());
-        if (existingNames.includes(trimmedName)) {
-          showModal('This item already exists in this table.', function(){});
-          return;
-        }
-        let maxIdx = 0;
-        Object.keys(items).forEach(key => {
-          const match = key.match(/^item(\d+)$/);
-          if (match) {
-            maxIdx = Math.max(maxIdx, parseInt(match[1], 10));
-          }
-        });
-        const newKey = `item${maxIdx + 1}`;
-        const newItem = { name: name.trim(), count: 0, checked: false, createdAt: Date.now() };
-        itemsRef.child(newKey).set(newItem).then(() => {
-          const orderRef = db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/order`);
-          orderRef.once('value').then(orderSnap => {
-            let order = orderSnap.val();
-            if (!Array.isArray(order)) {
-              itemsRef.once('value').then(snap2 => {
-                const allKeys = Object.keys(snap2.val()).filter(k => k !== "order");
-                orderRef.set(allKeys);
-              });
-            } else {
-              order.push(newKey);
-              orderRef.set(order);
-            }
-          });
-        });
-      });
-    });
-  }
-
-  function fixOrderByCreatedAt(cat, updateLocal = false) {
-    const items = groceryData[cat];
-    if (!items) return;
-    let arr = [];
-    Object.entries(items).forEach(([k, v]) => {
-      if (k !== "order" && v && typeof v === "object" && typeof v.createdAt === "number") {
-        arr.push({ key: k, createdAt: v.createdAt });
-      }
-    });
-    arr.sort((a, b) => a.createdAt - b.createdAt);
-    const newOrder = arr.map(x => x.key);
-
-    const dbOrder = Array.isArray(items.order) ? items.order.filter(k => newOrder.includes(k)) : [];
-    if (JSON.stringify(dbOrder) !== JSON.stringify(newOrder)) {
-      db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/order`).set(newOrder);
-      if (updateLocal) {
-        groceryData[cat].order = newOrder;
-        renderList(cat);
-      }
-    } else if (updateLocal && JSON.stringify(groceryData[cat].order) !== JSON.stringify(newOrder)) {
-      groceryData[cat].order = newOrder;
-      renderList(cat);
-    }
-  }
-
-  // --- Save table name to DB when creating a new table ---
-  function addNewTablePrompt() {
-    showInputModal('Enter table name (e.g. Pharmacy):', 'e.g. Pharmacy', function (tname) {
-      if (!tname) return;
-      tname = tname.trim();
-      let catKey = tname.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
-      if (!catKey) catKey = 'custom_' + Date.now();
-      if (CATEGORIES.includes(catKey)) {
-        alert('Table already exists!');
-        return;
-      }
-      let items = {};
-      showInputModal('Add an item to this table now? (Optional)', 'First item name', function (itemName) {
-        if (itemName && itemName.trim()) {
-          items = { item1: { name: itemName.trim(), count: 0, checked: false, createdAt: Date.now() } };
-        }
-        CATEGORY_NAMES[catKey] = tname;
-        CATEGORY_ICONS[catKey] = '';
-        const idx = CATEGORIES.length;
-        CATEGORY_HEADER_CLASSES[catKey] = getHeaderClass(catKey, idx);
-
-        // Save table name mapping to DB
-        db.ref(`/userLists/${USER_LIST_KEY}/tableNames/${catKey}`).set(tname);
-
-        db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${catKey}`).set(items).then(() => {
-          if (itemName && itemName.trim()) {
-            db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${catKey}/order`).set(["item1"]);
-          }
-        });
-      });
-    });
-  }
-  document.getElementById('add-table-btn-main').onclick = addNewTablePrompt;
-
-  // --- Save table name to DB when editing ---
-  function editTableHeaderInline(cat, headerTitleEl) {
-    const prev = CATEGORY_NAMES[cat];
-    showInputModal('Edit table name:', prev, function (newValue) {
-      if (typeof newValue !== "string") return;
-      const trimmed = newValue.trim();
-      if (trimmed && trimmed !== prev) {
-        CATEGORY_NAMES[cat] = trimmed;
-        db.ref(`/userLists/${USER_LIST_KEY}/tableNames/${cat}`).set(trimmed, function() {
-          renderAllTables();
-        });
-      }
-    });
-    // Ensure input is set and cursor is at end after modal is shown
-    setTimeout(() => {
-      const input = document.getElementById('input-modal-input');
-      if (input) {
-        // Always set value and move cursor to end
-        input.value = prev;
-        input.focus();
-        input.setSelectionRange(prev.length, prev.length);
-      }
-    }, 10);
-  }
-
-  // --- Inline Edit Table Header ---
-  function editTableHeaderInline(cat, headerTitleEl) {
-    if (headerTitleEl.classList.contains('editing')) return;
-    const prev = CATEGORY_NAMES[cat];
-    showInputModal('Edit table name:', prev, function (newValue) {
-      if (typeof newValue !== "string") return;
-      const trimmed = newValue.trim();
-      if (trimmed && trimmed !== prev) {
-        CATEGORY_NAMES[cat] = trimmed;
-        // Save to DB under /userLists/{USER_LIST_KEY}/tableNames/{cat}
-        db.ref(`/userLists/${USER_LIST_KEY}/tableNames/${cat}`).set(trimmed, function() {
-          renderAllTables();
-        });
-      }
-    });
-  }
-
-  // --- Inline Edit Item Name ---
-  function editNameInline(cat, key, nameDiv, oldItem) {
-    const prevName = oldItem.name;
-    showInputModal('Edit item name:', prevName, function (newValue) {
-      if (typeof newValue !== "string") return;
-      const trimmed = newValue.trim();
-      if (!trimmed) return;
-      if (trimmed !== prevName) {
-        db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/${key}`).update({ name: trimmed });
-        nameDiv.textContent = trimmed;
-      }
-    });
-    // Ensure input is set and cursor is at end after modal is shown
-    setTimeout(() => {
-      const input = document.getElementById('input-modal-input');
-      if (input) {
-        input.value = prevName;
-        input.focus();
-        input.setSelectionRange(prevName.length, prevName.length);
-      }
-    }, 1);
+  // --- toggleChecked function (should also be inside DOMContentLoaded) ---
+  function toggleChecked(cat, key, checked) {
+    db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/${key}`).update({ checked: !!checked });
   }
 
   document.getElementById('static-reset-btn').onclick = function () {
@@ -998,6 +848,7 @@ document.addEventListener("DOMContentLoaded", function () {
 // --- Inline Edit Table Header ---
 function editTableHeaderInline(cat, headerTitleEl) {
   const prev = CATEGORY_NAMES[cat];
+  // Show modal and after it's visible, set value and cursor at end
   showInputModal('Edit table name:', prev, function (newValue) {
     if (typeof newValue !== "string") return;
     const trimmed = newValue.trim();
@@ -1008,7 +859,7 @@ function editTableHeaderInline(cat, headerTitleEl) {
       });
     }
   });
-  // Ensure input is set and cursor is at end after modal is shown
+  // Wait for modal to appear, then set value and cursor at end
   setTimeout(() => {
     const input = document.getElementById('input-modal-input');
     if (input) {
@@ -1017,7 +868,7 @@ function editTableHeaderInline(cat, headerTitleEl) {
       input.focus();
       input.setSelectionRange(prev.length, prev.length);
     }
-  }, 10);
+  }, 100);
 }
 
 // --- Inline Edit Item Name ---
@@ -1234,7 +1085,8 @@ function renderList(cat) {
 
       const count = document.createElement('span');
       count.className = 'count';
-      count.textContent = item.count || 0;
+      // Always show at least 0 (not falsy)
+      count.textContent = typeof item.count === 'number' ? item.count : 0;
       count.style.display = 'inline-block';
       count.style.minWidth = '1.2em';
       count.style.textAlign = 'center';
@@ -1263,7 +1115,12 @@ function renderList(cat) {
       plus.style.opacity = counterOpacity;
       plus.onclick = (e) => {
         e.stopPropagation();
-        updateCount(cat, key, +1);
+        // Fix: If count is undefined, treat as 0 before incrementing
+        let current = typeof item.count === 'number' ? item.count : 0;
+        updateCount(cat, key, 1 - current); // If count is 0 or undefined, set to 1
+        if (typeof item.count === 'number') {
+          updateCount(cat, key, +1);
+        }
       };
 
       cnt.appendChild(minus);
