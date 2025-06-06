@@ -12,37 +12,35 @@
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 </head>
 <body>
-  <!-- Only Collapse All floats -->
-  <button id="collapse-all-btn" title="Collapse All Tables">
-    <span class="collapse-icon">
-      <svg viewBox="0 0 24 24" width="24" height="24" fill="none">
-        <path d="M7 14l5-5 5 5" stroke="#333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-    </span>
-    
-  </button>
-
-  <!-- Main Section -->
+  <div class="top-bar compact">
+    <button class="action-btn logout" id="logout-btn-top" title="Logout" style="display:none;">
+      <svg viewBox="0 0 20 20"><path d="M7.5 3A1.5 1.5 0 0 0 6 4.5v3a1 1 0 1 0 2 0v-3h7v13h-7v-3a1 1 0 1 0-2 0v3A1.5 1.5 0 0 0 7.5 19h7A1.5 1.5 0 0 0 16 17.5v-13A1.5 1.5 0 0 0 14.5 3h-7zm2.79 3.29a1 1 0 1 0-1.42 1.42L10.59 10H2a1 1 0 1 0 0 2h8.59l-1.72 1.29a1 1 0 1 0 1.42 1.42l3.5-3a1 1 0 0 0 0-1.42l-3.5-3z"></path></svg>
+    </button>
+    <div id="user-email-label" style="display:none"></div>
+    <button id="collapse-all-btn" title="Collapse All Tables">
+      <span class="collapse-icon">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none">
+          <path d="M7 14l5-5 5 5" stroke="#333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </span>
+    </button>
+  </div>
   <div id="main-section" style="display:none; position:relative;">
-    <div class="actions-mobile">
-      <div id="user-email-label" style="display:none"></div>
-      <button class="action-btn move-delete" id="move-delete-toggle" style="display:none;">
-        Move or Delete
-      </button>
-      <div class="row-btns">
-        <button class="action-btn reset" id="static-reset-btn" title="Reset counters and uncheck all">
+    <div class="actions-mobile compact-actions">
+      <div class="row-btns compact-row-btns one-line-btns">
+        <button class="action-btn move-delete compact-btn" id="move-delete-toggle" style="display:none;">
+          Move or Delete
+        </button>
+        <button class="action-btn reset compact-btn" id="static-reset-btn" title="Reset counters and uncheck all">
           Reset All
         </button>
-        <button class="action-btn check-zeros" id="check-zeros-btn" title="Highlight items to buy">
+        <button class="action-btn check-zeros compact-btn" id="check-zeros-btn" title="Highlight items to buy">
           Check Zeros
         </button>
       </div>
-      <button class="action-btn logout" id="logout-btn-top" title="Logout" style="display:none;">
-        <svg viewBox="0 0 20 20"><path d="M7.5 3A1.5 1.5 0 0 0 6 4.5v3a1 1 0 1 0 2 0v-3h7v13h-7v-3a1 1 0 1 0-2 0v3A1.5 1.5 0 0 0 7.5 19h7A1.5 1.5 0 0 0 16 17.5v-13A1.5 1.5 0 0 0 14.5 3h-7zm2.79 3.29a1 1 0 1 0-1.42 1.42L10.59 10H2a1 1 0 1 0 0 2h8.59l-1.72 1.29a1 1 0 1 0 1.42 1.42l3.5-3a1 1 0 0 0 0-1.42l-3.5-3z"></path></svg>
-      </button>
     </div>
-    <h1>Kumar Family Grocery</h1>
-    <div class="datetime" id="datetime"></div>
+    <h1 class="center-title">Kumar Family Grocery</h1>
+    <div class="datetime tight-datetime" id="datetime"></div>
     <div id="tables-area"></div>
     <div class="add-table-btn-wrap">
       <button class="add-table-btn" id="add-table-btn-main">＋ Add New Table & Item</button>
