@@ -327,6 +327,7 @@ body, html {
   margin-right:7px;
   color: #fff;
   letter-spacing:0.01em;
+  cursor: pointer;
 }
 .header-count{
   font-size:1.01rem;
@@ -336,6 +337,7 @@ body, html {
   padding:2px 10px;
   border-radius:17px;
   margin-left:3px;
+  margin-right: 18px; /* <-- Add more space after count */
   min-width:20px;
   text-align:center;
   display:inline-block;
@@ -409,10 +411,10 @@ input[type="checkbox"] {
   font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
   font-weight: 700;
   color: #232323;
-  user-select: none;
   letter-spacing: 0.01em;
   border-radius: 6px;
   word-break: break-word;
+  cursor: pointer;
 }
 
 .name.editing {
@@ -764,6 +766,76 @@ input[type="checkbox"] {
   min-height: 1.2em;
   font-weight: 600;
   letter-spacing: 0.01em;
+}
+
+.table-move-handle {
+  font-size: 1.5em;
+  cursor: grab;
+  opacity: 0.7;
+  margin-left: 8px;
+  user-select: none;
+}
+.table-delete-btn {
+  background: none;
+  border: none;
+  color: #e53935;
+  font-size: 1.3em;
+  cursor: pointer;
+  margin-left: 8px;
+  opacity: 0.85;
+  transition: opacity 0.13s;
+}
+
+.table-delete-btn,
+.table-move-handle {
+  margin-left: 8px;
+  padding: 0;
+  /* Ensure icons are vertically centered and not too large */
+  height: 28px;
+  min-width: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+}
+
+.table-delete-btn span,
+.table-move-handle span,
+.move-icon span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: #fff;
+  border-radius: 50%;
+}
+
+.move-icon {
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  margin-left: 4px;
+  cursor: grab;
+  padding: 0;
+}
+
+.trash-icon {
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  margin-left: 4px;
+  cursor: pointer;
+  padding: 0;
 }
 
 @media (max-width: 500px) {
