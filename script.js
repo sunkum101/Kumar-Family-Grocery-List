@@ -1,29 +1,139 @@
 // --- AUTH & DOM READY ---
 document.addEventListener("DOMContentLoaded", function () {
-  // --- Allowed Users & Avatars ---
-  const ALLOWED_USERS = [
-    "sunil.kumar101@gmail.com",
-    "manju4sun@gmail.com",
-    "yashvi.k.australia@gmail.com",
-    "rupesh.chand.ggn@gmail.com"
-  ];
-  const FAMILY_EMAILS = [
-    "sunil.kumar101@gmail.com",
-    "manju4sun@gmail.com",
-    "yashvi.k.australia@gmail.com"
-  ];
-  const USER_AVATARS = {
-    "sunil.kumar101@gmail.com": "https://www.gravatar.com/avatar/9c6e6f2c4eae64c1e11c6f9d952a8a33?d=identicon",
-    "manju4sun@gmail.com": "https://www.gravatar.com/avatar/6fa6e4ea6e7a5c3f4aec7f4bba50f1a4?d=identicon",
-    "yashvi.k.australia@gmail.com": "https://www.gravatar.com/avatar/cfe5c6e9c1e7a9b7ed7b3e1b3d5f2c2d?d=identicon",
-    "rupesh.chand.ggn@gmail.com": "https://www.gravatar.com/avatar/cfe5c6e9c1e7a9b7ed7b3e1b3d5f2c2d?d=identicon"
-  };
+  // --- Ensure Firebase SDK is loaded ---
+  if (typeof firebase === "undefined" || !firebase.app) {
+    alert("Firebase SDK not loaded. Please check your internet connection and script includes.");
+    document.getElementById('allowed-list').innerHTML = '<li style="color:#e53935;text-align:center;">Firebase SDK not loaded. Check your internet connection and script includes.</li>';
+    return;
+  }
 
+  // --- Prevent double initialization ---
+  if (!firebase.apps.length) {
+    const firebaseConfig = {
+      apiKey: "AIzaSyADHt2ZI5eCYLWs9hA16WJaL16C8REHbMI",
+      authDomain: "kumar-grocery-list.firebaseapp.com",
+      databaseURL: "https://kumar-grocery-list-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "kumar-grocery-list",
+      storageBucket: "kumar-grocery-list.appspot.com",
+      messagingSenderId: "726095302244",
+      appId: "1:726095302244:web:afacaef92680ad26151971",
+      measurementId: "G-MC9K47NDW6"
+    };
+    firebase.initializeApp(firebaseConfig);
+  }
+  const auth = firebase.auth();
+  const db = firebase.database();
+
+  // --- Authorised Emails & Family Groups ---
+  let AUTHORISED_EMAILS = {}; // { email: familyKey }
+  let FAMILY_EMAILS = {};     // { familyKey: [email, ...] }
+  let USER_AVATARS = {};      // { email: avatarUrl }
   let selectedEmail = null;
+  let selectedFamilyKey = null;
+
+  // --- Fetch Authorised Emails from DB ---
+  function fetchAuthorisedEmails(callback) {
+    db.ref('/authorisedEmails').once('value')
+      .then(snap => {
+        const data = snap.val();
+        console.log("Fetched /authorisedEmails from Firebase:", data);
+        AUTHORISED_EMAILS = {};
+        FAMILY_EMAILS = {};
+        USER_AVATARS = {};
+        if (!data) {
+          // Show error in UI if data is null
+          const ul = document.getElementById('allowed-list');
+          if (ul) {
+            ul.innerHTML = '';
+            const li = document.createElement('li');
+            li.textContent = "No data found at /authorisedEmails. Check Firebase DB path and rules.";
+            li.style.color = "#e53935";
+            li.style.textAlign = "center";
+            ul.appendChild(li);
+          }
+          return;
+        }
+        Object.keys(data).forEach(familyKey => {
+          FAMILY_EMAILS[familyKey] = [];
+          Object.keys(data[familyKey] || {}).forEach(emailKey => {
+            const email = emailKey.replace(/_dot_/g, '.').replace(/_at_/g, '@');
+            AUTHORISED_EMAILS[email] = familyKey;
+            FAMILY_EMAILS[familyKey].push(email);
+            if (data[familyKey][emailKey] && data[familyKey][emailKey].avatar) {
+              USER_AVATARS[email] = data[familyKey][emailKey].avatar;
+            }
+          });
+        });
+        console.log("Processed AUTHORISED_EMAILS:", AUTHORISED_EMAILS);
+        if (typeof callback === "function") callback();
+      })
+      .catch(function(error) {
+        console.error("Error fetching /authorisedEmails:", error);
+        const ul = document.getElementById('allowed-list');
+        if (ul) {
+          ul.innerHTML = '';
+          const li = document.createElement('li');
+          li.textContent = "Error fetching allowed emails: " + error.message;
+          li.style.color = "#e53935";
+          li.style.textAlign = "center";
+          ul.appendChild(li);
+        }
+      });
+  }
+
+  // --- On page load, fetch allowed emails and render ---
+  fetchAuthorisedEmails(renderAllowedList);
+
+  // --- DB Key Utilities ---
+  function emailToKey(email) {
+    return email.replace(/\./g, '_dot_').replace(/@/g, '_at_');
+  }
+  function getUserListKey(user) {
+    // Use familyKey if present, else fallback to email
+    return AUTHORISED_EMAILS[user.email] || emailToKey(user.email);
+  }
+
+  // --- Auth Logic ---
+  function googleSignIn() {
+    if (!selectedEmail) {
+      document.getElementById('login-error').textContent = "Please select your email address above.";
+      return;
+    }
+    const provider = new firebase.auth.GoogleAuthProvider();
+    provider.setCustomParameters({ login_hint: selectedEmail });
+    auth.signInWithPopup(provider)
+      .then((result) => {
+        const user = result.user;
+        if (!AUTHORISED_EMAILS[user.email]) {
+          auth.signOut();
+          document.getElementById('login-error').textContent = 'Access denied. Please use an allowed Google account.';
+          return;
+        }
+        // No need to call showMain/subscribeAllLists here; handled in onAuthStateChanged
+      })
+      .catch((err) => {
+        document.getElementById('login-error').textContent = err.message;
+      });
+  }
+
+  document.getElementById('google-signin-btn').onclick = googleSignIn;
+
+  // --- Render Allowed List from DB ---
   function renderAllowedList() {
     const ul = document.getElementById('allowed-list');
     ul.innerHTML = '';
-    ALLOWED_USERS.forEach(email => {
+    // --- Fix: Show a message if no emails are found ---
+    const emails = Object.entries(AUTHORISED_EMAILS);
+    if (emails.length === 0) {
+      const li = document.createElement('li');
+      li.textContent = "No authorised emails found. Please check your database.";
+      li.style.color = "#e53935";
+      li.style.textAlign = "center";
+      ul.appendChild(li);
+      document.getElementById('google-signin-btn').style.display = "none";
+      return;
+    }
+    emails.forEach(([email, familyKey]) => {
       const li = document.createElement('li');
       li.className = 'allowed-item';
       li.tabIndex = 0;
@@ -47,15 +157,21 @@ document.addEventListener("DOMContentLoaded", function () {
       emailSpan.textContent = email;
       li.appendChild(emailSpan);
 
-      li.onclick = () => selectAllowedEmail(email, li);
-      li.onkeydown = (e) => {
-        if (e.key === "Enter" || e.key === " ") selectAllowedEmail(email, li);
+      // --- FIX: define selectAllowedEmail before use ---
+      li.onclick = function () {
+        selectAllowedEmail(email, familyKey, li);
+      };
+      li.onkeydown = function (e) {
+        if (e.key === "Enter" || e.key === " ") selectAllowedEmail(email, familyKey, li);
       };
       ul.appendChild(li);
     });
   }
-  function selectAllowedEmail(email, li) {
+
+  // --- FIX: define selectAllowedEmail function ---
+  function selectAllowedEmail(email, familyKey, li) {
     selectedEmail = email;
+    selectedFamilyKey = familyKey;
     document.querySelectorAll('.allowed-item').forEach(e => {
       e.classList.remove('selected');
     });
@@ -63,217 +179,6 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementById('google-btn-text').textContent = `Sign in as ${email.split('@')[0]}`;
     document.getElementById('google-signin-btn').style.display = "";
     setTimeout(() => { document.getElementById('google-signin-btn').focus(); }, 80);
-  }
-
-  // --- Firebase Setup ---
-  const firebaseConfig = {
-    apiKey: "AIzaSyADHt2ZI5eCYLWs9hA16WJaL16C8REHbMI",
-    authDomain: "kumar-grocery-list.firebaseapp.com",
-    databaseURL: "https://kumar-grocery-list-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "kumar-grocery-list",
-    storageBucket: "kumar-grocery-list.appspot.com",
-    messagingSenderId: "726095302244",
-    appId: "1:726095302244:web:afacaef92680ad26151971",
-    measurementId: "G-MC9K47NDW6"
-  };
-  const app = firebase.initializeApp(firebaseConfig);
-  const auth = firebase.auth();
-  const db = firebase.database();
-
-  // --- DB Key Utilities ---
-  function emailToKey(email) {
-    return email.replace(/\./g, '_dot_').replace(/@/g, '_at_');
-  }
-  function getUserListKey(user) {
-    if (FAMILY_EMAILS.includes(user.email)) {
-      return "family";
-    }
-    return emailToKey(user.email);
-  }
-
-  // --- Auth Logic ---
-  function googleSignIn() {
-    if (!selectedEmail) {
-      document.getElementById('login-error').textContent = "Please select your email address above.";
-      return;
-    }
-    const provider = new firebase.auth.GoogleAuthProvider();
-    provider.setCustomParameters({ login_hint: selectedEmail });
-    auth.signInWithPopup(provider)
-      .then((result) => {
-        const user = result.user;
-        if (ALLOWED_USERS.length && !ALLOWED_USERS.includes(user.email)) {
-          auth.signOut();
-          document.getElementById('login-error').textContent = 'Access denied. Please use an allowed Google account.';
-          return;
-        }
-        // No need to call showMain/subscribeAllLists here; handled in onAuthStateChanged
-      })
-      .catch((err) => {
-        document.getElementById('login-error').textContent = err.message;
-      });
-  }
-
-  document.getElementById('google-signin-btn').onclick = googleSignIn;
-  renderAllowedList();
-
-  // --- Logout Logic ---
-  function clearAllCookies() {
-    const cookies = document.cookie.split("; ");
-    for (let c of cookies) {
-      const eqPos = c.indexOf("=");
-      const name = eqPos > -1 ? c.substring(0, eqPos) : c;
-      document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
-      document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;";
-    }
-  }
-  function logout() {
-    listeners?.forEach(fn => { try { fn(); } catch (e) { } });
-    listeners = [];
-    auth.signOut().finally(() => {
-      clearAllCookies();
-      localStorage.clear();
-      sessionStorage.clear();
-      location.reload();
-    });
-  }
-  document.getElementById('logout-btn-top').onclick = function () {
-    showModal("Are you sure you want to logout?", function (yes) {
-      if (yes) logout();
-    });
-  };
-
-  function setLogoutButtonVisible(visible) {
-    var btn = document.getElementById('logout-btn-top');
-    if (btn) btn.style.display = visible ? '' : 'none';
-    var mdbtn = document.getElementById('move-delete-toggle');
-    if (mdbtn) mdbtn.style.display = visible ? "" : "none";
-  }
-
-  // --- Grocery Logic ---
-  let CATEGORIES = [
-    'veggies',
-    'grocery',
-    'indian',
-    'kmart_bigw_target',
-    'pharmacy',
-    'others'
-  ];
-  let CATEGORY_NAMES = {
-    veggies: 'Veggies',
-    grocery: 'Grocery',
-    indian: 'India Store',
-    kmart_bigw_target: 'Kmart/Big W/Target',
-    pharmacy: 'Pharmacy',
-    others: 'Others'
-  };
-  let CATEGORY_ICONS = {
-    veggies: '🥦',
-    grocery: '🛒',
-    indian: '<img src="https://upload.wikimedia.org/wikipedia/en/4/41/Flag_of_India.svg" alt="India" style="height:1.3em;vertical-align:middle;margin-right:4px;">',
-    kmart_bigw_target: '',
-    pharmacy: '',
-    others: ''
-  };
-  let CATEGORY_HEADER_CLASSES = {
-    veggies: 'veggies-header',
-    grocery: 'grocery-header',
-    indian: 'indian-header',
-    kmart_bigw_target: 'kmart_bigw_target-header',
-    pharmacy: 'pharmacy-header',
-    others: 'others-header'
-  };
-  const TABLE_COLOR_CLASSES = [
-    "veggies-header", "grocery-header", "indian-header",
-    "kmart_bigw_target-header", "pharmacy-header", "others-header", "default-header"
-  ];
-  function getHeaderClass(catKey, idx) {
-    if (CATEGORY_HEADER_CLASSES[catKey]) return CATEGORY_HEADER_CLASSES[catKey];
-    if (typeof idx === "number") {
-      const paletteIdx = idx % TABLE_COLOR_CLASSES.length;
-      return TABLE_COLOR_CLASSES[paletteIdx];
-    }
-    return "default-header";
-  }
-
-  let groceryData = {};
-  window.groceryData = groceryData;
-  let listeners = [];
-  let moveDeleteMode = false;
-  let deletedRowBackup = null;
-  let deletedRowTimer = null;
-  let originalKeyOrder = {};
-  let originalOrderBackup = {};
-
-  // --- Main UI ---
-  function showMain() {
-    document.getElementById('login-bg').style.display = 'none';
-    document.getElementById('main-section').style.display = '';
-    setLogoutButtonVisible(true);
-  }
-
-  // --- Date & Time ---
-  function updateDateTime() {
-    const now = new Date();
-    const options = {
-      weekday: 'short',
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true
-    };
-    let formatted = now.toLocaleString('en-AU', options).replace(',', '').replace(',', '');
-    formatted = formatted.replace(/(\d{4})/, '$1 ·');
-    document.getElementById('datetime').textContent = formatted;
-  }
-  setInterval(updateDateTime, 1000);
-  updateDateTime();
-
-  // --- Subscribe to User's Lists ---
-  // Move repairAllOrders definition ABOVE its first use!
-  function repairAllOrders() {
-    db.ref(`/userLists/${USER_LIST_KEY}/groceryLists`).once('value').then(snap => {
-      const lists = snap.val() || {};
-      Object.keys(lists).forEach(cat => {
-        const items = lists[cat];
-        if (!items) return;
-        let itemKeys = Object.keys(items).filter(k => k !== 'order');
-        let order = Array.isArray(items.order) ? items.order.filter(k => itemKeys.includes(k)) : [];
-        itemKeys.forEach(k => { if (!order.includes(k)) order.push(k); });
-        if (!Array.isArray(items.order) || order.length !== itemKeys.length ||
-            JSON.stringify(order) !== JSON.stringify(items.order)) {
-          db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/order`).set(order);
-        }
-      });
-    });
-  }
-
-  let USER_LIST_KEY = null;
-  function subscribeAllLists() {
-    listeners.forEach(fn => { try { fn(); } catch (e) { } });
-    listeners = [];
-    // Load tableNames first
-    db.ref(`/userLists/${USER_LIST_KEY}/tableNames`).once('value').then(snap => {
-      const tableNames = snap.val() || {};
-      Object.keys(tableNames).forEach(cat => {
-        if (tableNames[cat]) CATEGORY_NAMES[cat] = tableNames[cat];
-      });
-      // Now subscribe to groceryLists
-      db.ref(`/userLists/${USER_LIST_KEY}/groceryLists`).on('value', snap => {
-        const data = snap.val() || {};
-        groceryData = data;
-        let allKeys = Object.keys(data);
-        let ordered = [];
-        CATEGORIES.forEach(cat => { if (allKeys.includes(cat)) ordered.push(cat); });
-        allKeys.forEach(cat => {
-          if (!ordered.includes(cat)) ordered.push(cat);
-        });
-        CATEGORIES = ordered;
-        renderAllTables();
-      });
-    });
   }
 
   // --- Modal Helpers ---
@@ -355,35 +260,112 @@ document.addEventListener("DOMContentLoaded", function () {
     }, 3000);
   }
 
+  // --- AddItem function: must be inside DOMContentLoaded after showInputModal ---
+  function addItem(cat) {
+    showInputModal('Add new item:', 'Enter item name', function (name) {
+      if (!name) return;
+      const newKey = db.ref().push().key;
+      const item = { name: name, count: 0, checked: false };
+      db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/${newKey}`).set(item).then(() => {
+        db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/order`).once('value').then(snap => {
+          let order = snap.val() || [];
+          order.push(newKey);
+          db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/order`).set(order);
+        });
+      });
+    });
+  }
+
+  // --- Globals for move/delete mode ---
+  let moveDeleteMode = false;
+  let originalKeyOrder = {};
+
+  // --- Remove all hardcoded category arrays/objects ---
+  let groceryData = {};
+  let tableNames = {};
+  let categories = [];
+  let USER_LIST_KEY = null;
+
+  // --- Make these available globally ---
+  window.groceryData = groceryData;
+  window.tableNames = tableNames;
+  window.categories = categories;
+
+  // --- Add this function for header class (optional, fallback to default) ---
+  function getHeaderClass(catKey, idx) {
+    const colorClasses = [
+      "veggies-header", "grocery-header", "indian-header",
+      "kmart_bigw_target-header", "pharmacy-header", "others-header", "default-header"
+    ];
+    if (typeof idx === "number") {
+      return colorClasses[idx % colorClasses.length];
+    }
+    return "default-header";
+  }
+
+  // --- Subscribe to All Lists ---
+  function subscribeAllLists() {
+    if (!USER_LIST_KEY) return;
+    db.ref(`/userLists/${USER_LIST_KEY}`).on('value', snap => {
+      const data = snap.val() || {};
+      groceryData = (data.groceryLists || {});
+      tableNames = (data.tableNames || {});
+      categories = Object.keys(groceryData);
+      // --- Table order support ---
+      tableOrder = Array.isArray(data.tableOrder) ? data.tableOrder.filter(k => categories.includes(k)) : categories.slice();
+      window.groceryData = groceryData;
+      window.tableNames = tableNames;
+      window.categories = categories;
+      window.tableOrder = tableOrder;
+      renderAllTables();
+    });
+  }
+  window.subscribeAllLists = subscribeAllLists;
+
   // --- Render Grocery Tables ---
+  let tableOrder = [];
+  let tableSortableInstance = null;
+
   function renderAllTables() {
     const area = document.getElementById('tables-area');
     area.innerHTML = '';
-    CATEGORIES.forEach((cat, idx) => {
-      if (!CATEGORY_NAMES[cat]) CATEGORY_NAMES[cat] = cat.charAt(0).toUpperCase() + cat.slice(1);
-      if (!CATEGORY_ICONS[cat]) CATEGORY_ICONS[cat] = '';
+    const order = Array.isArray(tableOrder) && tableOrder.length ? tableOrder : categories;
+    order.forEach((cat, idx) => {
+      const displayName = tableNames[cat] || cat.charAt(0).toUpperCase() + cat.slice(1);
       const container = document.createElement('div');
       container.className = 'container';
       container.id = `${cat}-container`;
+      container.dataset.cat = cat;
 
       const headerClass = getHeaderClass(cat, idx);
       const header = document.createElement('div');
       header.className = 'header ' + headerClass;
       header.id = `${cat}-header`;
 
-      // --- Editable Table Header Title ---
       const headerTitle = document.createElement('span');
       headerTitle.className = 'header-title';
-      headerTitle.innerHTML = (CATEGORY_ICONS[cat] ? CATEGORY_ICONS[cat] + " " : "") + CATEGORY_NAMES[cat];
+      headerTitle.innerHTML = displayName;
       headerTitle.style.cursor = "pointer";
-      headerTitle.ondblclick = function (e) {
-        e.stopPropagation();
-        editTableHeaderInline(cat, headerTitle);
-      };
+      headerTitle.title = "Alt+Click to edit table name";
 
-      // --- Collapse on header background click only ---
+      // --- Alt+Click to edit table name ---
+      headerTitle.addEventListener('click', function (e) {
+        if (e.altKey) {
+          e.stopPropagation();
+          editTableHeaderInline(cat, headerTitle);
+        }
+      });
+      header.addEventListener('click', function (e) {
+        if (
+          (e.target === header || e.target.classList.contains('header')) &&
+          e.altKey
+        ) {
+          e.stopPropagation();
+          editTableHeaderInline(cat, headerTitle);
+        }
+      });
+
       header.onclick = function (e) {
-        // Only collapse if click is NOT on headerTitle or any icon/button
         if (
           e.target === header ||
           e.target.classList.contains('header') ||
@@ -397,15 +379,121 @@ document.addEventListener("DOMContentLoaded", function () {
       const headerCount = document.createElement('span');
       headerCount.className = 'header-count';
       headerCount.id = `${cat}-count`;
+      headerCount.style.marginRight = "18px"; // <-- Add more space after count
+
+      // --- Table Delete Button in Move/Delete Mode (now after count) ---
+      let delBtn = null, moveHandle = null;
+      if (moveDeleteMode) {
+        // Bin icon with white circle background for visibility
+        delBtn = document.createElement('button');
+        delBtn.className = 'table-delete-btn';
+        delBtn.title = 'Delete this table';
+        delBtn.style.background = 'none';
+        delBtn.style.border = 'none';
+        delBtn.style.cursor = 'pointer';
+        delBtn.style.display = 'flex';
+        delBtn.style.alignItems = 'center';
+        delBtn.style.marginLeft = '10px';
+        delBtn.innerHTML =
+          `<span style="background:#fff;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 28 28" width="18" height="18">
+              <path stroke="#e53935" stroke-width="2.2" d="M6 8h16M12 12v7m4-7v7M6 8l1.2 13a2.2 2.2 0 0 0 2.2 2h8.4a2.2 2.2 0 0 0 2.2-2L22 8m-10-3h4a2 2 0 0 1 2 2v0H10v0a2 2 0 0 1 2-2z"/>
+            </svg>
+          </span>`;
+        delBtn.onclick = function (e) {
+          e.stopPropagation();
+          showModal(`Delete table "${displayName}" and all its items?`, function (yes) {
+            if (yes) {
+              db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}`).remove();
+              db.ref(`/userLists/${USER_LIST_KEY}/tableNames/${cat}`).remove();
+              db.ref(`/userLists/${USER_LIST_KEY}/tableOrder`).once('value').then(snap => {
+                let orderArr = snap.val() || [];
+                orderArr = orderArr.filter(k => k !== cat);
+                db.ref(`/userLists/${USER_LIST_KEY}/tableOrder`).set(orderArr);
+              });
+            }
+          });
+        };
+
+        // Move icon: 6 dots, gray, with white circle background
+        moveHandle = document.createElement('span');
+        moveHandle.className = 'table-move-handle';
+        moveHandle.title = 'Drag to reorder table';
+        moveHandle.style.marginLeft = '8px';
+        moveHandle.style.cursor = 'grab';
+        moveHandle.style.display = 'flex';
+        moveHandle.style.alignItems = 'center';
+        moveHandle.innerHTML =
+          `<span style="background:#fff;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 28" width="18" height="18">
+              <circle cx="9" cy="10" r="1.5" fill="#666"/>
+              <circle cx="14" cy="10" r="1.5" fill="#666"/>
+              <circle cx="19" cy="10" r="1.5" fill="#666"/>
+              <circle cx="9" cy="16" r="1.5" fill="#666"/>
+              <circle cx="14" cy="16" r="1.5" fill="#666"/>
+              <circle cx="19" cy="16" r="1.5" fill="#666"/>
+            </svg>
+          </span>`;
+        container.setAttribute('data-move-handle', 'true');
+      }
 
       const headerArrow = document.createElement('span');
       headerArrow.className = 'collapse-arrow';
       headerArrow.id = `${cat}-arrow`;
       headerArrow.innerHTML = "&#9654;";
 
+      // --- Compose header: title, count, [bin, move], arrow ---
       header.appendChild(headerTitle);
       header.appendChild(headerCount);
+      if (moveDeleteMode) {
+        header.appendChild(delBtn);
+        header.appendChild(moveHandle);
+      }
       header.appendChild(headerArrow);
+
+      // --- REMOVE DUPLICATE: Do NOT append any more bin/move icons here ---
+      // (Remove the following block if present)
+      /*
+      if (moveDeleteMode) {
+        const delBtn = document.createElement('button');
+        delBtn.className = 'table-delete-btn';
+        delBtn.title = 'Delete this table';
+        delBtn.style.marginLeft = '10px';
+        delBtn.style.background = 'none';
+        delBtn.style.border = 'none';
+        delBtn.style.cursor = 'pointer';
+        delBtn.style.color = '#e53935';
+        delBtn.style.fontSize = '1.3em';
+        delBtn.innerHTML = '🗑️';
+        delBtn.onclick = function (e) {
+          e.stopPropagation();
+          showModal(`Delete table "${displayName}" and all its items?`, function (yes) {
+            if (yes) {
+              // Remove from DB
+              db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}`).remove();
+              db.ref(`/userLists/${USER_LIST_KEY}/tableNames/${cat}`).remove();
+              // Remove from tableOrder
+              db.ref(`/userLists/${USER_LIST_KEY}/tableOrder`).once('value').then(snap => {
+                let orderArr = snap.val() || [];
+                orderArr = orderArr.filter(k => k !== cat);
+                db.ref(`/userLists/${USER_LIST_KEY}/tableOrder`).set(orderArr);
+              });
+            }
+          });
+        };
+        header.appendChild(delBtn);
+
+        // --- Table Move Handle ---
+        const moveHandle = document.createElement('span');
+        moveHandle.className = 'table-move-handle';
+        moveHandle.title = 'Drag to reorder table';
+        moveHandle.style.marginLeft = '10px';
+        moveHandle.style.cursor = 'grab';
+        moveHandle.innerHTML = '⠿';
+        header.appendChild(moveHandle);
+        container.setAttribute('data-move-handle', 'true');
+      }
+      */
 
       container.appendChild(header);
 
@@ -420,6 +508,10 @@ document.addEventListener("DOMContentLoaded", function () {
         e.stopPropagation();
         addItem(cat);
       };
+      // --- Hide addBtn if table is collapsed ---
+      if (localStorage.getItem('col-' + cat) === 'true') {
+        addBtn.style.display = 'none';
+      }
       container.appendChild(addBtn);
 
       area.appendChild(container);
@@ -429,28 +521,114 @@ document.addEventListener("DOMContentLoaded", function () {
       renderList(cat);
       updateHeaderCount(cat);
     });
+
+    // --- Table Drag-and-Drop in Move/Delete Mode ---
+    if (moveDeleteMode) {
+      if (!tableSortableInstance) {
+        tableSortableInstance = Sortable.create(area, {
+          animation: 180,
+          handle: '.table-move-handle',
+          draggable: '.container',
+          ghostClass: 'dragging',
+          onEnd: function (evt) {
+            // Save new table order to DB
+            const newOrder = [];
+            area.querySelectorAll('.container').forEach(div => {
+              if (div.dataset.cat) newOrder.push(div.dataset.cat);
+            });
+            db.ref(`/userLists/${USER_LIST_KEY}/tableOrder`).set(newOrder);
+            tableOrder = newOrder;
+            renderAllTables();
+          }
+        });
+      }
+    } else {
+      if (tableSortableInstance) {
+        tableSortableInstance.destroy();
+        tableSortableInstance = null;
+      }
+    }
   }
-  function deleteTable(cat) {
-    db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}`).remove();
-    setTimeout(renderAllTables, 300);
-  }
-  function toggleCollapse(cat) {
-    const ul = document.getElementById(cat);
-    const addBtn = document.querySelector(`#${cat}-container .add-table-btn`);
-    const container = document.getElementById(cat + '-container');
-    let collapsed = ul.style.display !== 'none';
-    setCollapsed(cat, collapsed);
-    localStorage.setItem('col-' + cat, collapsed ? 'true' : '');
-  }
+
+  // --- Collapsing/Expanding Tables ---
   function setCollapsed(cat, collapsed) {
+    const container = document.getElementById(`${cat}-container`);
     const ul = document.getElementById(cat);
-    const addBtn = document.querySelector(`#${cat}-container .add-table-btn`);
-    const container = document.getElementById(cat + '-container');
-    if (!ul || !addBtn || !container) return;
-    ul.style.display = collapsed ? 'none' : '';
-    addBtn.style.display = collapsed ? 'none' : '';
-    container.classList.toggle('collapsed', collapsed);
+    const arrow = document.getElementById(`${cat}-arrow`);
+    const addBtn = container ? container.querySelector('.add-table-btn') : null;
+    if (!container || !ul || !arrow) return;
+    if (collapsed) {
+      container.classList.add('collapsed');
+      ul.style.display = 'none';
+      arrow.classList.add('collapsed');
+      if (addBtn) addBtn.style.display = 'none';
+    } else {
+      container.classList.remove('collapsed');
+      ul.style.display = '';
+      arrow.classList.remove('collapsed');
+      if (addBtn) addBtn.style.display = '';
+    }
   }
+
+  function toggleCollapse(cat) {
+    const container = document.getElementById(`${cat}-container`);
+    const ul = document.getElementById(cat);
+    const arrow = document.getElementById(`${cat}-arrow`);
+    if (!container || !ul || !arrow) return;
+    const collapsed = container.classList.toggle('collapsed');
+    if (collapsed) {
+      ul.style.display = 'none';
+      arrow.classList.add('collapsed');
+      localStorage.setItem('col-' + cat, 'true');
+    } else {
+      ul.style.display = '';
+      arrow.classList.remove('collapsed');
+      localStorage.setItem('col-' + cat, 'false');
+    }
+  }
+
+  // --- Add New Table & Item ---
+  document.getElementById('add-table-btn-main').onclick = function () {
+    showInputModal('New Store Name:', '', function (storeName) { // Updated prompt text
+      if (!storeName) return;
+      const catKey = storeName.trim().toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+      db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${catKey}`).set({ order: [] });
+      db.ref(`/userLists/${USER_LIST_KEY}/tableNames/${catKey}`).set(storeName.trim());
+      db.ref(`/userLists/${USER_LIST_KEY}/tableOrder`).once('value').then(snap => {
+        let order = snap.val() || [];
+        if (!order.includes(catKey)) {
+          order.push(catKey);
+          db.ref(`/userLists/${USER_LIST_KEY}/tableOrder`).set(order);
+        }
+      });
+      showInputModal('First item name:', '', function (itemName) {
+        if (!itemName) return;
+        // --- Find next available -itemN key globally ---
+        db.ref(`/userLists/${USER_LIST_KEY}/groceryLists`).once('value').then(snap => {
+          const allLists = snap.val() || {};
+          let maxNum = 0;
+          Object.values(allLists).forEach(store => {
+            Object.keys(store).forEach(key => {
+              const match = key.match(/^-item(\d+)$/);
+              if (match) {
+                const num = parseInt(match[1], 10);
+                if (num > maxNum) maxNum = num;
+              }
+            });
+          });
+          const nextKey = `-item${maxNum + 1}`;
+          const item = { name: itemName, count: 0, checked: false };
+          db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${catKey}/${nextKey}`).set(item).then(() => {
+            db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${catKey}/order`).once('value').then(snap => {
+              let order = snap.val() || [];
+              order.push(nextKey);
+              db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${catKey}/order`).set(order);
+            });
+          });
+        });
+      });
+    });
+  };
 
   // --- Render List ---
   function renderList(cat) {
@@ -460,17 +638,17 @@ document.addEventListener("DOMContentLoaded", function () {
     let items = groceryData[cat] || {};
     let keys = [];
 
-    if (moveDeleteMode && originalKeyOrder[cat]) {
-      keys = originalKeyOrder[cat].slice();
-    } else if (Array.isArray(items.order)) {
+    // Always show all items, even if order is missing or incomplete
+    if (Array.isArray(items.order)) {
+      // Use order, but add any extra keys not in order
       keys = items.order.filter(key => typeof items[key] === 'object');
       const extra = Object.keys(items).filter(k => k !== "order" && !items.order.includes(k));
       keys = keys.concat(extra);
     } else {
+      // No order array, just show all keys except "order"
       keys = Object.keys(items).filter(k => k !== "order");
     }
 
-    // Clear in-memory order when not in move/delete mode (so UI always matches DB order)
     if (!moveDeleteMode) delete originalKeyOrder[cat];
 
     keys.forEach((key) => {
@@ -513,18 +691,15 @@ document.addEventListener("DOMContentLoaded", function () {
       name.className = 'name';
       name.textContent = item.name;
       name.style.flex = '1 1 auto';
-      name.style.overflow = 'hidden';
-      name.style.textOverflow = 'ellipsis';
-      name.style.whiteSpace = 'nowrap';
-      name.style.margin = '0 2px';
-      name.style.textDecoration = item.checked ? 'line-through' : 'none';
-      name.style.opacity = item.checked ? '0.77' : '1';
+      name.title = "Alt+Click to edit item name";
 
-      // Use custom input modal for editing item name
-      name.ondblclick = function (e) {
-        e.stopPropagation();
-        editNameInline(cat, key, name, item);
-      };
+      // --- Alt+Click to edit item name ---
+      name.addEventListener('click', function (e) {
+        if (e.altKey) {
+          e.stopPropagation();
+          editNameInline(cat, key, name, item);
+        }
+      });
 
       li.appendChild(name);
 
@@ -582,10 +757,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const plus = document.createElement('button');
         plus.textContent = '+';
-        plus.style.fontSize = '0.95em';
-        plus.style.width = '1.4em';
-        plus.style.height = '1.4em';
-        plus.style.lineHeight = '1.2em';
+        plus.style.fontSize = '1em';      // even smaller font
+        plus.style.width = '24px';        // smaller width
+        plus.style.height = '24px';       // smaller height
+        plus.style.lineHeight = '1em';
         plus.style.padding = '0';
         plus.style.background = 'none';
         plus.style.border = '1px solid #222';
@@ -596,13 +771,9 @@ document.addEventListener("DOMContentLoaded", function () {
         plus.style.textDecoration = counterTextDecoration;
         plus.style.opacity = counterOpacity;
         plus.onclick = (e) => {
-  e.stopPropagation();
-  let current = typeof item.count === 'number' ? item.count : 0;
-  updateCount(cat, key, 1 - current); // If count is 0 or undefined, set to 1
-  if (typeof item.count === 'number') {
-    updateCount(cat, key, +1); // No max limit!
-  }
-};
+          e.stopPropagation();
+          updateCount(cat, key, +1);
+        };
 
         cnt.appendChild(minus);
         cnt.appendChild(count);
@@ -650,7 +821,7 @@ document.addEventListener("DOMContentLoaded", function () {
         };
         li.appendChild(trash);
 
-        // Move icon (bigger for touch)
+        // Move icon: 6 dots, gray, with white circle background (same as table)
         const move = document.createElement('button');
         move.className = 'move-icon';
         move.title = 'Drag to reorder';
@@ -664,12 +835,16 @@ document.addEventListener("DOMContentLoaded", function () {
         move.style.marginLeft = '4px';
         move.style.cursor = 'grab';
         move.innerHTML =
-          `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 28" width="28" height="28">
-            <rect width="28" height="28" fill="none"/>
-            <rect x="7" y="9" width="14" height="2.8" rx="1.2" fill="#666"/>
-            <rect x="7" y="13" width="14" height="2.8" rx="1.2" fill="#666"/>
-            <rect x="7" y="17" width="14" height="2.8" rx="1.2" fill="#666"/>
-          </svg>`;
+          `<span style="background:#fff;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 28" width="18" height="18">
+              <circle cx="9" cy="10" r="1.5" fill="#666"/>
+              <circle cx="14" cy="10" r="1.5" fill="#666"/>
+              <circle cx="19" cy="10" r="1.5" fill="#666"/>
+              <circle cx="9" cy="16" r="1.5" fill="#666"/>
+              <circle cx="14" cy="16" r="1.5" fill="#666"/>
+              <circle cx="19" cy="16" r="1.5" fill="#666"/>
+            </svg>
+          </span>`;
         li.appendChild(move);
       }
       ul.appendChild(li);
@@ -702,7 +877,6 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   // --- updateCount function ---
-  // Move this function INSIDE the DOMContentLoaded handler, after db is defined!
   function updateCount(cat, key, delta) {
     const item = groceryData[cat]?.[key];
     let current = (item && typeof item.count === "number") ? item.count : 0;
@@ -711,7 +885,7 @@ document.addEventListener("DOMContentLoaded", function () {
     db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/${key}`).update({ count: newCount });
   }
 
-  // --- toggleChecked function (should also be inside DOMContentLoaded) ---
+  // --- toggleChecked function ---
   function toggleChecked(cat, key, checked) {
     db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/${key}`).update({ checked: !!checked });
   }
@@ -719,33 +893,16 @@ document.addEventListener("DOMContentLoaded", function () {
   document.getElementById('static-reset-btn').onclick = function () {
     showModal("Reset all counters to 0 and uncheck all items in all tables?", function (yes) {
       if (!yes) return;
-
-      // Only update items, do NOT remove any tables
-      CATEGORIES.forEach(cat => {
+      categories.forEach(cat => {
         const items = groceryData[cat] || {};
         Object.entries(items).forEach(([key, item]) => {
-          // Only update items, skip "order" property
           if (key !== "order") {
-            // Use setTimeout to batch updates and avoid UI freeze
             setTimeout(() => {
               db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/${key}`).update({ count: 0, checked: false });
             }, 0);
           }
         });
-
-        // Restore original order if backup exists
-        if (originalOrderBackup[cat]) {
-          db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/order`).set(originalOrderBackup[cat]);
-          delete originalOrderBackup[cat];
-        }
-        // Restore markZerosOrderBackup if used
-        if (typeof markZerosOrderBackup !== "undefined" && markZerosOrderBackup[cat]) {
-          db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/order`).set(markZerosOrderBackup[cat]);
-          delete markZerosOrderBackup[cat];
-        }
       });
-
-      // Delay renderAllTables to allow batched updates to process
       setTimeout(() => {
         renderAllTables();
       }, 100);
@@ -755,18 +912,11 @@ document.addEventListener("DOMContentLoaded", function () {
   document.getElementById('check-zeros-btn').onclick = function () {
     showModal("Do you want to check all 'zero' items (highlight items to buy)?", function (yes) {
       if (!yes) return;
-
-      CATEGORIES.forEach(cat => {
+      categories.forEach(cat => {
         const items = groceryData[cat] || {};
         const keys = Object.keys(items).filter(k => k !== "order");
-
-        if (!originalOrderBackup[cat] && Array.isArray(items.order)) {
-          originalOrderBackup[cat] = items.order.slice();
-        }
-
         const aboveZero = [];
         const zero = [];
-
         keys.forEach(key => {
           const item = items[key];
           if (!item) return;
@@ -774,18 +924,14 @@ document.addEventListener("DOMContentLoaded", function () {
             aboveZero.push(key);
           } else {
             zero.push(key);
-            // Use setTimeout to batch updates and avoid UI freeze
             setTimeout(() => {
               db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/${key}`).update({ checked: true });
             }, 0);
           }
         });
-
         const newOrder = aboveZero.concat(zero);
         db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/order`).set(newOrder);
       });
-
-      // Delay renderAllTables to allow batched updates to process
       setTimeout(() => {
         renderAllTables();
       }, 100);
@@ -812,24 +958,56 @@ document.addEventListener("DOMContentLoaded", function () {
     renderAllTables();
   };
 
+  // --- Main UI ---
+  function showMain() {
+    document.getElementById('login-bg').style.display = 'none';
+    document.getElementById('main-section').style.display = '';
+    setLogoutButtonVisible(true);
+  }
+  window.showMain = showMain;
+
+  function setLogoutButtonVisible(visible) {
+    var btn = document.getElementById('logout-btn-top');
+    if (btn) btn.style.display = visible ? '' : 'none';
+    var mdbtn = document.getElementById('move-delete-toggle');
+    if (mdbtn) mdbtn.style.display = visible ? "" : "none";
+  }
+  window.setLogoutButtonVisible = setLogoutButtonVisible;
+
   // Auth State
   auth.onAuthStateChanged(user => {
-    if (user && (!ALLOWED_USERS.length || ALLOWED_USERS.includes(user.email))) {
-      USER_LIST_KEY = getUserListKey(user);
-      showMain();
-      showLoggedInEmail(user.email);
-      repairAllOrders();
-      subscribeAllLists();
+    // Hide login page immediately if user is present
+    if (user && AUTHORISED_EMAILS[user.email]) {
+      document.getElementById('login-bg').style.display = 'none';
+      document.getElementById('main-section').style.display = '';
+      setLogoutButtonVisible(true);
+      USER_LIST_KEY = AUTHORISED_EMAILS[user.email] || emailToKey(user.email);
+      db.ref(`/userLists/${USER_LIST_KEY}`).once('value').then(snap => {
+        if (!snap.exists()) {
+          db.ref(`/userLists/${USER_LIST_KEY}`).set({
+            groceryLists: {},
+            tableNames: {}
+          });
+        }
+        showLoggedInEmail(user.email);
+        repairAllOrders();
+        subscribeAllLists();
+      });
     } else {
+      // Show login page only if not authorized
       document.getElementById('main-section').style.display = 'none';
       document.getElementById('login-bg').style.display = '';
       setLogoutButtonVisible(false);
       showLoggedInEmail('');
+      if (user && !AUTHORISED_EMAILS[user.email]) {
+        document.getElementById('login-error').textContent = "Your Google account is not authorised for this app.";
+        auth.signOut();
+      }
     }
   });
 
   document.getElementById('collapse-all-btn').onclick = function() {
-    CATEGORIES.forEach(function(cat) {
+    categories.forEach(function(cat) {
       setCollapsed(cat, true);
       localStorage.setItem('col-' + cat, 'true');
     });
@@ -842,379 +1020,70 @@ document.addEventListener("DOMContentLoaded", function () {
       label.style.display = email ? '' : 'none';
     }
   }
-});
 
-// --- Inline Edit Table Header ---
-function editTableHeaderInline(cat, headerTitleEl) {
-  const prev = CATEGORY_NAMES[cat];
-  // Show modal and after it's visible, set value and cursor at end
-  showInputModal('Edit table name:', prev, function (newValue) {
-    if (typeof newValue !== "string") return;
-    const trimmed = newValue.trim();
-    if (trimmed && trimmed !== prev) {
-      CATEGORY_NAMES[cat] = trimmed;
-      db.ref(`/userLists/${USER_LIST_KEY}/tableNames/${cat}`).set(trimmed, function() {
-        renderAllTables();
+  // --- Repair All Orders ---
+  function repairAllOrders() {
+    const cats = Array.isArray(categories) ? categories : [];
+    cats.forEach(cat => {
+      const items = groceryData[cat] || {};
+      if (!Array.isArray(items.order)) return;
+      let newOrder = [];
+      let hasChanged = false;
+      items.order.forEach(key => {
+        if (items[key]) {
+          newOrder.push(key);
+        } else {
+          hasChanged = true;
+        }
       });
-    }
-  });
-  // Wait for modal to appear, then set value and cursor at end
-  setTimeout(() => {
-    const input = document.getElementById('input-modal-input');
-    if (input) {
-      // Always set value and move cursor to end
-      input.value = prev;
-      input.focus();
-      input.setSelectionRange(prev.length, prev.length);
-    }
-  }, 100);
-}
-
-// --- Inline Edit Item Name ---
-function editNameInline(cat, key, nameDiv, oldItem) {
-  const prevName = oldItem.name;
-  showInputModal('Edit item name:', prevName, function (newValue) {
-    if (typeof newValue !== "string") return;
-    const trimmed = newValue.trim();
-    if (!trimmed) return;
-    if (trimmed !== prevName) {
-      db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/${key}`).update({ name: trimmed });
-      nameDiv.textContent = trimmed;
-    }
-  });
-  // Ensure input is set and cursor is at end after modal is shown
-  setTimeout(() => {
-    const input = document.getElementById('input-modal-input');
-    if (input) {
-      input.value = prevName;
-      input.focus();
-      input.setSelectionRange(prevName.length, prevName.length);
-    }
-  }, 1);
-}
-
-// --- Render Grocery Tables (patch for double click) ---
-function renderAllTables() {
-  const area = document.getElementById('tables-area');
-  area.innerHTML = '';
-  CATEGORIES.forEach((cat, idx) => {
-    if (!CATEGORY_NAMES[cat]) CATEGORY_NAMES[cat] = cat.charAt(0).toUpperCase() + cat.slice(1);
-    if (!CATEGORY_ICONS[cat]) CATEGORY_ICONS[cat] = '';
-    const container = document.createElement('div');
-    container.className = 'container';
-    container.id = `${cat}-container`;
-
-    const headerClass = getHeaderClass(cat, idx);
-    const header = document.createElement('div');
-    header.className = 'header ' + headerClass;
-    header.id = `${cat}-header`;
-
-    // --- Editable Table Header Title ---
-    const headerTitle = document.createElement('span');
-    headerTitle.className = 'header-title';
-    headerTitle.innerHTML = (CATEGORY_ICONS[cat] ? CATEGORY_ICONS[cat] + " " : "") + CATEGORY_NAMES[cat];
-    headerTitle.style.cursor = "pointer";
-    headerTitle.ondblclick = function (e) {
-      e.stopPropagation();
-      editTableHeaderInline(cat, headerTitle);
-    };
-
-    // --- Collapse on header background click only ---
-    header.onclick = function (e) {
-      // Only collapse if click is NOT on headerTitle or any icon/button
-      if (
-        e.target === header ||
-        e.target.classList.contains('header') ||
-        e.target.classList.contains('header-count') ||
-        e.target.classList.contains('collapse-arrow')
-      ) {
-        toggleCollapse(cat);
+      if (hasChanged) {
+        db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/order`).set(newOrder);
       }
-    };
+    });
+  }
+  window.repairAllOrders = repairAllOrders;
 
-    const headerCount = document.createElement('span');
-    headerCount.className = 'header-count';
-    headerCount.id = `${cat}-count`;
-
-    const headerArrow = document.createElement('span');
-    headerArrow.className = 'collapse-arrow';
-    headerArrow.id = `${cat}-arrow`;
-    headerArrow.innerHTML = "&#9654;";
-
-    header.appendChild(headerTitle);
-    header.appendChild(headerCount);
-    header.appendChild(headerArrow);
-
-    container.appendChild(header);
-
-    const ul = document.createElement('ul');
-    ul.id = cat;
-    container.appendChild(ul);
-
-    const addBtn = document.createElement('button');
-    addBtn.className = 'add-table-btn';
-    addBtn.textContent = '＋';
-    addBtn.onclick = (e)=>{
-      e.stopPropagation();
-      addItem(cat);
-    };
-    container.appendChild(addBtn);
-
-    area.appendChild(container);
-
-    if (localStorage.getItem('col-' + cat) === 'true') setCollapsed(cat, true);
-
-    renderList(cat);
-    updateHeaderCount(cat);
-  });
-}
-
-// --- Render List (patch for double click) ---
-function renderList(cat) {
-  const ul = document.getElementById(cat);
-  if (!ul) return;
-  ul.innerHTML = '';
-  let items = groceryData[cat] || {};
-  let keys = [];
-
-  if (moveDeleteMode && originalKeyOrder[cat]) {
-    keys = originalKeyOrder[cat].slice();
-  } else if (Array.isArray(items.order)) {
-    keys = items.order.filter(key => typeof items[key] === 'object');
-    const extra = Object.keys(items).filter(k => k !== "order" && !items.order.includes(k));
-    keys = keys.concat(extra);
-  } else {
-    keys = Object.keys(items).filter(k => k !== "order");
+  // --- Inline Edit Table Header ---
+  function editTableHeaderInline(cat, headerTitleEl) {
+    const prev = tableNames[cat] || cat.charAt(0).toUpperCase() + cat.slice(1);
+    showInputModal('Edit table name:', prev, function (newValue) {
+      if (typeof newValue !== "string") return;
+      const trimmed = newValue.trim();
+      if (trimmed && trimmed !== prev) {
+        db.ref(`/userLists/${USER_LIST_KEY}/tableNames/${cat}`).set(trimmed, function() {
+          // tableNames will be updated by subscribeAllLists
+        });
+      }
+    });
+    setTimeout(() => {
+      const input = document.getElementById('input-modal-input');
+      if (input) {
+        input.value = prev;
+        input.focus();
+        input.setSelectionRange(prev.length, prev.length);
+      }
+    }, 100);
   }
 
-  // Clear in-memory order when not in move/delete mode (so UI always matches DB order)
-  if (!moveDeleteMode) delete originalKeyOrder[cat];
-
-  keys.forEach((key) => {
-    const item = items[key];
-    if (!item || typeof item !== 'object' || typeof item.name !== 'string') return;
-    const li = document.createElement('li');
-    li.dataset.key = key;
-    li.style.position = 'relative';
-    li.style.display = 'flex';
-    li.style.alignItems = 'center';
-    li.style.paddingLeft = '0';
-    li.style.paddingRight = '0';
-    li.style.paddingTop = '7px';
-    li.style.paddingBottom = '7px';
-    li.style.fontSize = '1.08rem';
-
-    // Checked: gray background and strikethrough, else highlight if count > 0
-    if (item.checked) {
-      li.style.background = '#f1f1f1';
-      li.style.color = '#444';
-    } else if (item.count > 0) {
-      li.style.background = '#FFF8D6';
-      li.style.color = '#b26a00';
-    } else {
-      li.style.background = '#fff';
-      li.style.color = '';
-    }
-
-    const cb = document.createElement('input');
-    cb.type = 'checkbox';
-    cb.checked = !!item.checked;
-    cb.onchange = () => toggleChecked(cat, key, cb.checked);
-    cb.style.margin = '0 1px 0 9px';
-    cb.style.flex = '0 0 auto';
-    cb.style.width = '20px';
-    cb.style.height = '20px';
-    li.appendChild(cb);
-
-    const name = document.createElement('div');
-    name.className = 'name';
-    name.textContent = item.name;
-    name.style.flex = '1 1 auto';
-    name.style.overflow = 'hidden';
-    name.style.textOverflow = 'ellipsis';
-    name.style.whiteSpace = 'nowrap';
-    name.style.margin = '0 2px';
-    name.style.textDecoration = item.checked ? 'line-through' : 'none';
-    name.style.opacity = item.checked ? '0.77' : '1';
-
-    // Use custom input modal for editing item name
-    name.ondblclick = function (e) {
-      e.stopPropagation();
-      editNameInline(cat, key, name, item);
-    };
-
-    li.appendChild(name);
-
-    if (!moveDeleteMode) {
-      const cnt = document.createElement('div');
-      cnt.className = 'counter';
-      cnt.style.display = 'inline-flex';
-      cnt.style.alignItems = 'center';
-      cnt.style.gap = '2px';
-      cnt.style.background = 'none';
-      cnt.style.boxShadow = 'none';
-      cnt.style.border = 'none';
-      cnt.style.marginLeft = 'auto';
-      cnt.style.marginRight = '0';
-      cnt.style.position = 'static';
-
-      // If checked, cross out the entire counter (plus, minus, count)
-      const counterTextDecoration = item.checked ? 'line-through' : 'none';
-      const counterOpacity = item.checked ? '0.77' : '1';
-
-      const minus = document.createElement('button');
-      minus.textContent = '-';
-      minus.style.fontSize = '0.95em';
-      minus.style.width = '1.4em';
-      minus.style.height = '1.4em';
-      minus.style.lineHeight = '1.2em';
-      minus.style.padding = '0';
-      minus.style.background = 'none';
-      minus.style.border = '1px solid #222';
-      minus.style.borderRadius = '4px';
-      minus.style.margin = '0 2px 0 0';
-      minus.style.cursor = 'pointer';
-      minus.style.color = '#222';
-      minus.style.textDecoration = counterTextDecoration;
-      minus.style.opacity = counterOpacity;
-      minus.onclick = (e) => {
-        e.stopPropagation();
-        updateCount(cat, key, -1);
-      };
-
-      const count = document.createElement('span');
-      count.className = 'count';
-      // Always show at least 0 (not falsy)
-      count.textContent = typeof item.count === 'number' ? item.count : 0;
-      count.style.display = 'inline-block';
-      count.style.minWidth = '1.2em';
-      count.style.textAlign = 'center';
-      count.style.fontSize = '1em';
-      count.style.margin = '0 2px';
-      count.style.background = 'none';
-      count.style.boxShadow = 'none';
-      count.style.border = 'none';
-      count.style.textDecoration = counterTextDecoration;
-      count.style.opacity = counterOpacity;
-
-      const plus = document.createElement('button');
-      plus.textContent = '+';
-      plus.style.fontSize = '0.95em';
-      plus.style.width = '1.4em';
-      plus.style.height = '1.4em';
-      plus.style.lineHeight = '1.2em';
-      plus.style.padding = '0';
-      plus.style.background = 'none';
-      plus.style.border = '1px solid #222';
-      plus.style.borderRadius = '4px';
-      plus.style.margin = '0 0 0 2px';
-      plus.style.cursor = 'pointer';
-      plus.style.color = '#222';
-      plus.style.textDecoration = counterTextDecoration;
-      plus.style.opacity = counterOpacity;
-      plus.onclick = (e) => {
-        e.stopPropagation();
-        // Fix: If count is undefined, treat as 0 before incrementing
-        let current = typeof item.count === 'number' ? item.count : 0;
-        updateCount(cat, key, 1 - current); // If count is 0 or undefined, set to 1
-        if (typeof item.count === 'number') {
-          updateCount(cat, key, +1);
-        }
-      };
-
-      cnt.appendChild(minus);
-      cnt.appendChild(count);
-      cnt.appendChild(plus);
-      li.appendChild(cnt);
-    } else {
-      // Trash icon (bigger for touch)
-      const trash = document.createElement('button');
-      trash.className = 'trash-icon';
-      trash.title = 'Delete (with undo)';
-      trash.style.width = '38px';
-      trash.style.height = '38px';
-      trash.style.display = 'flex';
-      trash.style.alignItems = 'center';
-      trash.style.justifyContent = 'center';
-      trash.style.background = 'none';
-      trash.style.border = 'none';
-      trash.style.marginLeft = '4px';
-      trash.style.cursor = 'pointer';
-      trash.innerHTML =
-        `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 28 28" width="28" height="28">
-          <path stroke="#e53935" stroke-width="2.2" d="M6 8h16M12 12v7m4-7v7M6 8l1.2 13a2.2 2.2 0 0 0 2.2 2h8.4a2.2 2.2 0 0 0 2.2-2L22 8m-10-3h4a2 2 0 0 1 2 2v0H10v0a2 2 0 0 1 2-2z"/>
-        </svg>`;
-      trash.onclick = () => {
-        let idx = keys.indexOf(key);
-        let backupItem = { ...item };
-        deletedRowBackup = { cat, key, item: backupItem, idx };
-        li.style.display = 'none';
-        deletedRowTimer = setTimeout(() => {
-          db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/${key}`).remove();
-          deletedRowBackup = null;
-          deletedRowTimer = null;
-        }, 3000);
-        showUndoToast(
-          'Item deleted.',
-          () => {
-            if (deletedRowTimer) clearTimeout(deletedRowTimer);
-            db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/${key}`).set(backupItem);
-            deletedRowBackup = null;
-            deletedRowTimer = null;
-            renderList(cat);
-          },
-          () => { }
-        );
-      };
-      li.appendChild(trash);
-
-      // Move icon (bigger for touch)
-      const move = document.createElement('button');
-      move.className = 'move-icon';
-      move.title = 'Drag to reorder';
-      move.style.width = '38px';
-      move.style.height = '38px';
-      move.style.display = 'flex';
-      move.style.alignItems = 'center';
-      move.style.justifyContent = 'center';
-      move.style.background = 'none';
-      move.style.border = 'none';
-      move.style.marginLeft = '4px';
-      move.style.cursor = 'grab';
-      move.innerHTML =
-        `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 28" width="28" height="28">
-          <rect width="28" height="28" fill="none"/>
-          <rect x="7" y="9" width="14" height="2.8" rx="1.2" fill="#666"/>
-          <rect x="7" y="13" width="14" height="2.8" rx="1.2" fill="#666"/>
-          <rect x="7" y="17" width="14" height="2.8" rx="1.2" fill="#666"/>
-        </svg>`;
-      li.appendChild(move);
-    }
-    ul.appendChild(li);
-  });
-
-  // Enable SortableJS drag-and-drop only in move/delete mode
-  if (moveDeleteMode) {
-    if (!ul.sortableInstance) {
-      ul.sortableInstance = Sortable.create(ul, {
-        animation: 180,
-        handle: '.move-icon',
-        ghostClass: 'dragging',
-        onEnd: function (evt) {
-          let newOrder = [];
-          ul.querySelectorAll('li').forEach(li => {
-            if (li.dataset.key) newOrder.push(li.dataset.key);
-          });
-          db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/order`).set(newOrder);
-          originalKeyOrder[cat] = newOrder;
-          renderList(cat);
-        }
-      });
-    }
-  } else {
-    if (ul.sortableInstance) {
-      ul.sortableInstance.destroy();
-      ul.sortableInstance = null;
-    }
+  // --- Inline Edit Item Name ---
+  function editNameInline(cat, key, nameDiv, oldItem) {
+    const prevName = oldItem.name;
+    showInputModal('Edit item name:', prevName, function (newValue) {
+      if (typeof newValue !== "string") return;
+      const trimmed = newValue.trim();
+      if (!trimmed) return;
+      if (trimmed !== prevName) {
+        db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/${key}`).update({ name: trimmed });
+        nameDiv.textContent = trimmed;
+      }
+    });
+    setTimeout(() => {
+      const input = document.getElementById('input-modal-input');
+      if (input) {
+        input.value = prevName;
+        input.focus();
+        input.setSelectionRange(prevName.length, prevName.length);
+      }
+    }, 1);
   }
-}
+});
