@@ -344,6 +344,7 @@ body, html {
   vertical-align:middle;
   box-shadow:0 1px 3px rgba(0,0,0,.05);
   border:1px solid #e0e3ea;
+  margin-right: 8px; /* Adjust spacing for icons */
 }
 .header-check{
   font-size:1.01rem;
@@ -386,6 +387,7 @@ li.checked {
   background: #f1f1f1 !important;
   color: #444 !important;
   opacity: .77;
+  text-decoration: line-through; /* Ensure the entire row is crossed out */
 }
 input[type="checkbox"] {
   width:22px;
@@ -483,27 +485,30 @@ input[type="checkbox"] {
   padding-left: 0;              /* Remove left padding */
 }
 .add-table-btn {
-  min-width: 60px;              /* Smaller width */
-  border-radius: 18px;
-  padding: 5px 13px;            /* Less vertical padding */
-  font-size: 1.05rem;
-  font-weight: 700;
+  min-width: 40px;              /* Smaller width */
+  border-radius: 12px;          /* Smaller border radius */
+  padding: 3px 8px;             /* Less vertical padding */
+  font-size: 0.9rem;            /* Smaller font size */
+  font-weight: 600;             /* Slightly lighter font weight */
   background: #aeb9c5;
   color: #fff;
   border: none;
-  box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   justify-content: center;
   opacity: 0.93;
   position: relative;
 }
 .add-table-btn:hover {
   background: #8b97a6;
-  box-shadow: 0 3px 12px rgba(0,0,0,0.11);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.11);
   opacity: 1;
+}
+.collapsed .add-table-btn {
+  display: none; /* Hide button when table is collapsed */
 }
 
 /* Modal Backdrop & Dialogs */
@@ -771,10 +776,34 @@ input[type="checkbox"] {
 .table-move-handle {
   font-size: 1.5em;
   cursor: grab;
-  opacity: 0.7;
+  opacity: 1; /* Ensure full visibility */
   margin-left: 8px;
   user-select: none;
+  padding: 0;
+  height: 28px;
+  min-width: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff; /* Always white background */
+  border-radius: 50%; /* Make it circular */
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1); /* Add subtle shadow */
+  border: 1px solid #d3dbe6; /* Add border for better visibility */
+  transition: transform 0.2s; /* Remove background transition */
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px !important;
+  min-height: 38px !important;
 }
+
+.table-move-handle:hover {
+  transform: scale(1.1); /* Slightly enlarge on hover */
+}
+
+.table-move-handle:active {
+  transform: scale(0.95); /* Slightly shrink on click */
+}
+
 .table-delete-btn {
   background: none;
   border: none;
@@ -784,13 +813,8 @@ input[type="checkbox"] {
   margin-left: 8px;
   opacity: 0.85;
   transition: opacity 0.13s;
-}
-
-.table-delete-btn,
-.table-move-handle {
   margin-left: 8px;
   padding: 0;
-  /* Ensure icons are vertically centered and not too large */
   height: 28px;
   min-width: 28px;
   display: inline-flex;
@@ -800,42 +824,43 @@ input[type="checkbox"] {
   border: none;
 }
 
+.table-delete-btn,
+.table-move-handle {
+  margin-left: 8px;
+  padding: 0;
+  height: 38px;           /* Increased from 28px to 38px */
+  min-width: 38px;        /* Increased from 28px to 38px */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+}
+
+.table-delete-btn {
+  margin-right: 18px;     /* Add more space between delete and move */
+}
+
 .table-delete-btn span,
 .table-move-handle span,
 .move-icon span {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 38px;            /* Increased from 28px to 38px */
+  height: 38px;           /* Increased from 28px to 38px */
   background: #fff;
   border-radius: 50%;
 }
 
-.move-icon {
-  width: 38px;
-  height: 38px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: none;
-  border: none;
-  margin-left: 4px;
-  cursor: grab;
-  padding: 0;
-}
-
-.trash-icon {
-  width: 38px;
-  height: 38px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: none;
-  border: none;
-  margin-left: 4px;
-  cursor: pointer;
-  padding: 0;
+/* Make the SVG icon inside move handle larger */
+.table-move-handle svg {
+  width: 32px !important;
+  height: 32px !important;
+  display: block;
+  stroke: #666;
+  stroke-width: 2.2;
+  fill: none;
 }
 
 @media (max-width: 500px) {
@@ -860,3 +885,57 @@ input[type="checkbox"] {
     gap: 8px;
   }
 }
+
+/* Undo Toast */
+.undo-toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(30, 41, 54, 0.9);
+  color: #fff;
+  padding: 14px 38px; /* Increased horizontal padding for more width */
+  border-radius: 12px; /* More rounded corners for a less square look */
+  min-width: 320px;    /* Ensure a wider minimum width */
+  max-width: 90vw;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  z-index: 1500;
+  animation: fadeIn 0.3s ease-out;
+}
+.undo-toast .undo-message {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-right: 8px;
+}
+.undo-toast .undo-btn {
+  background: linear-gradient(90deg, #388e3c 60%, #5dd05d 100%);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+.undo-toast .undo-btn:hover {
+  background: linear-gradient(90deg, #3070b3 0%, #2b79c2 100%);
+  transform: scale(1.05);
+}
+.undo-toast .undo-btn:active {
+  transform: scale(0.95);
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.mobr-header { background: #ff5722; } /* Add background color for mobr table */
