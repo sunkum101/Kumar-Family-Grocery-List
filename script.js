@@ -586,7 +586,33 @@ document.addEventListener("DOMContentLoaded", function () {
     ul.innerHTML = ''; // Clear existing content
 
     const items = groceryData[cat] || {};
-    const keys = Array.isArray(items.order) ? items.order : Object.keys(items).filter(k => k !== 'order');
+    // --- FIX: Merge order array with all valid keys in the object ---
+    let keys = Array.isArray(items.order) ? [...items.order] : [];
+    // Add any missing keys that are valid items but not in order
+    Object.keys(items).forEach(k => {
+      if (
+        k !== 'order' &&
+        !keys.includes(k) &&
+        items[k] &&
+        typeof items[k] === 'object' &&
+        typeof items[k].name === 'string'
+      ) {
+        keys.push(k);
+      }
+    });
+
+    // --- Optional: Heal the order array in DB if needed ---
+    // Only do this if order is missing keys or has extra/invalid keys
+    const validKeys = keys.filter(k => items[k] && typeof items[k].name === 'string');
+    if (
+      Array.isArray(items.order) &&
+      (items.order.length !== validKeys.length ||
+        items.order.some(k => !validKeys.includes(k)) ||
+        validKeys.some(k => !items.order.includes(k)))
+    ) {
+      groceryData[cat].order = validKeys;
+      db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/order`).set(validKeys);
+    }
 
     // UI-only sort: items with count > 0 (to buy) at top, count == 0 at bottom, preserving original order within groups
     let displayOrder = keys;
@@ -712,20 +738,8 @@ document.addEventListener("DOMContentLoaded", function () {
     // Update local data instantly
     groceryData[cat][key].count = newCount;
 
-    // Update only the count in the UI instantly (avoid full render for speed)
-    const li = document.querySelector(`li[data-key="${key}"]`);
-    const countSpan = li?.querySelector('.count');
-    if (countSpan) countSpan.textContent = newCount;
-    // Update row background color based on count
-    if (li) {
-      if (newCount > 0) {
-        li.style.background = '#FFF8D6';
-        li.style.color = '#b26a00';
-      } else {
-        li.style.background = '#fff';
-        li.style.color = '';
-      }
-    }
+    // Instantly update the entire list UI for this category
+    renderList(cat);
 
     // Debounced DB update (but UI is already updated)
     if (updateTimeouts[key]) clearTimeout(updateTimeouts[key]);
@@ -734,7 +748,7 @@ document.addEventListener("DOMContentLoaded", function () {
       delete updateTimeouts[key];
     }, 1000);
 
-    updateHeaderCount(cat);
+    // No need to call updateHeaderCount(cat) here, as renderList already does it
   }
 
   // --- Delete Item ---
