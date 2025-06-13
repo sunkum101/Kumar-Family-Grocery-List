@@ -446,7 +446,7 @@ input[type="checkbox"] {
   border: none;
   border-radius: 50%;
   color: #fff;
-  font-size: 2rem;
+  font-size: 1.6rem; /* More balanced plus/minus sign size */
   cursor: pointer;
   background: #7ba5d6;
   font-family: inherit;
@@ -479,10 +479,10 @@ input[type="checkbox"] {
 .add-table-btn-wrap {
   width: 100%;
   display: flex;
-  justify-content: center;      /* Center horizontally */
+  justify-content: center;
   align-items: center;
-  margin: 38px 0 0 0;          /* Move downward (increase top margin) */
-  padding-left: 0;              /* Remove left padding */
+  margin: 38px 0 32px 0;   /* Increased bottom margin for visibility */
+  padding-left: 0;
 }
 .add-table-btn {
   min-width: 40px;              /* Smaller width */
@@ -618,12 +618,15 @@ input[type="checkbox"] {
   .counter button {
     width: 42px;
     height: 42px;
-    font-size: 2rem;
+    font-size: 1.6rem; /* Consistent, balanced size on mobile */
   }
   .counter {
     gap: 12px;
     padding: 6px 17px;
     min-width: 92px;
+  }
+  .add-table-btn-wrap {
+    margin-bottom: 60px !important; /* Extra space for Android nav bar */
   }
 }
 
