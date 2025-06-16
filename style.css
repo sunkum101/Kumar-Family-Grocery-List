@@ -370,83 +370,68 @@ ul { list-style:none; margin:0; padding:0 }
 li {
   display:flex;
   align-items:center;
-  gap:10px;
-  padding:12px 0 12px 4px; /* Reduce left padding, remove right padding */
+  gap:16px;
+  padding:18px 0 18px 8px; /* Reduce left padding, remove right padding */
   border-bottom:1px solid #e3e9f2;
   background: #fff;
-  font-size:1.21rem;
+  font-size:1.45rem;
   user-select:none;
   font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
   position:relative;
-  border-radius:6px;
-  margin:4px 4px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.02);
+  border-radius:10px;
+  margin:8px 6px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+  min-height: 64px;
 }
 li:last-child { border-bottom:none }
 li.checked {
   background: #f1f1f1 !important;
   color: #444 !important;
   opacity: .77;
-  text-decoration: line-through; /* Ensure the entire row is crossed out */
+  text-decoration: line-through;
 }
-input[type="checkbox"] {
-  width:22px;
-  height:22px;
-  cursor:pointer;
-  margin-top:1px;
-  accent-color:#666;
-  border-radius:5px;
-  box-shadow:0 1px 4px rgba(80,80,80,0.07);
-  border: 1px solid #d3dbe6;
-  background:#fafbfc;
-  margin-left: 2px; /* Move checkbox a little right from the edge */
-}
+
+/* --- NAME FIELD: Larger font and padding --- */
 .name {
   flex: 1;
   min-width: 0;
-  font-size: 1.35rem;
+  font-size: 1.5rem;
   line-height: 1.3;
   border: none;
   background: transparent;
   outline: none;
-  padding: 0 0 0 2px;
+  padding: 0 0 0 4px;
   font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
   font-weight: 700;
   color: #232323;
   letter-spacing: 0.01em;
-  border-radius: 6px;
+  border-radius: 8px;
   word-break: break-word;
   cursor: pointer;
 }
 
-.name.editing {
-  background:#fffbe9;
-  border-radius:5px;
-  user-select: text;
-  color: #333;
-  font-weight: 600;
-}
+/* --- COUNTER BUTTONS: Mobile-first, large and easy to tap --- */
 .counter {
   display: flex;
   align-items: center;
-  gap: 12px;
-  font-size: 1.35rem;
+  gap: 18px;
+  font-size: 1.5rem;
   background: #f7f7f7;
-  border-radius: 12px;
-  padding: 6px 0 6px 17px; /* Remove right padding, keep left for spacing */
-  min-width: 92px;
-  justify-content: flex-end; /* Push buttons to the right edge */
+  border-radius: 16px;
+  padding: 10px 0 10px 18px;
+  min-width: 120px;
+  justify-content: flex-end;
   box-shadow: 0 1px 4px rgba(0,0,0,0.07);
   margin-left: 4px;
-  margin-right: 0; /* Remove extra right margin */
+  margin-right: 0;
 }
 .counter button {
-  width: 42px;
-  height: 42px;
+  width: 54px;
+  height: 54px;
   border: none;
   border-radius: 50%;
   color: #fff;
-  font-size: 1.6rem; /* More balanced plus/minus sign size */
+  font-size: 2.2rem;
   cursor: pointer;
   background: #7ba5d6;
   font-family: inherit;
@@ -458,487 +443,294 @@ input[type="checkbox"] {
   display: flex;
   align-items: center;
   justify-content: center;
+  touch-action: manipulation;
 }
-
 .counter button:active {
   background: #5277ad;
   transform: scale(0.94);
 }
-
 .counter span.count {
-  min-width: 32px;
+  min-width: 38px;
   text-align: center;
-  font-size: 1.35rem; /* Match .name size */
+  font-size: 1.7rem;
   font-family: inherit;
   user-select: none;
   font-weight: 700;
   color: #1c2331;
   letter-spacing: 0.01em;
-  padding: 0 3px;
+  padding: 0 4px;
 }
+
+/* --- CHECKBOXES: Large for touch --- */
+input[type="checkbox"] {
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  margin-top: 1px;
+  accent-color: #666;
+  border-radius: 7px;
+  box-shadow: 0 1px 4px rgba(80,80,80,0.07);
+  border: 1.5px solid #d3dbe6;
+  background: #fafbfc;
+  margin-left: 4px;
+}
+
+/* --- BUTTONS: General --- */
+button,
+.add-table-btn,
+.action-btn {
+  font-size: 1.25rem !important;
+  min-height: 54px !important;
+  padding: 0 18px !important;
+  border-radius: 12px !important;
+  font-weight: 700 !important;
+  box-shadow: 0 1px 4px rgba(60,80,130,0.09);
+  touch-action: manipulation;
+}
+
+/* --- ADD TABLE BUTTON WRAP: More space at bottom --- */
 .add-table-btn-wrap {
   width: 100%;
   display: flex;
   justify-content: center;
   align-items: center;
-  margin: 38px 0 32px 0;   /* Increased bottom margin for visibility */
+  margin: 38px 0 80px 0;
   padding-left: 0;
 }
-.add-table-btn {
-  min-width: 40px;              /* Smaller width */
-  border-radius: 12px;          /* Smaller border radius */
-  padding: 3px 8px;             /* Less vertical padding */
-  font-size: 0.9rem;            /* Smaller font size */
-  font-weight: 600;             /* Slightly lighter font weight */
-  background: #aeb9c5;
-  color: #fff;
-  border: none;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  justify-content: center;
-  opacity: 0.93;
-  position: relative;
+
+/* --- ACTION BUTTONS: Larger and more spacing --- */
+.actions-mobile .row-btns,
+.actions-mobile .row-btns.one-line-btns,
+.actions-mobile .compact-row-btns,
+.actions-mobile .row-btns.compact-row-btns {
+  gap: 18px !important;
+  margin-bottom: 12px;
 }
-.add-table-btn:hover {
-  background: #8b97a6;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.11);
-  opacity: 1;
-}
-.collapsed .add-table-btn {
-  display: none; /* Hide button when table is collapsed */
+.action-btn.move-delete,
+.action-btn.reset,
+.action-btn.check-zeros {
+  font-size: 1.18rem !important;
+  min-height: 54px !important;
+  padding: 0 18px !important;
+  border-radius: 12px !important;
+  font-weight: 700 !important;
+  box-shadow: 0 1px 4px rgba(60,80,130,0.09);
 }
 
-/* Modal Backdrop & Dialogs */
-.modal-backdrop, .input-modal-backdrop {
-  position: fixed;
-  z-index: 1300;
-  top: 0; left: 0;
-  width: 100vw; height: 100vh;
-  background: rgba(30,41,54,0.28);
-  display: none;
-  align-items: center;
-  justify-content: center;
+/* --- HEADER: Reduce height for mobile and desktop --- */
+.header {
+  font-size: 1.13rem;
+  min-height: 38px;
+  padding: 8px 12px 8px 12px;
+  border-radius: 10px 10px 0 0;
 }
-.modal-backdrop.active, .input-modal-backdrop.active {
-  display: flex;
+.header-title {
+  font-size: 1.05rem;
+  margin-right: 8px;
 }
+.header-count {
+  font-size: 1.01rem;
+  padding: 2px 10px;
+  border-radius: 16px;
+  margin-left: 4px;
+  margin-right: 10px;
+  min-width: 20px;
+}
+
+/* --- MODALS: Larger for mobile, full-width buttons, better spacing --- */
 .modal-dialog, .input-modal-dialog {
+  min-width: 240px;
+  max-width: 98vw;
+  padding: 28px 18px 18px 18px;
+  font-size: 1.18rem;
+  border-radius: 18px;
   background: #fff;
-  border-radius: 13px;
-  min-width: 200px;
-  max-width: 94vw;
-  padding: 18px 9px 13px 9px;
   box-shadow: 0 5px 19px rgba(0,0,0,0.11);
   border: 1px solid #e2e7f1;
   text-align: center;
-  font-size: 1.07rem;
-  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
-  color: #232b35;
   display: flex;
   flex-direction: column;
-  gap: 11px;
-  animation: popin 0.18s cubic-bezier(.2,1.5,.6,1);
-}
-@keyframes popin {
-  0% {transform: scale(0.85); opacity:0;}
-  100% {transform: scale(1); opacity:1;}
+  gap: 18px;
 }
 .modal-title, .input-modal-title {
-  font-size: 1rem;
+  font-size: 1.18rem;
   font-weight: 700;
-  color: #242c36;
-  margin-bottom: 4px;
+  margin-bottom: 8px;
+  text-align: center;
 }
 .modal-btns, .input-modal-btns {
   display: flex;
-  gap: 12px;
+  flex-direction: column;
+  gap: 14px;
   justify-content: center;
-  margin-top: 3px;
+  align-items: stretch;
+  margin-top: 8px;
+  width: 100%;
 }
 .modal-btn-no, .modal-btn-yes, .input-modal-btn {
-  min-width: 57px;
-  padding: 7px 0;
-  font-size: 1rem;
-  border: none;
-  border-radius: 7px;
-  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+  width: 100%;
+  min-width: 0;
+  padding: 18px 0;
+  font-size: 1.18rem;
+  border-radius: 12px;
   font-weight: 700;
-  cursor: pointer;
-  transition: background .14s;
-  box-shadow: 0 2px 7px rgba(30,30,30,0.07);
-  outline: none;
-}
-.modal-btn-no, .input-modal-btn-cancel {
-  background: #e3e7ee;
-  color: #3f4a56;
-}
-.modal-btn-no:active, .input-modal-btn-cancel:active {
-  background: #c8cfd7;
+  border: none;
+  background: #f3f6fa;
+  color: #222;
+  margin: 0;
+  box-shadow: none;
+  transition: background 0.14s;
 }
 .modal-btn-yes, .input-modal-btn-ok {
   background: linear-gradient(90deg,#388e3c 60%, #5dd05d 100%);
   color: #fff;
 }
+.modal-btn-no:active, .input-modal-btn-cancel:active {
+  background: #e0e7ef;
+}
 .modal-btn-yes:active, .input-modal-btn-ok:active {
   background: linear-gradient(90deg,#3070b3 0%,#2b79c2 100%);
 }
 .input-modal-input {
-  font-size: 1rem;
-  padding: 6px 7px;
-  border-radius: 6px;
-  border: 1px solid #c7d1e6;
+  font-size: 1.18rem;
+  padding: 12px 10px;
+  border-radius: 8px;
+  border: 1.5px solid #c7d1e6;
   background: #f7fafd;
   outline: none;
   width: 100%;
   box-sizing: border-box;
-  margin-bottom: 3px;
+  margin-bottom: 8px;
   transition: border 0.13s, background 0.13s;
 }
 .input-modal-input:focus {
-  border: 1.3px solid #388e3c;
+  border: 1.5px solid #388e3c;
   background: #fff;
 }
 
-/* Add space below the top bar (email address) and above the three buttons */
-#main-section .actions-mobile {
-  margin-top: 10px;
-}
-
-
-/* On small screens, keep these sizes large for touch */
-@media (max-width: 600px) {
-  .name,
-  .counter,
-  .counter span.count {
-    font-size: 1.35rem !important;
-  }
-  .counter button {
-    width: 42px;
-    height: 42px;
-    font-size: 1.6rem; /* Consistent, balanced size on mobile */
-  }
-  .counter {
-    gap: 12px;
-    padding: 6px 17px;
-    min-width: 92px;
-  }
-  .add-table-btn-wrap {
-    margin-bottom: 60px !important; /* Extra space for Android nav bar */
-  }
-}
-
-/* --- Professional Login Card --- */
-.login-bg {
-  background: #e3e7ee;
-  min-height: 100vh;
-  width: 100vw;
-  position: fixed;
-  top: 0; left: 0;
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
+/* --- LOGIN CARD: Larger for mobile --- */
 .login-card {
-  background: #fff;
+  padding: 38px 8vw 38px 8vw;
+  min-width: 0;
+  width: 98vw;
+  max-width: 99vw;
   border-radius: 18px;
-  box-shadow: 0 6px 32px rgba(60,80,130,0.13), 0 1.5px 6px rgba(60,80,130,0.07);
-  padding: 32px 22px 28px 22px;
-  min-width: 320px;
-  max-width: 98vw;
-  width: 370px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 13px;
-  margin: 0 auto;
+  gap: 18px;
 }
-
 .login-logo {
-  font-size: 2.7rem;
-  margin-bottom: 2px;
-  margin-top: 0;
-  background: linear-gradient(90deg, #6366f1 60%, #22c55e 100%);
-  color: #fff;
-  border-radius: 50%;
-  width: 60px;
-  height: 60px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 10px rgba(60,80,130,0.11);
+  font-size: 3.2rem;
+  width: 70px;
+  height: 70px;
 }
-
 .login-title {
-  font-size: 1.35rem;
-  font-weight: 700;
-  color: #232b35;
-  margin-bottom: 2px;
-  text-align: center;
-  letter-spacing: 0.01em;
+  font-size: 1.45rem;
 }
-
 .login-desc {
-  font-size: 1.01rem;
-  color: #4a5568;
-  text-align: center;
-  margin-bottom: 7px;
-  margin-top: 0;
-  line-height: 1.5;
+  font-size: 1.18rem;
 }
-
-.allowed-list {
-  width: 100%;
-  margin: 0 0 10px 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 9px;
-}
-
 .allowed-item {
-  display: flex;
-  align-items: center;
-  gap: 13px;
-  background: #f7fafd;
-  border-radius: 12px;
-  padding: 11px 13px;
-  font-size: 1.09rem;
-  color: #232b35;
-  font-weight: 600;
-  cursor: pointer;
-  border: 1.5px solid #e3e7ee;
-  transition: background 0.13s, border 0.13s, box-shadow 0.13s;
-  box-shadow: 0 1px 4px rgba(60,80,130,0.06);
-}
-.allowed-item.selected, .allowed-item:active, .allowed-item:hover {
-  background: #e0e7ff;
-  border: 1.5px solid #6366f1;
-  color: #222;
-  box-shadow: 0 2px 8px rgba(60,80,130,0.10);
+  font-size: 1.18rem;
+  padding: 14px 18px;
+  gap: 14px;
 }
 .allowed-avatar {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  object-fit: cover;
-  background: #e3e7ee;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #6366f1;
-  border: 1.5px solid #dbeafe;
+  width: 44px;
+  height: 44px;
+  font-size: 1.35rem;
 }
-
 .google-btn {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 13px;
-  justify-content: center;
-  background: #fff;
-  border: 1.5px solid #d1d5db;
-  border-radius: 12px;
-  padding: 11px 0;
-  font-size: 1.13rem;
-  font-weight: 700;
-  color: #232b35;
-  cursor: pointer;
-  margin: 7px 0 0 0;
-  box-shadow: 0 1.5px 8px rgba(60,80,130,0.07);
-  transition: background 0.13s, box-shadow 0.13s;
-}
-.google-btn:hover {
-  background: #f3f6fa;
-  box-shadow: 0 3px 14px rgba(60,80,130,0.13);
+  font-size: 1.18rem;
+  padding: 14px 0;
+  gap: 14px;
 }
 .google-logo {
-  width: 32px;
-  height: 32px;
-  background: none;
-  border-radius: 50%;
-  margin-right: 2px;
+  width: 38px;
+  height: 38px;
 }
 
-.login-error {
-  color: #e53935;
-  font-size: 1.01rem;
-  margin-top: 7px;
-  text-align: center;
-  min-height: 1.2em;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-}
-
-.table-move-handle {
-  font-size: 1.5em;
-  cursor: grab;
-  opacity: 1; /* Ensure full visibility */
-  margin-left: 8px;
-  user-select: none;
-  padding: 0;
-  height: 28px;
-  min-width: 28px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: #fff; /* Always white background */
-  border-radius: 50%; /* Make it circular */
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1); /* Add subtle shadow */
-  border: 1px solid #d3dbe6; /* Add border for better visibility */
-  transition: transform 0.2s; /* Remove background transition */
-  width: 38px !important;
-  height: 38px !important;
-  min-width: 38px !important;
-  min-height: 38px !important;
-}
-
-.table-move-handle:hover {
-  transform: scale(1.1); /* Slightly enlarge on hover */
-}
-
-.table-move-handle:active {
-  transform: scale(0.95); /* Slightly shrink on click */
-}
-
-.table-delete-btn {
-  background: none;
-  border: none;
-  color: #e53935;
-  font-size: 1.3em;
-  cursor: pointer;
-  margin-left: 8px;
-  opacity: 0.85;
-  transition: opacity 0.13s;
-  margin-left: 8px;
-  padding: 0;
-  height: 28px;
-  min-width: 28px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: none;
-  border: none;
-}
-
-.table-delete-btn,
-.table-move-handle {
-  margin-left: 8px;
-  padding: 0;
-  height: 38px;           /* Increased from 28px to 38px */
-  min-width: 38px;        /* Increased from 28px to 38px */
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: none;
-  border: none;
-}
-
-.table-delete-btn {
-  margin-right: 18px;     /* Add more space between delete and move */
-}
-
-.table-delete-btn span,
-.table-move-handle span,
-.move-icon span {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 38px;            /* Increased from 28px to 38px */
-  height: 38px;           /* Increased from 28px to 38px */
-  background: #fff;
-  border-radius: 50%;
-}
-
-/* Make the SVG icon inside move handle larger */
-.table-move-handle svg {
-  width: 32px !important;
-  height: 32px !important;
-  display: block;
-  stroke: #666;
-  stroke-width: 2.2;
-  fill: none;
-}
-
-@media (max-width: 500px) {
-  .login-card {
-    min-width: 0;
-    width: 97vw;
-    padding: 18px 3vw 18px 3vw;
-  }
-  .allowed-item {
-    font-size: 1.01rem;
-    padding: 9px 7px;
-    gap: 8px;
-  }
-  .allowed-avatar {
-    width: 32px;
-    height: 32px;
-    font-size: 1.08rem;
-  }
-  .google-btn {
-    font-size: 1.01rem;
-    padding: 9px 0;
-    gap: 8px;
-  }
-}
-
-/* Undo Toast */
+/* --- UNDO TOAST: Larger for mobile --- */
 .undo-toast {
-  position: fixed;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(30, 41, 54, 0.9);
-  color: #fff;
-  padding: 14px 38px; /* Increased horizontal padding for more width */
-  border-radius: 12px; /* More rounded corners for a less square look */
-  min-width: 320px;    /* Ensure a wider minimum width */
-  max-width: 90vw;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  z-index: 1500;
-  animation: fadeIn 0.3s ease-out;
-}
-.undo-toast .undo-message {
-  font-size: 1rem;
-  font-weight: 600;
-  margin-right: 8px;
+  padding: 18px 44px;
+  border-radius: 16px;
+  min-width: 340px;
+  font-size: 1.18rem;
+  gap: 20px;
 }
 .undo-toast .undo-btn {
-  background: linear-gradient(90deg, #388e3c 60%, #5dd05d 100%);
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  padding: 6px 12px;
-  font-size: 0.9rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background 0.2s, transform 0.2s;
+  padding: 10px 18px;
+  font-size: 1.1rem;
+  border-radius: 8px;
 }
-.undo-toast .undo-btn:hover {
-  background: linear-gradient(90deg, #3070b3 0%, #2b79c2 100%);
-  transform: scale(1.05);
+
+/* --- MODAL BACKDROP: Always hidden unless .active is present --- */
+.modal-backdrop,
+.input-modal-backdrop {
+  display: none;
+  position: fixed;
+  z-index: 1300;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  background: rgba(30,41,54,0.28);
+  align-items: center;
+  justify-content: center;
 }
-.undo-toast .undo-btn:active {
-  transform: scale(0.95);
+.modal-backdrop.active,
+.input-modal-backdrop.active {
+  display: flex;
 }
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+
+/* --- MEDIA QUERIES: Remove desktop-specific overrides --- */
+@media (max-width: 600px) {
+  /* All sizing above is already mobile-optimized */
 }
-.mobr-header { background: #ff5722; } /* Add background color for mobr table */
+
+/* --- Table Move Handle: Make exactly same size and style as delete button --- */
+.table-move-handle,
+.table-delete-btn {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border-radius: 8px;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  box-sizing: border-box;
+  padding: 0;
+  /* Remove margin differences for perfect alignment */
+  margin: 0 4px 0 0;
+  transition: border-color 0.2s, background 0.2s;
+  /* Remove any other margin overrides below */
+}
+.table-move-handle {
+  border: 2px solid #bbb;
+  cursor: grab;
+}
+.table-move-handle svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+  fill: #666;
+  stroke: #666;
+}
+.table-move-handle:active, .table-move-handle:focus {
+  border-color: #1976d2;
+  background: #e3f2fd;
+}
+.table-delete-btn {
+  border: 2px solid #e53935;
+}
+.table-delete-btn svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+  fill: none;
+  stroke: #e53935;
+}
+.table-delete-btn:active, .table-delete-btn:focus {
+  border-color: #b71c1c;
+  background: #ffeaea;
+}
+
+/* Remove any other .table-move-handle or .table-delete-btn width/height/margin rules below this block */
