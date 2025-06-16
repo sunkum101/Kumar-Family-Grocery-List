@@ -332,48 +332,41 @@ document.addEventListener("DOMContentLoaded", function () {
       // Trim leading/trailing spaces and collapse multiple spaces
       const trimmedName = name.trim().replace(/\s+/g, ' ');
       if (!trimmedName) return;
-      // Update UI and local data instantly
-      if (!groceryData[cat]) groceryData[cat] = {};
-      const items = groceryData[cat];
-      // Only use keys that are actual items (not 'order' or undefined/null)
-      const existingKeys = Object.keys(items)
-        .filter(key => key !== 'order' && items[key] && typeof items[key] === 'object' && typeof items[key].name === 'string');
-      const existingNames = existingKeys
-        .map(key => items[key].name.trim().replace(/\s+/g, ' ').toLowerCase());
-      if (existingNames.includes(trimmedName.toLowerCase())) {
-        showModal(`Item "${trimmedName}" already exists in this table.`, () => {});
-        return;
-      }
-      // Find next available item key (handle both item1, item2, ... and -item1, -item2, ...)
-      let maxNum = 0;
-      existingKeys.forEach(key => {
-        const match = key.match(/-?item(\d+)/);
-        if (match) {
-          const num = parseInt(match[1], 10);
-          if (num > maxNum) maxNum = num;
-        }
-      });
-      const nextKey = existingKeys.some(k => k.startsWith('-')) ? `-item${maxNum + 1}` : `item${maxNum + 1}`;
-      const item = { name: trimmedName, count: 0, checked: false };
-      groceryData[cat][nextKey] = item;
-      // Ensure order array exists and is clean
-      if (!Array.isArray(groceryData[cat].order)) groceryData[cat].order = [];
-      // Remove any undefined/null/invalid keys from order
-      groceryData[cat].order = groceryData[cat].order.filter(
-        k => typeof k === "string" && groceryData[cat][k] && typeof groceryData[cat][k] === 'object' && typeof groceryData[cat][k].name === 'string'
-      );
-      groceryData[cat].order.push(nextKey);
-      renderList(cat);
 
-      // Update DB in background
-      setTimeout(() => {
+      // --- Instead of updating local data and UI instantly, only update DB and let subscribeAllLists handle UI ---
+      // This prevents duplicate UI tables/items due to local state getting out of sync with DB
+
+      // Prepare new item key
+      db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}`).once('value').then(snap => {
+        const items = snap.val() || {};
+        const existingKeys = Object.keys(items)
+          .filter(key => key !== 'order' && items[key] && typeof items[key] === 'object' && typeof items[key].name === 'string');
+        const existingNames = existingKeys
+          .map(key => items[key].name.trim().replace(/\s+/g, ' ').toLowerCase());
+        if (existingNames.includes(trimmedName.toLowerCase())) {
+          showModal(`Item "${trimmedName}" already exists in this table.`, () => {});
+          return;
+        }
+        let maxNum = 0;
+        existingKeys.forEach(key => {
+          const match = key.match(/-?item(\d+)/);
+          if (match) {
+            const num = parseInt(match[1], 10);
+            if (num > maxNum) maxNum = num;
+          }
+        });
+        const nextKey = existingKeys.some(k => k.startsWith('-')) ? `-item${maxNum + 1}` : `item${maxNum + 1}`;
+        const item = { name: trimmedName, count: 0, checked: false };
+
+        // Update DB only, let subscribeAllLists update UI
         db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/${nextKey}`).set(item);
-        // Clean order before saving to DB
-        const cleanOrder = groceryData[cat].order.filter(
-          k => typeof k === "string" && groceryData[cat][k] && typeof groceryData[cat][k] === 'object' && typeof groceryData[cat][k].name === 'string'
-        );
-        db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/order`).set(cleanOrder);
-      }, 0);
+        // Update order in DB
+        let order = Array.isArray(items.order) ? items.order.filter(
+          k => typeof k === "string" && items[k] && typeof items[k] === 'object' && typeof items[k].name === 'string'
+        ) : [];
+        order.push(nextKey);
+        db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/order`).set(order);
+      });
     });
   }
 
@@ -508,7 +501,14 @@ document.addEventListener("DOMContentLoaded", function () {
   // --- Render Grocery Tables ---
   function renderAllTables() {
     const area = document.getElementById('tables-area');
-    area.innerHTML = ''; // Clear existing content
+    // --- FIX: Remove all child nodes and destroy any Sortable instance to avoid duplicate tables ---
+    if (area.sortableInstance) {
+      area.sortableInstance.destroy();
+      area.sortableInstance = null;
+    }
+    while (area.firstChild) {
+      area.removeChild(area.firstChild);
+    }
 
     const order = Array.isArray(tableOrder) && tableOrder.length ? tableOrder : categories;
     order.forEach((cat, idx) => {
@@ -525,13 +525,13 @@ document.addEventListener("DOMContentLoaded", function () {
           moveDeleteMode
             ? `
           <button class="table-delete-btn" onclick="deleteTable('${cat}')">
-            <span>
+            <span class="table-delete-svg-wrap">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 28 28" width="18" height="18">
                 <path stroke="#e53935" stroke-width="2.2" d="M6 8h16M12 12v7m4-7v7M6 8l1.2 13a2.2 2.2 0 0 0 2.2 2h8.4a2.2 2.2 0 0 0 2.2-2L22 8m-10-3h4a2 2 0 0 1 2 2v0H10v0a2 2 0 0 1 2-2z"/>
               </svg>
             </span>
           </button>
-          <span class="table-move-handle" title="Drag to reorder table">
+          <span class="table-move-handle">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="22" height="22">
               <g>
                 <path d="M16 7v18" stroke="#666" stroke-width="2.2" stroke-linecap="round"/>
@@ -545,7 +545,6 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         <span class="collapse-arrow">&#9654;</span>
       `;
-      // Only collapse/expand if not double-clicking the title
       header.addEventListener('click', function (e) {
         if (
           e.target.classList.contains('header-title') ||
@@ -584,12 +583,7 @@ document.addEventListener("DOMContentLoaded", function () {
         input.type = 'text';
         input.value = oldName;
         input.className = 'edit-table-input';
-        input.style.fontSize = '1.05rem';
-        input.style.fontWeight = '700';
-        input.style.borderRadius = '6px';
-        input.style.padding = '2px 7px';
-        input.style.margin = '0 2px';
-        input.style.width = '80%';
+        // Remove all inline style assignments; use CSS only
         this.replaceWith(input);
         input.focus();
         input.select();
@@ -636,16 +630,13 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   // --- Render List ---
-  // Accepts optional forceCheckZerosSort param for temporary UI sorting
   function renderList(cat, forceCheckZerosSort = false) {
     const ul = document.getElementById(cat);
     if (!ul) return;
     ul.innerHTML = ''; // Clear existing content
 
     const items = groceryData[cat] || {};
-    // --- FIX: Merge order array with all valid keys in the object ---
     let keys = Array.isArray(items.order) ? [...items.order] : [];
-    // Add any missing keys that are valid items but not in order
     Object.keys(items).forEach(k => {
       if (
         k !== 'order' &&
@@ -658,8 +649,6 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     });
 
-    // --- Optional: Heal the order array in DB if needed ---
-    // Only do this if order is missing keys or has extra/invalid keys
     const validKeys = keys.filter(k => items[k] && typeof items[k].name === 'string');
     if (
       Array.isArray(items.order) &&
@@ -671,7 +660,6 @@ document.addEventListener("DOMContentLoaded", function () {
       db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/order`).set(validKeys);
     }
 
-    // UI-only sort: items with count > 0 (to buy) at top, count == 0 at bottom, preserving original order within groups
     let displayOrder = keys;
     let doTempSort = forceCheckZerosSort || (window._checkZerosSortFlags && window._checkZerosSortFlags[cat]);
     if (doTempSort) {
@@ -687,8 +675,6 @@ document.addEventListener("DOMContentLoaded", function () {
         }
       });
       displayOrder = toBuy.concat(zero);
-      // --- Do NOT clear the flag here! ---
-      // The sort flag will persist until user manually changes the list.
     }
 
     displayOrder.forEach(key => {
@@ -697,24 +683,29 @@ document.addEventListener("DOMContentLoaded", function () {
 
       const li = document.createElement('li');
       li.dataset.key = key;
-      li.style.background = item.checked ? '#f1f1f1' : item.count > 0 ? '#FFF8D6' : '#fff';
-      li.style.color = item.checked ? '#444' : item.count > 0 ? '#b26a00' : '';
-      li.style.opacity = item.checked ? '0.77' : '';
-      li.style.textDecoration = item.checked ? 'line-through' : '';
+      // Remove all inline style assignments for appearance
+      // Use CSS classes for checked, to-buy, zero-count
+      li.className = '';
+      if (item.checked) {
+        li.classList.add('checked');
+      } else if (item.count > 0) {
+        li.classList.add('to-buy');
+      } else {
+        li.classList.add('zero-count');
+      }
 
       li.innerHTML = `
         <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleChecked('${cat}', '${key}', this.checked)">
         <div class="name" title="Alt+Click to edit item name" data-cat="${cat}" data-key="${key}">${item.name}</div>
         ${moveDeleteMode ? `
           <button class="item-delete-btn" onclick="deleteItem('${cat}', '${key}')">
-            <span style="background:#fff;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;">
+            <span class="item-delete-svg-wrap">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 28 28" width="18" height="18">
                 <path stroke="#e53935" stroke-width="2.2" d="M6 8h16M12 12v7m4-7v7M6 8l1.2 13a2.2 2.2 0 0 0 2.2 2h8.4a2.2 2.2 0 0 0 2.2-2L22 8m-10-3h4a2 2 0 0 1 2 2v0H10v0a2 2 0 0 1 2-2z"/>
             </svg>
             </span>
           </button>
-          <span class="item-move-handle" style="margin-left:8px; display:inline-flex; align-items:center; cursor:grab;">
-            <!-- Double arrow up/down SVG -->
+          <span class="item-move-handle">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none">
               <path d="M10 3L6 7h8l-4-4zM10 17l4-4H6l4 4z" fill="#666"/>
             </svg>
@@ -742,12 +733,7 @@ document.addEventListener("DOMContentLoaded", function () {
         input.type = 'text';
         input.value = oldName;
         input.className = 'edit-item-input';
-        input.style.fontSize = '1.1rem';
-        input.style.fontWeight = '700';
-        input.style.borderRadius = '6px';
-        input.style.padding = '2px 7px';
-        input.style.margin = '0 2px';
-        input.style.width = '90%';
+        // Remove all inline style assignments; use CSS only
         this.replaceWith(input);
         input.focus();
         input.select();
@@ -836,11 +822,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
     renderList(cat);
 
-    // Debounced DB update (but UI is already updated)
-    if (updateTimeouts[key]) clearTimeout(updateTimeouts[key]);
-    updateTimeouts[key] = setTimeout(() => {
+    // Use a composite key for debounce per item per category
+    const timeoutKey = cat + '::' + key;
+    if (updateTimeouts[timeoutKey]) clearTimeout(updateTimeouts[timeoutKey]);
+    updateTimeouts[timeoutKey] = setTimeout(() => {
       db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/${key}`).update({ count: newCount });
-      delete updateTimeouts[key];
+      delete updateTimeouts[timeoutKey];
     }, 1000);
 
     // No need to call updateHeaderCount(cat) here, as renderList already does it
@@ -851,41 +838,63 @@ document.addEventListener("DOMContentLoaded", function () {
   function deleteItem(cat, key) {
     const backupItem = groceryData[cat][key];
     const backupOrder = Array.isArray(groceryData[cat].order) ? [...groceryData[cat].order] : [];
+
+    // Remove from local data and UI immediately
     delete groceryData[cat][key];
     if (Array.isArray(groceryData[cat].order)) {
       groceryData[cat].order = groceryData[cat].order.filter(k => k !== key);
     }
     renderList(cat);
 
-    // Show undo toast for 5 seconds
+    // Show undo toast for 6 seconds
     const undoToast = document.createElement('div');
     undoToast.className = 'undo-toast';
     undoToast.innerHTML = `
       <span class="undo-message">Item "${backupItem.name}" deleted.</span>
-      <button class="undo-btn">UNDO</button>
+      <button class="undo-btn" type="button" tabindex="0">UNDO</button>
     `;
     document.body.appendChild(undoToast);
 
-    let undoTimeout = setTimeout(() => {
-      // After 5 seconds, delete from DB
-      db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/${key}`).remove();
-      // Clean order array before saving to DB to avoid undefined keys
-      const cleanOrder = Array.isArray(groceryData[cat].order)
-        ? groceryData[cat].order.filter(k => groceryData[cat][k])
-        : [];
-      db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/order`).set(cleanOrder);
-      document.body.removeChild(undoToast);
-    }, 5000);
+    let undone = false;
+    let undoTimeout;
 
-    undoToast.querySelector('.undo-btn').onclick = () => {
+    // Handler for undo
+    function handleUndo(e) {
+      if (undone) return;
+      undone = true;
       clearTimeout(undoTimeout);
+      // Restore in local data and UI
       groceryData[cat][key] = backupItem;
       groceryData[cat].order = backupOrder;
       renderList(cat);
-      db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/${key}`).set(backupItem);
-      db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/order`).set(backupOrder);
-      document.body.removeChild(undoToast);
-    };
+      if (undoToast.parentNode) document.body.removeChild(undoToast);
+      // No DB write needed, since nothing was deleted from DB yet
+    }
+
+    // Attach both click and touchend for best mobile compatibility
+    const undoBtn = undoToast.querySelector('.undo-btn');
+    if (undoBtn) {
+      undoBtn.addEventListener('click', handleUndo, { passive: false });
+      undoBtn.addEventListener('touchend', function(e) {
+        e.preventDefault();
+        handleUndo();
+      }, { passive: false });
+    }
+
+    // Timeout for permanent delete
+    undoTimeout = setTimeout(() => {
+      if (!undone) {
+        // After 6 seconds, delete from DB
+        db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/${key}`).remove();
+        // Clean order array before saving to DB to avoid undefined keys
+        const cleanOrder = Array.isArray(groceryData[cat].order)
+          ? groceryData[cat].order.filter(k => groceryData[cat][k])
+          : [];
+        db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/order`).set(cleanOrder);
+        if (undoToast.parentNode) document.body.removeChild(undoToast);
+        subscribeAllLists();
+      }
+    }, 6000);
   }
   window.deleteItem = deleteItem;
 
@@ -972,9 +981,13 @@ document.addEventListener("DOMContentLoaded", function () {
   // --- Move/Delete Toggle Button ---
   document.getElementById('move-delete-toggle').onclick = function () {
     moveDeleteMode = !moveDeleteMode;
-    this.textContent = moveDeleteMode ? 'Done' : 'Move or Delete';
-    // Add a console log for debugging
-    console.log('Move/Delete mode toggled:', moveDeleteMode);
+    if (moveDeleteMode) {
+      this.textContent = 'Editing..';
+      this.classList.add('editing-mode');
+    } else {
+      this.textContent = 'Edit';
+      this.classList.remove('editing-mode');
+    }
     renderAllTables();
   };
 
@@ -1034,138 +1047,4 @@ document.addEventListener("DOMContentLoaded", function () {
   // Make toggleChecked and updateCount globally accessible
   window.toggleChecked = toggleChecked;
   window.updateCount = updateCount;
-
-  // Add this at the end of your DOMContentLoaded handler:
-  const style = document.createElement('style');
-  style.innerHTML = `
-    .item-move-handle {
-      display: inline-flex !important;
-      align-items: center;
-      justify-content: center;
-      cursor: grab;
-      background: #f5f5f5;
-      border: 2px solid #888;
-      border-radius: 6px;
-      width: 32px;
-      height: 32px;
-      min-width: 32px;
-      min-height: 32px;
-      margin-left: 8px;
-      box-sizing: border-box;
-      transition: border-color 0.2s, background 0.2s;
-    }
-    .item-move-handle svg {
-      width: 18px;
-      height: 18px;
-      display: block;
-      fill: #444;
-      stroke: #444;
-    }
-    .item-move-handle:active, .item-move-handle:focus {
-      border-color: #1976d2;
-      background: #e3f2fd;
-    }
-    .counter {
-      display: flex;
-      align-items: center;
-      background: #f6f6f6;
-      border-radius: 16px;
-      padding: 1px 2px;
-      min-width: 54px;
-      justify-content: flex-end;
-      margin-left: auto;
-      margin-right: 0;
-      gap: 2px;
-    }
-    .counter button {
-      width: 20px;
-      height: 20px;
-      min-width: 20px;
-      min-height: 20px;
-      border-radius: 4px;
-      border: 1.5px solid #90caf9;
-      background: #90caf9;
-      color: #fff;
-      font-size: 0.95rem;
-      font-weight: 700;
-      margin: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
-      transition: background 0.2s, border-color 0.2s;
-      touch-action: manipulation;
-    }
-    .counter button:active {
-      background: #42a5f5;
-      border-color: #1976d2;
-    }
-    .counter .count {
-      font-size: 0.98rem;
-      font-weight: 500;
-      margin: 0 2px;
-      min-width: 14px;
-      text-align: center;
-      color: #222;
-    }
-    li {
-      display: flex;
-      align-items: center;
-      padding: 8px 6px 8px 6px;
-      border-bottom: 1px solid #f0f0f0;
-      font-size: 1rem;
-      min-height: 44px;
-      background: #fff;
-      transition: background 0.2s;
-      word-break: break-word;
-    }
-    .name {
-      flex: 1 1 auto;
-      margin: 0 6px 0 8px;
-      min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-    /* Responsive for mobile */
-    @media (max-width: 600px) {
-      .item-move-handle {
-        width: 28px;
-        height: 28px;
-        min-width: 28px;
-        min-height: 28px;
-        border-radius: 5px;
-      }
-      .item-move-handle svg {
-        width: 15px;
-        height: 15px;
-      }
-      .counter {
-        min-width: 44px;
-        padding: 1px 1px;
-        gap: 1px;
-      }
-      .counter button {
-        width: 18px;
-        height: 18px;
-        min-width: 18px;
-        min-height: 18px;
-        font-size: 0.9rem;
-        border-radius: 3px;
-      }
-      .counter .count {
-        font-size: 0.95rem;
-        margin: 0 1px;
-      }
-      li {
-        font-size: 0.98rem;
-        min-height: 40px;
-        padding: 7px 4px;
-      }
-      .name {
-        margin: 0 4px 0 6px;
-      }
-    }
-  `;
-  document.head.appendChild(style);
-}); 
+});
