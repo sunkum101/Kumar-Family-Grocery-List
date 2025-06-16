@@ -371,17 +371,17 @@ li {
   display:flex;
   align-items:center;
   gap:16px;
-  padding:18px 0 18px 8px; /* Reduce left padding, remove right padding */
+  padding:8px 4px; /* Reduced padding for compact rows */
   border-bottom:1px solid #e3e9f2;
   background: #fff;
-  font-size:1.45rem;
+  font-size:1rem; /* Adjusted font size for items */
   user-select:none;
   font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
   position:relative;
   border-radius:10px;
   margin:8px 6px;
   box-shadow: 0 1px 4px rgba(0,0,0,0.03);
-  min-height: 64px;
+  min-height: 36px; /* Reduced row height from 64px */
 }
 li:last-child { border-bottom:none }
 li.checked {
@@ -395,8 +395,8 @@ li.checked {
 .name {
   flex: 1;
   min-width: 0;
-  font-size: 1.5rem;
-  line-height: 1.3;
+  font-size: 1.2rem; /* Reduced from 1.5rem */
+  line-height: 1.2; /* Adjusted line height */
   border: none;
   background: transparent;
   outline: none;
@@ -414,51 +414,36 @@ li.checked {
 .counter {
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 2px; /* Reduced gap between buttons and counter number */
   font-size: 1.5rem;
-  background: #f7f7f7;
+  background: #f7f7f7; /* Gray background */
   border-radius: 16px;
-  padding: 10px 0 10px 18px;
-  min-width: 120px;
-  justify-content: flex-end;
+  padding: 2px 4px; /* Adjusted padding for compact layout */
+  min-width: 70px; /* Reduced width */
+  justify-content: center;
   box-shadow: 0 1px 4px rgba(0,0,0,0.07);
   margin-left: 4px;
   margin-right: 0;
 }
 .counter button {
-  width: 54px;
-  height: 54px;
-  border: none;
-  border-radius: 50%;
-  color: #fff;
-  font-size: 2.2rem;
-  cursor: pointer;
-  background: #7ba5d6;
-  font-family: inherit;
-  user-select: none;
-  font-weight: 800;
-  transition: background 0.13s, transform 0.13s;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.07);
-  outline: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  touch-action: manipulation;
+  width: 16px; /* Reduced size */
+  height: 16px; /* Reduced size */
+  font-size: 0.8rem; /* Adjusted font size */
+  border-radius: 3px;
+  background: #fff; /* White background */
+  border: 1px solid #ccc; /* Light gray border */
+  color: #333; /* Dark gray text */
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  transition: background 0.2s, border-color 0.2s;
 }
 .counter button:active {
-  background: #5277ad;
-  transform: scale(0.94);
+  background: #e0e0e0; /* Slightly darker gray on active */
+  border-color: #999; /* Darker border on active */
 }
 .counter span.count {
-  min-width: 38px;
-  text-align: center;
-  font-size: 1.7rem;
-  font-family: inherit;
-  user-select: none;
+  font-size: 1.1rem; /* Adjusted font size for counter number */
   font-weight: 700;
   color: #1c2331;
-  letter-spacing: 0.01em;
-  padding: 0 4px;
 }
 
 /* --- CHECKBOXES: Large for touch --- */
@@ -680,57 +665,133 @@ button,
 }
 
 /* --- MEDIA QUERIES: Remove desktop-specific overrides --- */
-@media (max-width: 600px) {
-  /* All sizing above is already mobile-optimized */
-}
+@media (max-width: 412px) {
+  body, html {
+    font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+    font-size: 16px;
+    background: #e3e7ee;
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    user-select: none;
+  }
 
-/* --- Table Move Handle: Make exactly same size and style as delete button --- */
-.table-move-handle,
-.table-delete-btn {
-  display: inline-flex !important;
-  align-items: center;
-  justify-content: center;
-  background: #fff;
-  border-radius: 8px;
-  width: 36px;
-  height: 36px;
-  min-width: 36px;
-  min-height: 36px;
-  box-sizing: border-box;
-  padding: 0;
-  /* Remove margin differences for perfect alignment */
-  margin: 0 4px 0 0;
-  transition: border-color 0.2s, background 0.2s;
-  /* Remove any other margin overrides below */
-}
-.table-move-handle {
-  border: 2px solid #bbb;
-  cursor: grab;
-}
-.table-move-handle svg {
-  width: 20px;
-  height: 20px;
-  display: block;
-  fill: #666;
-  stroke: #666;
-}
-.table-move-handle:active, .table-move-handle:focus {
-  border-color: #1976d2;
-  background: #e3f2fd;
-}
-.table-delete-btn {
-  border: 2px solid #e53935;
-}
-.table-delete-btn svg {
-  width: 20px;
-  height: 20px;
-  display: block;
-  fill: none;
-  stroke: #e53935;
-}
-.table-delete-btn:active, .table-delete-btn:focus {
-  border-color: #b71c1c;
-  background: #ffeaea;
-}
+  .top-bar {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    background: #f8fafc;
+    padding: 5px 8px;
+    min-height: 36px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
 
-/* Remove any other .table-move-handle or .table-delete-btn width/height/margin rules below this block */
+  .action-btn.logout {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #f5f7fa;
+    box-shadow: 0 1px 4px rgba(30,30,30,0.10);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #collapse-all-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  }
+
+  .actions-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 0 2vw;
+  }
+
+  .action-btn {
+    font-size: 0.9rem;
+    min-height: 40px;
+    padding: 0 12px;
+    border-radius: 6px;
+    font-weight: 700;
+    box-shadow: 0 1px 4px rgba(60,80,130,0.09);
+  }
+
+  .center-title {
+    text-align: center;
+    font-size: 1.4rem;
+    color: #343c4e;
+    font-weight: 700;
+    margin: 8px 0;
+  }
+
+  .container {
+    margin: 10px 2vw;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 9px rgba(66,80,104,0.08);
+    padding-bottom: 2px;
+  }
+
+  .header {
+    display: flex;
+    align-items: center;
+    padding: 6px 10px;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #fff;
+    border-bottom: 1px solid #d6dbe2;
+    border-radius: 10px 10px 0 0;
+  }
+
+  li {
+    display: flex;
+    align-items: center;
+    padding: 10px 4px;
+    font-size: 1rem;
+    min-height: 40px;
+    background: #fff;
+    border-bottom: 1px solid #e3e9f2;
+  }
+
+  .counter {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 4px;
+    min-width: 80px;
+    background: #f7f7f7;
+    border-radius: 16px;
+  }
+
+  .counter button {
+    width: 18px;
+    height: 18px;
+    font-size: 0.8rem;
+    border-radius: 3px;
+    background: #fff;
+    border: 1px solid #ccc;
+    color: #333;
+  }
+
+  .counter span.count {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #1c2331;
+  }
+
+  input[type="checkbox"] {
+    width: 32px;
+    height: 32px;
+    border-radius: 7px;
+    background: #fafbfc;
+    border: 1.5px solid #d3dbe6;
+  }
+}
