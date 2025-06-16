@@ -50,8 +50,8 @@ body, html {
 
 /* Logout button: leftmost, round, subtle */
 .action-btn.logout {
-  background: #f5f7fa;
-  color: #444;
+  background: #222; /* Dark black background */
+  color: #fff;      /* White icon for contrast */
   border-radius: 50%;
   width: 36px;
   height: 36px;
@@ -60,7 +60,7 @@ body, html {
   padding: 0;
   margin: 0;
   box-shadow: 0 1px 4px rgba(30,30,30,0.10);
-  opacity: 0.90;
+  opacity: 0.97;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -71,6 +71,16 @@ body, html {
 .action-btn.logout svg {
   width: 18px;
   height: 18px;
+  fill: #fff !important; /* Force SVG path to white */
+  stroke: #fff !important; /* For stroke-based icons */
+}
+.action-btn.logout svg path {
+  fill: #fff !important;
+  stroke: #fff !important;
+}
+.action-btn.logout:active,
+.action-btn.logout:hover {
+  background: #111;
 }
 
 /* Email label: next to logout, no extra margin */
@@ -149,13 +159,17 @@ body, html {
 .action-btn.move-delete {
   background: linear-gradient(90deg, #f59e42 70%, #fecf6e 100%);
   color: #fff;
-  font-size: 1.08rem;
-  border-radius: 10px;
-  min-height: 38px;
-  margin-bottom: 2px;
+  font-size: 0.75rem !important; /* Reduced font size */
+  min-height: 40px !important; /* Reduced height */
+  padding: 0 10px !important; /* Adjusted padding */
+  border-radius: 8px !important; /* Adjusted border radius */
   font-weight: 700;
   letter-spacing: 0.01em;
   box-shadow: 0 1px 4px rgba(60,80,130,0.09);
+  text-align: center; /* Ensure text alignment */
+  white-space: nowrap; /* Prevent text wrapping */
+  overflow: hidden; /* Prevent text overflow */
+  text-overflow: ellipsis; /* Add ellipsis for overflowed text */
 }
 
 .row-btns {
@@ -390,6 +404,97 @@ li.checked {
   opacity: .77;
   text-decoration: line-through;
 }
+li.to-buy {
+  background: #FFF8D6 !important;
+  color: #b26a00 !important;
+  opacity: 1;
+  text-decoration: none;
+}
+li.zero-count {
+  background: #fff !important;
+  color: inherit !important;
+  opacity: 1;
+  text-decoration: none;
+}
+
+/* Delete SVG wrapper */
+.item-delete-svg-wrap {
+  background: #fff;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  box-shadow: 0 1.5px 4px rgba(60,80,130,0.10);
+  border: 1.5px solid #bbb; /* Add subtle border for visibility */
+  transition: background 0.13s, border-color 0.13s;
+}
+
+/* Move handle for items: match delete button style exactly */
+.item-move-handle {
+  margin-left: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  background: #fff;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  box-shadow: 0 1.5px 4px rgba(60,80,130,0.10);
+  border: 1.5px solid #bbb; /* Same border as delete */
+  transition: background 0.13s, border-color 0.13s;
+  color: #e53935; /* Same color as delete icon for visual parity */
+}
+
+.item-move-handle svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+.item-move-handle:active,
+.item-delete-svg-wrap:active {
+  background: #f3f6fa;
+  border-color: #888;
+}
+
+/* Edit input for table name */
+.edit-table-input {
+  font-size: 1.05rem;
+  font-weight: 700;
+  border-radius: 6px;
+  padding: 2px 7px;
+  margin: 0 2px;
+  width: 80%;
+  border: 1.5px solid #c7d1e6;
+  background: #f7fafd;
+  outline: none;
+  box-sizing: border-box;
+}
+.edit-table-input:focus {
+  border: 1.5px solid #388e3c;
+  background: #fff;
+}
+
+/* Edit input for item name */
+.edit-item-input {
+  font-size: 1.1rem;
+  font-weight: 700;
+  border-radius: 6px;
+  padding: 2px 7px;
+  margin: 0 2px;
+  width: 90%;
+  border: 1.5px solid #c7d1e6;
+  background: #f7fafd;
+  outline: none;
+  box-sizing: border-box;
+}
+.edit-item-input:focus {
+  border: 1.5px solid #388e3c;
+  background: #fff;
+}
 
 /* --- NAME FIELD: Larger font and padding --- */
 .name {
@@ -414,35 +519,48 @@ li.checked {
 .counter {
   display: flex;
   align-items: center;
-  gap: 2px; /* Reduced gap between buttons and counter number */
-  font-size: 1.5rem;
-  background: #f7f7f7; /* Gray background */
+  gap: 20px; /* Unified gap for all screens */
+  background: transparent;
   border-radius: 16px;
-  padding: 2px 4px; /* Adjusted padding for compact layout */
-  min-width: 70px; /* Reduced width */
+  padding: 0 2px;
+  min-width: 0;
   justify-content: center;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.07);
-  margin-left: 4px;
+  box-shadow: none;
+  margin-left: 0;
   margin-right: 0;
+  border: none;
 }
 .counter button {
-  width: 16px; /* Reduced size */
-  height: 16px; /* Reduced size */
-  font-size: 0.8rem; /* Adjusted font size */
-  border-radius: 3px;
-  background: #fff; /* White background */
-  border: 1px solid #ccc; /* Light gray border */
-  color: #333; /* Dark gray text */
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-  transition: background 0.2s, border-color 0.2s;
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  min-height: 32px !important;
+  font-size: 1.1rem !important;
+  border-radius: 16px !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  font-weight: 700;
+  border: 1.5px solid #888;
+  background: #fff;
+  color: #222;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, border-color 0.15s;
+  touch-action: manipulation;
+  outline: none;
+  line-height: 1;
 }
 .counter button:active {
-  background: #e0e0e0; /* Slightly darker gray on active */
-  border-color: #999; /* Darker border on active */
+  background: #f3f3f3;
+  border-color: #555;
 }
-.counter span.count {
-  font-size: 1.1rem; /* Adjusted font size for counter number */
+.counter .count {
+  font-size: 1rem;
   font-weight: 700;
+  margin: 0 2px;
+  min-width: 16px;
+  text-align: center;
   color: #1c2331;
 }
 
@@ -461,7 +579,6 @@ input[type="checkbox"] {
 }
 
 /* --- BUTTONS: General --- */
-button,
 .add-table-btn,
 .action-btn {
   font-size: 1.25rem !important;
@@ -471,55 +588,65 @@ button,
   font-weight: 700 !important;
   box-shadow: 0 1px 4px rgba(60,80,130,0.09);
   touch-action: manipulation;
+  color: #444 !important; /* Make text gray, not black */
 }
 
-/* --- ADD TABLE BUTTON WRAP: More space at bottom --- */
+/* --- ADD TABLE BUTTON WRAP: Make button small and left-aligned --- */
 .add-table-btn-wrap {
   width: 100%;
   display: flex;
-  justify-content: center;
+  justify-content: flex-start; /* Align left */
   align-items: center;
-  margin: 38px 0 80px 0;
+  margin: 10px 0 18px 0;      /* Even less vertical space */
   padding-left: 0;
 }
 
-/* --- ACTION BUTTONS: Larger and more spacing --- */
-.actions-mobile .row-btns,
-.actions-mobile .row-btns.one-line-btns,
-.actions-mobile .compact-row-btns,
-.actions-mobile .row-btns.compact-row-btns {
-  gap: 18px !important;
-  margin-bottom: 12px;
-}
-.action-btn.move-delete,
-.action-btn.reset,
-.action-btn.check-zeros {
-  font-size: 1.18rem !important;
-  min-height: 54px !important;
-  padding: 0 18px !important;
-  border-radius: 12px !important;
+/* --- ADD TABLE BUTTON: Small, compact, left, mobile-friendly --- */
+.add-table-btn {
+  font-size: 0.98rem !important;
+  min-height: 28px !important;
+  max-height: 32px !important;
+  padding: 0 10px !important;
+  border-radius: 7px !important;
   font-weight: 700 !important;
-  box-shadow: 0 1px 4px rgba(60,80,130,0.09);
+  box-shadow: 0 1px 2px rgba(60,80,130,0.07);
+  color: #444 !important;
+  background: #f5f7fa !important;
+  border: 1.2px solid #bbb;
+  margin-left: 8px;
+  margin-right: 0;
+  margin-top: 0;
+  margin-bottom: 0;
+  width: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.13s, border-color 0.13s;
 }
 
-/* --- HEADER: Reduce height for mobile and desktop --- */
-.header {
-  font-size: 1.13rem;
-  min-height: 38px;
-  padding: 8px 12px 8px 12px;
-  border-radius: 10px 10px 0 0;
+.add-table-btn:active {
+  background: #e3e7ee !important;
+  border-color: #888;
 }
-.header-title {
-  font-size: 1.05rem;
-  margin-right: 8px;
-}
-.header-count {
-  font-size: 1.01rem;
-  padding: 2px 10px;
-  border-radius: 16px;
-  margin-left: 4px;
-  margin-right: 10px;
-  min-width: 20px;
+
+/* --- Mobile-specific: force small add-table-btn on mobile --- */
+@media (max-width: 600px) {
+  .add-table-btn {
+    font-size: 0.98rem !important;
+    min-height: 28px !important;
+    max-height: 32px !important;
+    padding: 0 10px !important;
+    border-radius: 7px !important;
+    width: auto !important;
+    margin-left: 8px !important;
+    margin-right: 0 !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+  }
+  .add-table-btn-wrap {
+    margin: 10px 0 18px 0 !important;
+    padding-left: 0 !important;
+  }
 }
 
 /* --- MODALS: Larger for mobile, full-width buttons, better spacing --- */
@@ -633,18 +760,80 @@ button,
   height: 38px;
 }
 
-/* --- UNDO TOAST: Larger for mobile --- */
+/* --- UNDO TOAST: Modern floating/fading style --- */
 .undo-toast {
-  padding: 18px 44px;
-  border-radius: 16px;
-  min-width: 340px;
-  font-size: 1.18rem;
-  gap: 20px;
+  position: fixed;
+  left: 50%;
+  bottom: 32px;
+  transform: translateX(-50%);
+  z-index: 2000;
+  background: rgba(40, 48, 65, 0.97);
+  color: #fff;
+  border-radius: 18px;
+  box-shadow: 0 6px 32px rgba(30,41,54,0.18), 0 1.5px 4px rgba(60,80,130,0.10);
+  min-width: 220px;
+  max-width: 90vw;
+  padding: 18px 32px 18px 24px;
+  font-size: 1.13rem;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  opacity: 0;
+  pointer-events: none;
+  animation: undo-toast-fadein 0.35s forwards;
 }
+
+@keyframes undo-toast-fadein {
+  from { opacity: 0; transform: translateX(-50%) translateY(30px);}
+  to   { opacity: 1; transform: translateX(-50%) translateY(0);}
+}
+
+.undo-toast .undo-message {
+  flex: 1 1 auto;
+  color: #fff;
+  font-size: 1.08rem;
+  font-weight: 500;
+  margin-right: 10px;
+  white-space: pre-line;
+}
+
 .undo-toast .undo-btn {
-  padding: 10px 18px;
-  font-size: 1.1rem;
+  background: #fff;
+  color: #222;
+  border: none;
   border-radius: 8px;
+  font-size: 1.08rem;
+  font-weight: 700;
+  padding: 8px 22px;
+  box-shadow: 0 1px 4px rgba(60,80,130,0.10);
+  cursor: pointer;
+  transition: background 0.13s, color 0.13s;
+  outline: none;
+  margin-left: 8px;
+}
+
+.undo-toast .undo-btn:hover,
+.undo-toast .undo-btn:focus {
+  background: #f3f6fa;
+  color: #1976d2;
+}
+
+/* Responsive: smaller on mobile */
+@media (max-width: 600px) {
+  .undo-toast {
+    min-width: 0;
+    max-width: 98vw;
+    padding: 13px 10vw 13px 6vw;
+    font-size: 1.01rem;
+    border-radius: 14px;
+    left: 50%;
+    bottom: 18px;
+  }
+  .undo-toast .undo-btn {
+    font-size: 1rem;
+    padding: 7px 16px;
+    border-radius: 7px;
+  }
 }
 
 /* --- MODAL BACKDROP: Always hidden unless .active is present --- */
@@ -764,7 +953,7 @@ button,
   .counter {
     display: flex;
     align-items: center;
-    gap: 3px;
+    gap: 14px; /* Match desktop gap for mobile */
     padding: 2px 4px;
     min-width: 80px;
     background: #f7f7f7;
@@ -772,17 +961,22 @@ button,
   }
 
   .counter button {
-    width: 18px;
-    height: 18px;
-    font-size: 0.8rem;
-    border-radius: 3px;
-    background: #fff;
-    border: 1px solid #ccc;
-    color: #333;
-  }
+  width: 12px;              /* Smaller button for mobile */
+  height: 12px;
+  font-size: 0.7rem;        /* Smaller font */
+  border-radius: 50%;       /* Makes it a circle */
+  background: #fff;
+  border: 2px solid #ccc;
+  color: #333;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;               /* Ensure content fits nicely */
+  line-height: 1;
+}
 
   .counter span.count {
-    font-size: 1.2rem;
+    font-size: 1.4rem;
     font-weight: 700;
     color: #1c2331;
   }
@@ -794,4 +988,95 @@ button,
     background: #fafbfc;
     border: 1.5px solid #d3dbe6;
   }
+}
+
+/* --- ACTION BUTTONS: Modern, compact, mobile-friendly --- */
+.action-btn,
+.add-table-btn {
+  font-size: 1.18rem !important;      /* Make text larger for mobile */
+  min-height: 44px !important;        /* Taller for easier tap */
+  max-height: 52px !important;
+  padding: 0 16px !important;         /* More horizontal padding */
+  border-radius: 12px !important;
+  font-weight: 700 !important;
+  box-shadow: 0 1px 3px rgba(60,80,130,0.07);
+  touch-action: manipulation;
+  border: 1.2px solid #bbb;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin: 0 2px;
+  transition: background 0.13s, border-color 0.13s;
+}
+
+.row-btns .action-btn,
+.row-btns .add-table-btn {
+  flex: 1 1 0;
+  margin: 0 3px;
+  max-width: 100%;
+}
+
+.action-btn.move-delete {
+  background: linear-gradient(90deg, #f59e42 70%, #fecf6e 100%);
+  color: #fff;
+  border: 1.2px solid #e0b97c;
+}
+.action-btn.reset {
+  background: linear-gradient(90deg, #6366f1 70%, #a5b4fc 100%);
+  color: #fff;
+  border: 1.2px solid #8b95e6;
+}
+.action-btn.check-zeros {
+  background: linear-gradient(90deg, #22c55e 70%, #6ee7b7 100%);
+  color: #fff;
+  border: 1.2px solid #5edb9a;
+}
+
+.action-btn:active, .add-table-btn:active {
+  background: #e3e7ee;
+  border-color: #888;
+}
+
+/* Table move handle in table header */
+.table-move-handle {
+  background: #f3f6fa;
+  border-radius: 7px;
+  padding: 2px 6px;
+  margin-left: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  transition: background 0.13s, box-shadow 0.13s;
+  box-shadow: 0 1px 3px rgba(60,80,130,0.07);
+}
+
+.table-move-handle:active {
+  background: #e0e7ef;
+}
+
+/* Make sure the move handle is always visible and styled on all screens */
+@media (max-width: 600px) {
+  .table-move-handle {
+    background: #f3f6fa;
+    border-radius: 7px;
+    padding: 2px 6px;
+    margin-left: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: grab;
+    box-shadow: 0 1px 3px rgba(60,80,130,0.07);
+  }
+}
+
+/* Editing mode indication for move-delete button */
+.action-btn.move-delete.editing-mode {
+  background: linear-gradient(90deg, #fbbf24 70%, #f59e42 100%) !important;
+  color: #333 !important;
+  border: 1.5px solid #e0b97c !important;
+  box-shadow: 0 2px 8px rgba(255, 193, 7, 0.13);
 }
