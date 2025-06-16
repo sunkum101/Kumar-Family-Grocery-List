@@ -56,7 +56,8 @@ document.addEventListener("DOMContentLoaded", function () {
         Object.keys(data).forEach(familyKey => {
           FAMILY_EMAILS[familyKey] = [];
           Object.keys(data[familyKey] || {}).forEach(emailKey => {
-            const email = emailKey.replace(/_dot_/g, '.').replace(/_at_/g, '@');
+            // Normalize both the key and the value for robust matching
+            const email = emailKey.replace(/_dot_/g, '.').replace(/_at_/g, '@').trim().toLowerCase();
             AUTHORISED_EMAILS[email] = familyKey;
             FAMILY_EMAILS[familyKey].push(email);
             if (data[familyKey][emailKey]?.avatar) {
@@ -64,6 +65,7 @@ document.addEventListener("DOMContentLoaded", function () {
             }
           });
         });
+        // DEBUG: Print all keys for troubleshooting
         console.log("Processed AUTHORISED_EMAILS:", AUTHORISED_EMAILS);
         if (typeof callback === "function") callback();
       })
@@ -79,8 +81,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // --- DB Key Utilities ---
   function getUserListKey(user) {
-    // Use familyKey if present, else fallback to email
-    return AUTHORISED_EMAILS[user.email] || emailToKey(user.email);
+    // Always normalize email for lookup
+    const email = user.email.trim().toLowerCase();
+    return AUTHORISED_EMAILS[email] || AUTHORISED_EMAILS[emailToKey(email)];
   }
 
   // --- Google Sign-In Logic ---
@@ -124,48 +127,81 @@ document.addEventListener("DOMContentLoaded", function () {
     }, handleFirebaseError);
   }
 
+  // --- Auth State Change ---
+  auth.onAuthStateChanged(user => {
+    if (user) {
+      showMain();
+      showLoggedInEmail(user.email);
+      fetchAuthorisedEmails(() => {
+        if (auth.currentUser && auth.currentUser.email === user.email) {
+          // Always use lowercase/trimmed for lookup
+          const signedInEmail = user.email.trim().toLowerCase();
+          const normalizedEmail = emailToKey(signedInEmail).toLowerCase();
+          // Try both plain and normalized
+          let familyKey = AUTHORISED_EMAILS[signedInEmail];
+          if (!familyKey) familyKey = AUTHORISED_EMAILS[normalizedEmail];
+          // DEBUG: Show all info for troubleshooting
+          console.log("Signed-in email:", signedInEmail);
+          console.log("Normalized email:", normalizedEmail);
+          console.log("AUTHORISED_EMAILS keys:", Object.keys(AUTHORISED_EMAILS));
+          console.log("familyKey found:", familyKey);
+          if (!familyKey) {
+            // Show all info in modal for debugging
+            showModal(
+              'Access denied. Please use an allowed Google account.<br>' +
+              '<small style="color:#888;">Email: ' + user.email + '</small><br>' +
+              '<small>Normalized: ' + normalizedEmail + '</small><br>' +
+              '<small>Allowed: ' + Object.keys(AUTHORISED_EMAILS).join(', ') + '</small>',
+              () => {}
+            );
+            auth.signOut();
+            return;
+          }
+          USER_LIST_KEY = familyKey;
+          db.ref(`/userLists/${USER_LIST_KEY}`).once('value')
+            .then(() => {
+              subscribeAllLists();
+            })
+            .catch((error) => {
+              if (error && error.code === "PERMISSION_DENIED") {
+                showModal('You do not have permission to access this family list. Please contact admin.', () => {});
+                auth.signOut();
+              } else {
+                handleFirebaseError(error);
+              }
+            });
+        }
+      });
+    } else {
+      showLogin();
+    }
+  });
+
   // --- Handle User Login ---
   function handleUserLogin(user) {
-    const normalizedEmail = emailToKey(user.email);
-    const familyKey = AUTHORISED_EMAILS[user.email] || AUTHORISED_EMAILS[normalizedEmail];
-    // If not authorized, show modal and sign out
+    // Always normalize email for lookup
+    const email = user.email.trim().toLowerCase();
+    const normalizedEmail = emailToKey(email).toLowerCase();
+    const familyKey = AUTHORISED_EMAILS[email] || AUTHORISED_EMAILS[normalizedEmail];
     if (!familyKey) {
       showModal('Access denied. Please use an allowed Google account.', () => {});
       auth.signOut();
       return;
     }
     USER_LIST_KEY = familyKey;
-    // Defensive: Only subscribe if user has permission (avoid permission_denied popup)
     db.ref(`/userLists/${USER_LIST_KEY}`).once('value')
       .then(() => {
         subscribeAllLists();
       })
       .catch((error) => {
-        // If permission denied, sign out and show a friendly message (no popup)
         if (error && error.code === "PERMISSION_DENIED") {
-          showModal('You do not have permission to access this family list. Please contact admin.', () => {});
+          showModal('You do not have permission to access this family list. Please contact admin (Sunil).', () => {});
           auth.signOut();
         } else {
           handleFirebaseError(error);
         }
       });
   }
-
-  // --- Auth State Change ---
-  // Move UI show/hide logic OUTSIDE of fetchAuthorisedEmails to show UI instantly
-  auth.onAuthStateChanged(user => {
-    // Show/hide UI instantly, don't wait for fetchAuthorisedEmails
-    if (user) {
-      showMain();
-      showLoggedInEmail(user.email);
-      // Fetch allowed emails in background, then validate user
-      fetchAuthorisedEmails(() => {
-        handleUserLogin(user);
-      });
-    } else {
-      showLogin();
-    }
-  });
 
   // --- Ensure proper handling of user authentication ---
   function showLogin() {
@@ -482,11 +518,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
       const header = document.createElement('div');
       header.className = `header ${getHeaderClass(cat)}`;
-      // Add id to header-count span for live updates
       header.innerHTML = `
-        <span class="header-title">${tableNames[cat] || cat}</span>
+        <span class="header-title" data-cat="${cat}">${tableNames[cat] || cat}</span>
         <span class="header-count" id="${cat}-count"></span>
-        ${moveDeleteMode ? `
+        ${
+          moveDeleteMode
+            ? `
           <button class="table-delete-btn" onclick="deleteTable('${cat}')">
             <span>
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 28 28" width="18" height="18">
@@ -495,7 +532,7 @@ document.addEventListener("DOMContentLoaded", function () {
             </span>
           </button>
           <span class="table-move-handle" title="Drag to reorder table">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="22" height="22">
               <g>
                 <path d="M16 7v18" stroke="#666" stroke-width="2.2" stroke-linecap="round"/>
                 <path d="M10 13l6-6 6 6" stroke="#666" stroke-width="2.2" stroke-linecap="round" fill="none"/>
@@ -503,10 +540,19 @@ document.addEventListener("DOMContentLoaded", function () {
               </g>
             </svg>
           </span>
-        ` : ''}
+        `
+            : ''
+        }
         <span class="collapse-arrow">&#9654;</span>
       `;
-      header.onclick = () => toggleCollapse(cat); // Ensure collapse functionality is triggered
+      // Only collapse/expand if not double-clicking the title
+      header.addEventListener('click', function (e) {
+        if (
+          e.target.classList.contains('header-title') ||
+          e.target.closest('.header-title')
+        ) return;
+        toggleCollapse(cat);
+      });
       container.appendChild(header);
 
       const ul = document.createElement('ul');
@@ -525,6 +571,42 @@ document.addEventListener("DOMContentLoaded", function () {
 
       renderList(cat);
       updateHeaderCount(cat); // Update header count after rendering list
+    });
+
+    // --- Editable Table Name: Double-click to edit ---
+    area.querySelectorAll('.header-title').forEach(span => {
+      span.addEventListener('dblclick', function (e) {
+        e.stopPropagation();
+        e.preventDefault();
+        const cat = this.getAttribute('data-cat');
+        const oldName = tableNames[cat] || cat;
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = oldName;
+        input.className = 'edit-table-input';
+        input.style.fontSize = '1.05rem';
+        input.style.fontWeight = '700';
+        input.style.borderRadius = '6px';
+        input.style.padding = '2px 7px';
+        input.style.margin = '0 2px';
+        input.style.width = '80%';
+        this.replaceWith(input);
+        input.focus();
+        input.select();
+
+        function finishEdit() {
+          let newName = input.value.trim();
+          if (!newName) newName = oldName;
+          tableNames[cat] = newName;
+          renderAllTables();
+          db.ref(`/userLists/${USER_LIST_KEY}/tableNames/${cat}`).set(newName);
+        }
+        input.onblur = finishEdit;
+        input.onkeydown = function (ev) {
+          if (ev.key === 'Enter') { input.blur(); }
+          if (ev.key === 'Escape') { input.value = oldName; input.blur(); }
+        };
+      });
     });
 
     if (moveDeleteMode) {
@@ -552,31 +634,6 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     }
   }
-
-  // --- Check Zeros Button ---
-  document.getElementById('check-zeros-btn').onclick = function () {
-    showModal("Do you want to check all 'zero' items (highlight items to buy)?", function (yes) {
-      if (!yes) return;
-      categories.forEach(cat => {
-        const items = groceryData[cat] || {};
-        Object.keys(items).forEach(key => {
-          if (key !== "order") {
-            const item = items[key];
-            if (item && (item.count || 0) === 0 && !item.checked) {
-              groceryData[cat][key].checked = true; // update local for instant UI
-              setTimeout(() => {
-                db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/${key}`).update({ checked: true });
-              }, 0);
-            }
-          }
-        });
-        // Set a flag to enable temporary UI sorting for this table (do not change DB order)
-        if (!window._checkZerosSortFlags) window._checkZerosSortFlags = {};
-        window._checkZerosSortFlags[cat] = true;
-        renderList(cat, true); // visually sort after check zeros
-      });
-    });
-  };
 
   // --- Render List ---
   // Accepts optional forceCheckZerosSort param for temporary UI sorting
@@ -630,11 +687,8 @@ document.addEventListener("DOMContentLoaded", function () {
         }
       });
       displayOrder = toBuy.concat(zero);
-      // Do NOT update groceryData[cat].order or DB order!
-      // Only clear the flag if this render was not forced by check zeros button
-      if (!forceCheckZerosSort && window._checkZerosSortFlags) {
-        delete window._checkZerosSortFlags[cat];
-      }
+      // --- Do NOT clear the flag here! ---
+      // The sort flag will persist until user manually changes the list.
     }
 
     displayOrder.forEach(key => {
@@ -650,7 +704,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
       li.innerHTML = `
         <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleChecked('${cat}', '${key}', this.checked)">
-        <div class="name" title="Alt+Click to edit item name">${item.name}</div>
+        <div class="name" title="Alt+Click to edit item name" data-cat="${cat}" data-key="${key}">${item.name}</div>
         ${moveDeleteMode ? `
           <button class="item-delete-btn" onclick="deleteItem('${cat}', '${key}')">
             <span style="background:#fff;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;">
@@ -674,6 +728,43 @@ document.addEventListener("DOMContentLoaded", function () {
         `}
       `;
       ul.appendChild(li);
+    });
+
+    // --- Editable Item Name: Double-click to edit ---
+    ul.querySelectorAll('.name').forEach(div => {
+      div.addEventListener('dblclick', function (e) {
+        e.stopPropagation();
+        e.preventDefault();
+        const cat = this.getAttribute('data-cat');
+        const key = this.getAttribute('data-key');
+        const oldName = groceryData[cat][key].name;
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = oldName;
+        input.className = 'edit-item-input';
+        input.style.fontSize = '1.1rem';
+        input.style.fontWeight = '700';
+        input.style.borderRadius = '6px';
+        input.style.padding = '2px 7px';
+        input.style.margin = '0 2px';
+        input.style.width = '90%';
+        this.replaceWith(input);
+        input.focus();
+        input.select();
+
+        function finishEdit() {
+          let newName = input.value.trim();
+          if (!newName) newName = oldName;
+          groceryData[cat][key].name = newName;
+          renderList(cat);
+          db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/${key}/name`).set(newName);
+        }
+        input.onblur = finishEdit;
+        input.onkeydown = function (ev) {
+          if (ev.key === 'Enter') { input.blur(); }
+          if (ev.key === 'Escape') { input.value = oldName; input.blur(); }
+        };
+      });
     });
 
     if (moveDeleteMode) {
@@ -711,12 +802,12 @@ document.addEventListener("DOMContentLoaded", function () {
     // Update local data and UI instantly
     groceryData[cat][key].checked = checked;
 
-    // If check zeros sort is active for this table, keep the temporary sort
+    // --- Clear the sort flag if user manually checks/unchecks ---
     if (window._checkZerosSortFlags && window._checkZerosSortFlags[cat]) {
-      renderList(cat, true);
-    } else {
-      renderList(cat);
+      delete window._checkZerosSortFlags[cat];
     }
+
+    renderList(cat);
 
     // Update database in background
     setTimeout(() => {
@@ -738,7 +829,11 @@ document.addEventListener("DOMContentLoaded", function () {
     // Update local data instantly
     groceryData[cat][key].count = newCount;
 
-    // Instantly update the entire list UI for this category
+    // --- Clear the sort flag if user manually changes a count ---
+    if (window._checkZerosSortFlags && window._checkZerosSortFlags[cat]) {
+      delete window._checkZerosSortFlags[cat];
+    }
+
     renderList(cat);
 
     // Debounced DB update (but UI is already updated)
@@ -849,25 +944,28 @@ document.addEventListener("DOMContentLoaded", function () {
   document.getElementById('static-reset-btn').onclick = function () {
     showModal("Reset all counters to 0 and uncheck all items in all tables?", function (yes) {
       if (!yes) return;
+      // 1. Update all local data instantly
       categories.forEach(cat => {
         const items = groceryData[cat] || {};
         Object.keys(items).forEach(key => {
           if (key !== "order") {
-            db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/${key}`).update({ count: 0, checked: false }).then(() => {
-              groceryData[cat][key].count = 0; // Update local data
-              groceryData[cat][key].checked = false;
-              const li = document.querySelector(`li[data-key="${key}"]`);
-              if (li) {
-                li.classList.remove('checked'); // Remove "checked" styling
-                const countSpan = li.querySelector('.count');
-                if (countSpan) countSpan.textContent = 0; // Reset count in UI
-                const checkbox = li.querySelector('input[type="checkbox"]');
-                if (checkbox) checkbox.checked = false; // Uncheck checkbox in UI
-              }
-            });
+            groceryData[cat][key].count = 0;
+            groceryData[cat][key].checked = false;
           }
         });
+        renderList(cat); // Instantly update UI for each table
       });
+      // 2. Update DB in the background (batch)
+      setTimeout(() => {
+        categories.forEach(cat => {
+          const items = groceryData[cat] || {};
+          Object.keys(items).forEach(key => {
+            if (key !== "order") {
+              db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/${key}`).update({ count: 0, checked: false });
+            }
+          });
+        });
+      }, 0);
     });
   };
 
@@ -887,6 +985,44 @@ document.addEventListener("DOMContentLoaded", function () {
       setCollapsed(cat, true);
     });
   });
+
+  // --- Check Zeros Button ---
+  document.getElementById('check-zeros-btn').onclick = function () {
+    if (!window._checkZerosSortFlags) window._checkZerosSortFlags = {};
+    // 1. Update all local data instantly: check all items with count == 0
+    categories.forEach(cat => {
+      const items = groceryData[cat] || {};
+      let changed = false;
+      Object.keys(items).forEach(key => {
+        if (key !== "order") {
+          const item = items[key];
+          if (item && (item.count || 0) === 0 && !item.checked) {
+            groceryData[cat][key].checked = true;
+            changed = true;
+          }
+        }
+      });
+      window._checkZerosSortFlags[cat] = true;
+      // Always render to apply sort and checked state
+      // (forceCheckZerosSort ensures the UI sort is applied)
+      renderList(cat, true);
+    });
+    // 2. Update DB in the background (batch)
+    setTimeout(() => {
+      categories.forEach(cat => {
+        const items = groceryData[cat] || {};
+        Object.keys(items).forEach(key => {
+          if (key !== "order") {
+            const item = items[key];
+            // Always update checked for count==0 items (even if already checked)
+            if (item && (item.count || 0) === 0) {
+              db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/${key}`).update({ checked: true });
+            }
+          }
+        });
+      });
+    }, 0);
+  };
 
   // --- Error Handling ---
   function handleFirebaseError(error) {
@@ -1032,4 +1168,4 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   `;
   document.head.appendChild(style);
-});
+}); 
