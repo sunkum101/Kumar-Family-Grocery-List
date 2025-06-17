@@ -146,12 +146,8 @@ document.addEventListener("DOMContentLoaded", function () {
           console.log("AUTHORISED_EMAILS keys:", Object.keys(AUTHORISED_EMAILS));
           console.log("familyKey found:", familyKey);
           if (!familyKey) {
-            // Show all info in modal for debugging
             showModal(
-              'Access denied. Please use an allowed Google account.<br>' +
-              '<small style="color:#888;">Email: ' + user.email + '</small><br>' +
-              '<small>Normalized: ' + normalizedEmail + '</small><br>' +
-              '<small>Allowed: ' + Object.keys(AUTHORISED_EMAILS).join(', ') + '</small>',
+              'Access denied. Please use an allowed Google account.',
               () => {}
             );
             auth.signOut();
@@ -188,19 +184,40 @@ document.addEventListener("DOMContentLoaded", function () {
       auth.signOut();
       return;
     }
-    USER_LIST_KEY = familyKey;
-    db.ref(`/userLists/${USER_LIST_KEY}`).once('value')
-      .then(() => {
-        subscribeAllLists();
-      })
-      .catch((error) => {
-        if (error && error.code === "PERMISSION_DENIED") {
-          showModal('You do not have permission to access this family list. Please contact admin (Sunil).', () => {});
-          auth.signOut();
-        } else {
-          handleFirebaseError(error);
-        }
-      });
+
+    // --- NEW: If user is not kumarfamily but has no userLists, copy kumarfamily ---
+    const userListRef = db.ref(`/userLists/${emailToKey(email)}`);
+    userListRef.once('value').then(snap => {
+      if (!snap.exists() && familyKey === 'kumarfamily') {
+        // If user is in kumarfamily but has no list, copy kumarfamily
+        db.ref(`/userLists/kumarfamily`).once('value').then(kumarSnap => {
+          userListRef.set(kumarSnap.val());
+          USER_LIST_KEY = emailToKey(email);
+          subscribeAllLists();
+        });
+      } else if (!snap.exists()) {
+        // If user is in another family, copy kumarfamily as template
+        db.ref(`/userLists/kumarfamily`).once('value').then(kumarSnap => {
+          userListRef.set(kumarSnap.val());
+          USER_LIST_KEY = emailToKey(email);
+          subscribeAllLists();
+        });
+      } else {
+        USER_LIST_KEY = familyKey;
+        db.ref(`/userLists/${USER_LIST_KEY}`).once('value')
+          .then(() => {
+            subscribeAllLists();
+          })
+          .catch((error) => {
+            if (error && error.code === "PERMISSION_DENIED") {
+              showModal('You do not have permission to access this family list. Please contact admin (Sunil).', () => {});
+              auth.signOut();
+            } else {
+              handleFirebaseError(error);
+            }
+          });
+      }
+    });
   }
 
   // --- Ensure proper handling of user authentication ---
@@ -244,6 +261,24 @@ document.addEventListener("DOMContentLoaded", function () {
     const titleEl = document.getElementById('modal-title');
     const btnNo = document.getElementById('modal-btn-no');
     const btnYes = document.getElementById('modal-btn-yes');
+
+    // Custom: If access denied, show only one OK button with correct message
+    if (
+      typeof title === "string" &&
+      title.toLowerCase().includes("access denied")
+    ) {
+      titleEl.innerHTML = 'Access denied. Please use an allowed Google account.<br>Contact Sunil if you are a new user.';
+      btnNo.style.display = 'none';
+      btnYes.textContent = 'OK';
+      btnYes.onclick = () => {
+        cleanup();
+        if (callback) callback();
+      };
+      btnYes.focus();
+      backdrop.classList.add('active');
+      return;
+    }
+
     titleEl.textContent = title;
     // Change button text for info-only modals
     if (title && (title.includes('already exists') || title.includes('duplicate'))) {
@@ -256,8 +291,8 @@ document.addEventListener("DOMContentLoaded", function () {
       btnYes.focus();
     } else {
       btnNo.style.display = '';
-      btnYes.textContent = 'Confirm';
-      btnNo.textContent = 'Cancel'; // Update button text for clarity
+      btnYes.textContent = 'Yes';
+      btnNo.textContent = 'No';
       btnNo.onclick = () => { cleanup(); callback(false); };
       btnYes.onclick = () => { cleanup(); callback(true); };
       btnNo.focus();
@@ -268,8 +303,8 @@ document.addEventListener("DOMContentLoaded", function () {
       btnNo.onclick = null;
       btnYes.onclick = null;
       btnNo.style.display = '';
-      btnYes.textContent = 'Confirm';
-      btnNo.textContent = 'Cancel';
+      btnYes.textContent = 'Yes';
+      btnNo.textContent = 'No';
     }
   }
   function showInputModal(title, placeholder, callback) {
@@ -283,7 +318,16 @@ document.addEventListener("DOMContentLoaded", function () {
     input.value = '';
     input.placeholder = placeholder || '';
     backdrop.classList.add('active');
-    setTimeout(() => { input.focus(); }, 50);
+    setTimeout(() => {
+      input.focus();
+      // --- Scroll modal into view on mobile when input is focused ---
+      setTimeout(() => {
+        const dialog = backdrop.querySelector('.input-modal-dialog');
+        if (dialog) {
+          dialog.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 200);
+    }, 50);
 
     function cleanup() {
       backdrop.classList.remove('active');
@@ -839,14 +883,14 @@ document.addEventListener("DOMContentLoaded", function () {
     const backupItem = groceryData[cat][key];
     const backupOrder = Array.isArray(groceryData[cat].order) ? [...groceryData[cat].order] : [];
 
-    // Remove from local data and UI immediately
+    // Remove from local data
     delete groceryData[cat][key];
     if (Array.isArray(groceryData[cat].order)) {
       groceryData[cat].order = groceryData[cat].order.filter(k => k !== key);
     }
     renderList(cat);
 
-    // Show undo toast for 6 seconds
+    // --- Create undo toast after re-render so it is not wiped out ---
     const undoToast = document.createElement('div');
     undoToast.className = 'undo-toast';
     undoToast.innerHTML = `
@@ -858,7 +902,6 @@ document.addEventListener("DOMContentLoaded", function () {
     let undone = false;
     let undoTimeout;
 
-    // Handler for undo
     function handleUndo(e) {
       if (undone) return;
       undone = true;
@@ -871,7 +914,6 @@ document.addEventListener("DOMContentLoaded", function () {
       // No DB write needed, since nothing was deleted from DB yet
     }
 
-    // Attach both click and touchend for best mobile compatibility
     const undoBtn = undoToast.querySelector('.undo-btn');
     if (undoBtn) {
       undoBtn.addEventListener('click', handleUndo, { passive: false });
@@ -879,14 +921,13 @@ document.addEventListener("DOMContentLoaded", function () {
         e.preventDefault();
         handleUndo();
       }, { passive: false });
+      undoBtn.focus(); // Ensure button is focused for accessibility
     }
 
-    // Timeout for permanent delete
     undoTimeout = setTimeout(() => {
       if (!undone) {
         // After 6 seconds, delete from DB
         db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}/${key}`).remove();
-        // Clean order array before saving to DB to avoid undefined keys
         const cleanOrder = Array.isArray(groceryData[cat].order)
           ? groceryData[cat].order.filter(k => groceryData[cat][k])
           : [];
@@ -908,12 +949,12 @@ document.addEventListener("DOMContentLoaded", function () {
       tableOrder: Array.isArray(tableOrder) ? [...tableOrder] : []
     };
 
-    // Immediately hide table from UI (remove from local data and re-render)
+    // Remove from local data
     delete groceryData[cat];
     tableOrder = tableOrder.filter(k => k !== cat);
     renderAllTables();
 
-    // Show undo toast for 5 seconds (like item delete)
+    // --- Create undo toast after re-render so it is not wiped out ---
     const undoToast = document.createElement('div');
     undoToast.className = 'undo-toast';
     undoToast.innerHTML = `
@@ -922,30 +963,39 @@ document.addEventListener("DOMContentLoaded", function () {
     `;
     document.body.appendChild(undoToast);
 
+    let undone = false;
     let undoTimeout = setTimeout(() => {
-      // After 5 seconds, delete from DB
-      db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}`).remove();
-      db.ref(`/userLists/${USER_LIST_KEY}/tableNames/${cat}`).remove();
-      db.ref(`/userLists/${USER_LIST_KEY}/tableOrder`).once('value').then(snap => {
-        let orderArr = snap.val() || [];
-        orderArr = orderArr.filter(k => k !== cat);
-        db.ref(`/userLists/${USER_LIST_KEY}/tableOrder`).set(orderArr);
-      });
-      document.body.removeChild(undoToast);
+      if (!undone) {
+        // After 5 seconds, delete from DB
+        db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}`).remove();
+        db.ref(`/userLists/${USER_LIST_KEY}/tableNames/${cat}`).remove();
+        db.ref(`/userLists/${USER_LIST_KEY}/tableOrder`).once('value').then(snap => {
+          let orderArr = snap.val() || [];
+          orderArr = orderArr.filter(k => k !== cat);
+          db.ref(`/userLists/${USER_LIST_KEY}/tableOrder`).set(orderArr);
+        });
+        if (undoToast.parentNode) document.body.removeChild(undoToast);
+      }
     }, 5000);
 
-    undoToast.querySelector('.undo-btn').onclick = () => {
-      clearTimeout(undoTimeout);
-      // Restore in local data and UI
-      groceryData[cat] = backupTable.groceryLists;
-      tableNames[cat] = backupTable.tableName;
-      tableOrder = backupTable.tableOrder;
-      db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}`).set(backupTable.groceryLists);
-      db.ref(`/userLists/${USER_LIST_KEY}/tableNames/${cat}`).set(backupTable.tableName);
-      db.ref(`/userLists/${USER_LIST_KEY}/tableOrder`).set(backupTable.tableOrder);
-      renderAllTables();
-      document.body.removeChild(undoToast);
-    };
+    const undoBtn = undoToast.querySelector('.undo-btn');
+    if (undoBtn) {
+      undoBtn.onclick = () => {
+        if (undone) return;
+        undone = true;
+        clearTimeout(undoTimeout);
+        // Restore in local data and UI
+        groceryData[cat] = backupTable.groceryLists;
+        tableNames[cat] = backupTable.tableName;
+        tableOrder = backupTable.tableOrder;
+        db.ref(`/userLists/${USER_LIST_KEY}/groceryLists/${cat}`).set(backupTable.groceryLists);
+        db.ref(`/userLists/${USER_LIST_KEY}/tableNames/${cat}`).set(backupTable.tableName);
+        db.ref(`/userLists/${USER_LIST_KEY}/tableOrder`).set(backupTable.tableOrder);
+        renderAllTables();
+        if (undoToast.parentNode) document.body.removeChild(undoToast);
+      };
+      undoBtn.focus(); // Ensure button is focused for accessibility
+    }
   }
   window.deleteTable = deleteTable;
 
@@ -993,7 +1043,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // --- Collapse All Tables Button ---
   document.getElementById('collapse-all-btn')?.addEventListener('click', function () {
-    categories.forEach(cat => {
+    // Always get the latest list of containers from the DOM
+    document.querySelectorAll('.container').forEach(container => {
+      const cat = container.id.replace('-container', '');
       localStorage.setItem('col-' + cat, 'true');
       setCollapsed(cat, true);
     });
