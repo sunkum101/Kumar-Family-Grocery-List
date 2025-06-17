@@ -50,37 +50,47 @@ body, html {
 
 /* Logout button: leftmost, round, subtle */
 .action-btn.logout {
-  background: #222; /* Dark black background */
-  color: #fff;      /* White icon for contrast */
-  border-radius: 50%;
-  width: 36px;
-  height: 36px;
-  min-width: 36px;
-  min-height: 36px;
-  padding: 0;
-  margin: 0;
-  box-shadow: 0 1px 4px rgba(30,30,30,0.10);
-  opacity: 0.97;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  order: 0;
-  border: none;
-  transition: background 0.13s, box-shadow 0.13s;
+  background: linear-gradient(135deg, #232526 0%, #414345 100%) !important;
+  color: #fff !important;
+  border-radius: 50% !important;
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px !important;
+  min-height: 38px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  box-shadow: 0 2px 8px rgba(30,30,30,0.13), 0 1.5px 4px rgba(60,80,130,0.10) !important;
+  opacity: 1 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  order: 0 !important;
+  border: none !important;
+  transition: background 0.18s, box-shadow 0.13s, transform 0.12s !important;
+  z-index: 100 !important;
+  outline: none !important;
+  cursor: pointer !important;
+  overflow: visible !important;
 }
 .action-btn.logout svg {
-  width: 18px;
-  height: 18px;
-  fill: #fff !important; /* Force SVG path to white */
-  stroke: #fff !important; /* For stroke-based icons */
+  width: 22px !important;
+  height: 22px !important;
+  fill: #fff !important;
+  stroke: #fff !important;
+  display: block !important;
+  transition: fill 0.13s, stroke 0.13s !important;
 }
 .action-btn.logout svg path {
   fill: #fff !important;
   stroke: #fff !important;
 }
 .action-btn.logout:active,
-.action-btn.logout:hover {
-  background: #111;
+.action-btn.logout:hover,
+.action-btn.logout:focus {
+  background: linear-gradient(135deg, #434343 0%, #232526 100%) !important;
+  color: #fff !important;
+  box-shadow: 0 4px 16px rgba(30,30,30,0.18) !important;
+  transform: scale(1.08) !important;
 }
 
 /* Email label: next to logout, no extra margin */
@@ -318,15 +328,16 @@ body, html {
   display:flex;
   flex-direction:row;
   align-items:center;
-  padding:10px 13px 9px 13px;
-  font-size:1.1rem;
+  padding:16px 13px 15px 13px;
+  font-size:1.22rem; /* Larger header font for desktop */
   font-weight:700;
   color:#fff;
   cursor:pointer;
-  min-height:36px;
+  min-height:48px; /* Increased from 36px for better thumb tap */
   font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
   letter-spacing:0.01em;
   border-bottom: 1px solid #d6dbe2;
+  font-size: 1.38rem !important; /* Force larger header font always */
 }
 .veggies-header { background: #388e3c; }
 .grocery-header { background: #1976d2; }
@@ -342,6 +353,7 @@ body, html {
   color: #fff;
   letter-spacing:0.01em;
   cursor: pointer;
+  font-size: 1.22rem !important; /* Force larger header title always */
 }
 .header-count{
   font-size:1.01rem;
@@ -388,7 +400,7 @@ li {
   padding:8px 4px; /* Reduced padding for compact rows */
   border-bottom:1px solid #e3e9f2;
   background: #fff;
-  font-size:1rem; /* Adjusted font size for items */
+  font-size:1.13rem; /* Larger list item font for desktop */
   user-select:none;
   font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
   position:relative;
@@ -396,6 +408,7 @@ li {
   margin:8px 6px;
   box-shadow: 0 1px 4px rgba(0,0,0,0.03);
   min-height: 36px; /* Reduced row height from 64px */
+  font-size: 1.18rem !important; /* Force larger list item font always */
 }
 li:last-child { border-bottom:none }
 li.checked {
@@ -431,7 +444,7 @@ li.zero-count {
   transition: background 0.13s, border-color 0.13s;
 }
 
-/* Move handle for items: match delete button style exactly */
+/* Move handle for items: square white background, like bin icon */
 .item-move-handle {
   margin-left: 8px;
   display: inline-flex;
@@ -439,13 +452,13 @@ li.zero-count {
   justify-content: center;
   cursor: grab;
   background: #fff;
-  border-radius: 50%;
+  border-radius: 7px;
   width: 28px;
   height: 28px;
   box-shadow: 0 1.5px 4px rgba(60,80,130,0.10);
-  border: 1.5px solid #bbb; /* Same border as delete */
+  border: 1.5px solid #bbb;
   transition: background 0.13s, border-color 0.13s;
-  color: #e53935; /* Same color as delete icon for visual parity */
+  color: #888;
 }
 
 .item-move-handle svg {
@@ -454,15 +467,14 @@ li.zero-count {
   display: block;
 }
 
-.item-move-handle:active,
-.item-delete-svg-wrap:active {
+.item-move-handle:active {
   background: #f3f6fa;
   border-color: #888;
 }
 
 /* Edit input for table name */
 .edit-table-input {
-  font-size: 1.05rem;
+  font-size: 1.13rem;
   font-weight: 700;
   border-radius: 6px;
   padding: 2px 7px;
@@ -480,7 +492,7 @@ li.zero-count {
 
 /* Edit input for item name */
 .edit-item-input {
-  font-size: 1.1rem;
+  font-size: 1.15rem;
   font-weight: 700;
   border-radius: 6px;
   padding: 2px 7px;
@@ -500,7 +512,7 @@ li.zero-count {
 .name {
   flex: 1;
   min-width: 0;
-  font-size: 1.2rem; /* Reduced from 1.5rem */
+  font-size: 1.18rem; /* Larger item name for desktop */
   line-height: 1.2; /* Adjusted line height */
   border: none;
   background: transparent;
@@ -513,6 +525,7 @@ li.zero-count {
   border-radius: 8px;
   word-break: break-word;
   cursor: pointer;
+  font-size: 1.28rem !important; /* Force larger item name always */
 }
 
 /* --- COUNTER BUTTONS: Mobile-first, large and easy to tap --- */
@@ -595,9 +608,9 @@ input[type="checkbox"] {
 .add-table-btn-wrap {
   width: 100%;
   display: flex;
-  justify-content: flex-start; /* Align left */
+  justify-content: center;      /* Center horizontally */
   align-items: center;
-  margin: 10px 0 18px 0;      /* Even less vertical space */
+  margin: 64px 0 64px 0;        /* Increase top margin to push button further down */
   padding-left: 0;
 }
 
@@ -624,12 +637,20 @@ input[type="checkbox"] {
   transition: background 0.13s, border-color 0.13s;
 }
 
-.add-table-btn:active {
-  background: #e3e7ee !important;
-  border-color: #888;
+/* Center the button inside the wrap */
+.add-table-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
 }
 
-/* --- Mobile-specific: force small add-table-btn on mobile --- */
+/* Add extra space at the bottom of the main section for safe area */
+#main-section {
+  padding-bottom: 120px; /* Even more bottom padding for floating nav/home bar */
+}
+
+/* Responsive: ensure extra space and centering on mobile too */
 @media (max-width: 600px) {
   .add-table-btn {
     font-size: 0.98rem !important;
@@ -644,79 +665,119 @@ input[type="checkbox"] {
     margin-bottom: 0 !important;
   }
   .add-table-btn-wrap {
-    margin: 10px 0 18px 0 !important;
+    margin: 72px 0 90px 0 !important; /* More space above and below on mobile */
+    justify-content: center !important;
     padding-left: 0 !important;
+  }
+  #main-section {
+    padding-bottom: 140px !important; /* More space for mobile nav bar */
+  }
+
+  .header {
+    font-size: 1.32rem !important;
+    min-height: 44px !important;
+    padding: 13px 10px 12px 10px !important;
+  }
+
+  .edit-table-input {
+    font-size: 1.28rem !important;
+  }
+
+  .edit-item-input {
+    font-size: 1.32rem !important;
+  }
+
+  .name {
+    font-size: 1.32rem !important;
+  }
+
+  li {
+    font-size: 1.22rem !important;
   }
 }
 
-/* --- MODALS: Larger for mobile, full-width buttons, better spacing --- */
+/* --- MODALS: Make popups smaller and buttons compact --- */
 .modal-dialog, .input-modal-dialog {
-  min-width: 240px;
-  max-width: 98vw;
-  padding: 28px 18px 18px 18px;
-  font-size: 1.18rem;
-  border-radius: 18px;
+  min-width: 180px;
+  max-width: 90vw;
+  width: 320px;
+  padding: 18px 12px 12px 12px;
+  font-size: 1.04rem;
+  border-radius: 13px;
   background: #fff;
-  box-shadow: 0 5px 19px rgba(0,0,0,0.11);
+  box-shadow: 0 3px 14px rgba(0,0,0,0.13);
   border: 1px solid #e2e7f1;
   text-align: center;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 12px;
 }
+
 .modal-title, .input-modal-title {
-  font-size: 1.18rem;
-  font-weight: 700;
-  margin-bottom: 8px;
+  font-size: 1.07rem;
+  font-weight: 600;
+  margin-bottom: 4px;
   text-align: center;
 }
+
 .modal-btns, .input-modal-btns {
   display: flex;
-  flex-direction: column;
-  gap: 14px;
+  flex-direction: row;
+  gap: 10px;
   justify-content: center;
-  align-items: stretch;
-  margin-top: 8px;
+  align-items: center;
+  margin-top: 4px;
   width: 100%;
 }
+
 .modal-btn-no, .modal-btn-yes, .input-modal-btn {
-  width: 100%;
-  min-width: 0;
-  padding: 18px 0;
-  font-size: 1.18rem;
-  border-radius: 12px;
-  font-weight: 700;
+  width: auto;
+  min-width: 64px;
+  max-width: 120px;
+  padding: 7px 0;
+  font-size: 1.01rem;
+  border-radius: 8px;
+  font-weight: 600;
   border: none;
   background: #f3f6fa;
   color: #222;
   margin: 0;
   box-shadow: none;
   transition: background 0.14s;
+  flex: 1 1 0;
 }
+
 .modal-btn-yes, .input-modal-btn-ok {
   background: linear-gradient(90deg,#388e3c 60%, #5dd05d 100%);
   color: #fff;
 }
+
+.modal-btn-no, .input-modal-btn-cancel {
+  background: #f3f6fa;
+  color: #222;
+}
+
 .modal-btn-no:active, .input-modal-btn-cancel:active {
   background: #e0e7ef;
 }
 .modal-btn-yes:active, .input-modal-btn-ok:active {
   background: linear-gradient(90deg,#3070b3 0%,#2b79c2 100%);
 }
+
 .input-modal-input {
-  font-size: 1.18rem;
-  padding: 12px 10px;
-  border-radius: 8px;
-  border: 1.5px solid #c7d1e6;
+  font-size: 1.07rem;
+  padding: 8px 8px;
+  border-radius: 7px;
+  border: 1.2px solid #c7d1e6;
   background: #f7fafd;
   outline: none;
   width: 100%;
   box-sizing: border-box;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
   transition: border 0.13s, background 0.13s;
 }
 .input-modal-input:focus {
-  border: 1.5px solid #388e3c;
+  border: 1.2px solid #388e3c;
   background: #fff;
 }
 
@@ -779,7 +840,6 @@ input[type="checkbox"] {
   align-items: center;
   gap: 18px;
   opacity: 0;
-  pointer-events: none;
   animation: undo-toast-fadein 0.35s forwards;
 }
 
@@ -938,6 +998,7 @@ input[type="checkbox"] {
     color: #fff;
     border-bottom: 1px solid #d6dbe2;
     border-radius: 10px 10px 0 0;
+    font-size: 1.38rem !important; /* Force larger header font always */
   }
 
   li {
@@ -948,6 +1009,7 @@ input[type="checkbox"] {
     min-height: 40px;
     background: #fff;
     border-bottom: 1px solid #e3e9f2;
+    font-size: 1.18rem !important; /* Force larger list item font always */
   }
 
   .counter {
@@ -1015,68 +1077,165 @@ input[type="checkbox"] {
 .row-btns .action-btn,
 .row-btns .add-table-btn {
   flex: 1 1 0;
-  margin: 0 3px;
+  margin: 0 5px;
   max-width: 100%;
-}
-
-.action-btn.move-delete {
-  background: linear-gradient(90deg, #f59e42 70%, #fecf6e 100%);
-  color: #fff;
-  border: 1.2px solid #e0b97c;
-}
-.action-btn.reset {
-  background: linear-gradient(90deg, #6366f1 70%, #a5b4fc 100%);
-  color: #fff;
-  border: 1.2px solid #8b95e6;
-}
-.action-btn.check-zeros {
-  background: linear-gradient(90deg, #22c55e 70%, #6ee7b7 100%);
-  color: #fff;
-  border: 1.2px solid #5edb9a;
-}
-
-.action-btn:active, .add-table-btn:active {
-  background: #e3e7ee;
-  border-color: #888;
-}
-
-/* Table move handle in table header */
-.table-move-handle {
-  background: #f3f6fa;
-  border-radius: 7px;
-  padding: 2px 6px;
-  margin-left: 6px;
-  display: inline-flex;
+  min-width: 0;
+  font-size: 1rem !important;
+  min-height: 34px !important;
+  max-height: 38px !important;
+  padding: 0 0.5em !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.01em;
+  box-shadow: 0 2px 8px rgba(60,80,130,0.08);
+  border: none !important;
+  transition: background 0.14s, box-shadow 0.14s, color 0.13s, transform 0.11s;
+  display: flex;
   align-items: center;
   justify-content: center;
-  cursor: grab;
-  transition: background 0.13s, box-shadow 0.13s;
-  box-shadow: 0 1px 3px rgba(60,80,130,0.07);
+  line-height: 1.1;
 }
 
-.table-move-handle:active {
-  background: #e0e7ef;
+/* Edit Button */
+.action-btn.move-delete {
+  background: linear-gradient(90deg, #fbbf24 0%, #f59e42 100%) !important;
+  color: #2d2d2d !important;
+  box-shadow: 0 2px 8px rgba(245,158,66,0.10);
+  border: none !important;
+}
+.action-btn.move-delete.editing-mode {
+  background: linear-gradient(90deg, #f59e42 0%, #fbbf24 100%) !important;
+  color: #333 !important;
+  box-shadow: 0 2px 8px rgba(255, 193, 7, 0.13);
 }
 
-/* Make sure the move handle is always visible and styled on all screens */
+/* Reset Button */
+.action-btn.reset {
+  background: linear-gradient(90deg, #6366f1 0%, #60a5fa 100%) !important;
+  color: #fff !important;
+  box-shadow: 0 2px 8px rgba(99,102,241,0.10);
+  border: none !important;
+}
+
+/* Check Button */
+.action-btn.check-zeros {
+  background: linear-gradient(90deg, #22c55e 0%, #38bdf8 100%) !important;
+  color: #fff !important;
+  box-shadow: 0 2px 8px rgba(34,197,94,0.10);
+  border: none !important;
+}
+
+/* Button hover/active/focus states */
+.row-btns .action-btn:hover,
+.row-btns .action-btn:focus {
+  filter: brightness(1.09) saturate(1.1);
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: 0 4px 16px rgba(60,80,130,0.13);
+  outline: none;
+}
+.row-btns .action-btn:active {
+  filter: brightness(0.97);
+  transform: scale(0.98);
+}
+
+/* Make sure text is always centered and ellipsis if too long */
+.row-btns .action-btn span,
+.row-btns .action-btn {
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Responsive: smaller on mobile */
 @media (max-width: 600px) {
-  .table-move-handle {
-    background: #f3f6fa;
-    border-radius: 7px;
-    padding: 2px 6px;
-    margin-left: 6px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    cursor: grab;
-    box-shadow: 0 1px 3px rgba(60,80,130,0.07);
+  .row-btns .action-btn,
+  .row-btns .add-table-btn {
+    font-size: 0.97rem !important;
+    min-height: 30px !important;
+    max-height: 34px !important;
+    border-radius: 7px !important;
+    padding: 0 0.3em !important;
+    margin: 0 2px;
   }
 }
 
-/* Editing mode indication for move-delete button */
-.action-btn.move-delete.editing-mode {
-  background: linear-gradient(90deg, #fbbf24 70%, #f59e42 100%) !important;
-  color: #333 !important;
-  border: 1.5px solid #e0b97c !important;
-  box-shadow: 0 2px 8px rgba(255, 193, 7, 0.13);
+/* --- MODALS: Position input modals higher on mobile to avoid keyboard overlap --- */
+@media (max-width: 600px) {
+  .input-modal-backdrop.active,
+  .modal-backdrop.active {
+    align-items: flex-start !important;
+    justify-content: center !important;
+  }
+  .input-modal-dialog,
+  .modal-dialog {
+    margin-top: 10vh !important;
+    margin-bottom: 0 !important;
+  }
+}
+
+/* For very small screens, push even higher */
+@media (max-width: 430px) {
+  .input-modal-dialog,
+  .modal-dialog {
+    margin-top: 4vh !important;
+  }
+}
+
+/* --- Make input modal dialog float above keyboard, centered, not full width --- */
+@media (max-width: 600px) {
+  .input-modal-backdrop.active {
+    align-items: flex-end !important;
+    justify-content: center !important;
+  }
+  .input-modal-dialog {
+    position: fixed !important;
+    left: 50% !important;
+    /* Place the dialog above the keyboard, but not at the very bottom */
+    bottom: 18vh !important;
+    transform: translateX(-50%) !important;
+    width: 92vw !important;
+    max-width: 340px !important;
+    min-width: 0 !important;
+    border-radius: 13px !important;
+    margin: 0 !important;
+    z-index: 2001 !important;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.13);
+    background: #fff;
+    padding-bottom: 12px;
+  }
+}
+
+/* For very small screens, float a bit higher and keep width reasonable */
+@media (max-width: 430px) {
+  .input-modal-dialog {
+    bottom: 24vh !important;
+    width: 97vw !important;
+    max-width: 99vw !important;
+  }
+}
+
+/* Add white rectangle background to the delete and move buttons in table headers */
+.table-delete-btn, .table-move-handle {
+  background: #fff !important;
+  border-radius: 7px !important;
+  box-shadow: 0 1.5px 4px rgba(60,80,130,0.10);
+  border: 1.5px solid #bbb !important;
+  padding: 0 !important;
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  min-height: 32px !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  margin-right: 0 !important;
+}
+
+.table-delete-btn {
+  margin-right: 12px !important; /* Add space between delete and move */
+}
+
+.table-move-handle {
+  margin-left: 0 !important;
 }
