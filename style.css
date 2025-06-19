@@ -96,8 +96,8 @@ body, html {
 #user-email-label {
   background: #f9f9f9;
   color: #333;
-  font-size: 0.81em; /* was 0.88em */
-  padding: 0.09em 0.5em; /* was 0.13em 0.7em */
+  font-size: 1em;
+  padding: 0.02em 0.5em; 
   border-radius: 1.2em;
   box-shadow: 0 1px 4px rgba(0,0,0,0.06);
   margin: 0;
@@ -629,7 +629,7 @@ input[type="checkbox"] {
   display: flex;
   justify-content: flex-start;   /* Left align */
   align-items: flex-start;
-  margin: 20px 0 10px 0;        /* Less vertical space */
+  margin: 54px 0 0 0;           /* Increased from 38px to 54px for more space from top */
   padding-left: 0;
 }
 
@@ -1258,13 +1258,9 @@ input[type="checkbox"] {
   display: flex;
   justify-content: center;      /* Center horizontally */
   align-items: flex-start;
-  margin: 38px 0 0 0;           /* Move down from the top */
+  margin: 54px 0 0 0;           /* Increased from 38px to 54px for more space from top */
   padding-left: 0;
-}
-
-/* Add extra space below the main "+ Add New Store & Item" button to avoid overlap with Android home bar */
-.add-table-btn-wrap {
-  margin-bottom: 160px; /* Increased from 100px for more space for undo toast */
+  margin-bottom: 160px; /* Keep as is for bottom space */
 }
 
 #add-table-btn-main.add-table-btn {
@@ -1457,8 +1453,7 @@ input[type="checkbox"] {
 
 /* --- Move Add New Store button further down for more space --- */
 .add-table-btn-wrap {
-  /* ...existing code... */
-  margin-bottom: 160px; /* Increased from 100px for more space for undo toast */
+  margin: 54px 0 0 0;           /* Increased from 38px to 54px for more space from top */
 }
 
 /* --- Professional Table Header Colors --- */
@@ -1568,3 +1563,198 @@ input[type="checkbox"] {
   margin-left: 2px;
   letter-spacing: 0.01em;
 }
+
+/* Style for family dropdown in Add User modal */
+.family-dropdown {
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+  font-size: 1.08rem;
+  color: #1976d2;
+  font-weight: 700;
+  background: #f7fafd;
+  border: 1.2px solid #c7d1e6;
+  border-radius: 7px;
+  outline: none;
+  margin-bottom: 2px;
+}
+
+/* Style for family options in dropdown */
+.family-dropdown option,
+.family-option {
+  color: #1976d2;
+  font-weight: 700;
+  background: #e3e7ee;
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+}
+
+/* Disabled Add button style in Add User modal */
+#add-user-ok:disabled {
+  opacity: 0.6 !important;
+  cursor: not-allowed !important;
+  background: #bdbdbd !important;
+  color: #fff !important;
+}
+
+/* --- Add User Modal: Modern, bold, large buttons and text --- */
+#add-user-modal-backdrop form#add-user-form {
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 4px 24px rgba(30,40,60,0.18), 0 1.5px 4px rgba(60,80,130,0.10);
+  padding: 28px 18px 18px 18px;
+  min-width: 0;
+  width: 96vw;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin: 0 auto;
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+}
+
+#add-user-modal-backdrop .login-title,
+#add-user-modal-backdrop .login-title-modern,
+#add-user-modal-backdrop > div > div:first-child,
+#add-user-modal-backdrop form > div:first-child {
+  font-size: 1.25rem !important;
+  font-weight: 800 !important;
+  color: #232c3d !important;
+  text-align: center;
+  margin-bottom: 6px !important;
+  letter-spacing: 0.01em;
+}
+
+#add-user-modal-backdrop input[type="email"],
+#add-user-modal-backdrop input[type="text"],
+#add-user-modal-backdrop select {
+  font-size: 1.13rem !important;
+  padding: 10px 10px !important;
+  border-radius: 8px !important;
+  border: 1.5px solid #c7d1e6 !important;
+  background: #f7fafd !important;
+  outline: none !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  margin-bottom: 8px !important;
+  font-weight: 600 !important;
+}
+
+#add-user-modal-backdrop select {
+  color: #1976d2 !important;
+  font-weight: 700 !important;
+}
+
+#add-user-modal-backdrop .family-dropdown option,
+#add-user-modal-backdrop .family-option {
+  color: #1976d2 !important;
+  font-weight: 700 !important;
+  background: #e3e7ee !important;
+}
+
+#add-user-modal-backdrop #add-user-error {
+  color: #e53935 !important;
+  font-size: 1.09rem !important;
+  min-height: 1.2em;
+  text-align: center;
+  font-weight: 700 !important;
+  margin-bottom: 2px;
+}
+
+#add-user-modal-backdrop .modal-btns,
+#add-user-modal-backdrop .input-modal-btns,
+#add-user-modal-backdrop form > div:last-child {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 14px !important;
+  justify-content: center !important;
+  align-items: center !important;
+  margin-top: 10px !important;
+  width: 100% !important;
+}
+
+#add-user-modal-backdrop button,
+#add-user-modal-backdrop #add-user-ok,
+#add-user-modal-backdrop #add-user-cancel {
+  min-width: 0 !important;
+  max-width: 180px !important;
+  padding: 13px 0 !important;
+  font-size: 1.13rem !important;
+  border-radius: 9px !important;
+  font-weight: 800 !important;
+  border: none !important;
+  margin: 0 !important;
+  box-shadow: 0 1px 4px rgba(60,80,130,0.09) !important;
+  flex: 1 1 0 !important;
+  transition: background 0.14s, color 0.14s;
+  letter-spacing: 0.01em;
+  outline: none !important;
+  cursor: pointer !important;
+}
+
+#add-user-modal-backdrop #add-user-ok {
+  background: linear-gradient(90deg,#388e3c 60%, #5dd05d 100%) !important;
+  color: #fff !important;
+}
+
+#add-user-modal-backdrop #add-user-cancel {
+  background: #f3f6fa !important;
+  color: #222 !important;
+}
+
+#add-user-modal-backdrop #add-user-ok:active {
+  background: linear-gradient(90deg,#3070b3 0%,#2b79c2 100%) !important;
+}
+#add-user-modal-backdrop #add-user-cancel:active {
+  background: #e0e7ef !important;
+}
+
+#add-user-modal-backdrop #add-user-ok:disabled {
+  opacity: 0.6 !important;
+  cursor: not-allowed !important;
+  background: #bdbdbd !important;
+  color: #fff !important;
+}
+
+/* Radio buttons: larger and spaced */
+#add-user-modal-backdrop input[type="radio"] {
+  width: 1.2em !important;
+  height: 1.2em !important;
+  accent-color: #388e3c !important;
+  margin-right: 7px !important;
+  vertical-align: middle !important;
+}
+
+#add-user-modal-backdrop label {
+  font-size: 1.09rem !important;
+  font-weight: 700 !important;
+  color: #1976d2 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+  margin-bottom: 0 !important;
+  cursor: pointer !important;
+}
+
+/* Responsive: modal width and padding on small screens */
+@media (max-width: 430px) {
+  #add-user-modal-backdrop form#add-user-form {
+    width: 99vw !important;
+    max-width: 99vw !important;
+    padding: 18px 4vw 14px 4vw !important;
+  }
+  #add-user-modal-backdrop .modal-btns,
+  #add-user-modal-backdrop .input-modal-btns,
+  #add-user-modal-backdrop form > div:last-child {
+    gap: 8px !important;
+  }
+  #add-user-modal-backdrop button,
+  #add-user-modal-backdrop #add-user-ok,
+  #add-user-modal-backdrop #add-user-cancel {
+    font-size: 1.09rem !important;
+    padding: 11px 0 !important;
+  }
+}
+  #add-user-modal-backdrop #add-user-cancel {
+    font-size: 1.09rem !important;
+    padding: 11px 0 !important;
+  }
+
+
