@@ -39,6 +39,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // --- Fetch Authorised Users from DB ---
   function fetchAuthorisedUsers(callback) {
+    setSyncIndicator(true); // Show sync indicator when fetching users
     db.ref('/authorisedUsers').once('value')
       .then(snap => {
         const data = snap.val();
@@ -49,9 +50,11 @@ document.addEventListener("DOMContentLoaded", function () {
             EMAIL_TO_FAMILY[normalizeEmail(user.email)] = user.family;
           }
         });
+        setSyncIndicator(false); // Hide after users loaded
         if (typeof callback === "function") callback();
       })
       .catch(error => {
+        setSyncIndicator(false); // Hide on error
         handleFirebaseError(error);
       });
   }
@@ -99,6 +102,7 @@ document.addEventListener("DOMContentLoaded", function () {
   // --- Subscribe to Family Shopping List ---
   let shoppingListRef = null;
   function subscribeFamilyList(family) {
+    setSyncIndicator(true); // Show sync indicator when subscribing
     if (shoppingListRef) shoppingListRef.off();
     shoppingListRef = db.ref(`/shoppingListsPerFamily/${family}`);
     shoppingListRef.on('value', snap => {
@@ -158,7 +162,11 @@ document.addEventListener("DOMContentLoaded", function () {
         });
       }
       renderAllTables();
+      // --- Save to cache after rendering from Firebase ---
+      saveCache();
+      setSyncIndicator(false); // Hide after data loaded
     }, function(error) {
+      setSyncIndicator(false); // Hide on error
       if (isLoggedIn) handleFirebaseError(error);
     });
   }
@@ -257,15 +265,17 @@ document.addEventListener("DOMContentLoaded", function () {
   auth.onAuthStateChanged(user => {
     fetchAuthorisedUsers(() => {
       if (user) {
+        showMain();
+        showLoggedInEmail(user.email);
         handleUserLogin(user);
       } else {
-        showLogin();
+        showLogin(); // Only show login if not authenticated
       }
     });
   });
 
   // --- Show main section and try to load lists before auth check ---
-  showMain();
+  // (No need to call showMain() here, already showing main-section by default)
   fetchAuthorisedUsers(() => {
     const currentUser = auth.currentUser;
     if (currentUser) {
@@ -554,6 +564,7 @@ document.addEventListener("DOMContentLoaded", function () {
       if (!Array.isArray(groceryData[cat].order)) groceryData[cat].order = [];
       groceryData[cat].order.push(nextKey);
       renderList(cat);
+      saveCache(); // Save after local update
 
       // 3. Add to DB in background (write to shoppingListsPerFamily, not userLists)
       db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${cat}/${nextKey}`).set(item);
@@ -563,30 +574,58 @@ document.addEventListener("DOMContentLoaded", function () {
   window.addItem = addItem;
 
   // --- Globals ---
-  let moveDeleteMode = false; // Ensure this is declared only once
+  let moveDeleteMode = false;
   let originalKeyOrder = {};
   let groceryData = {};
   let tableNames = {};
   let categories = [];
-  let updateCounterDebounce = {}; // { cat: timeoutId }
+  let updateCounterDebounce = {};
+  let tempOrders = {}; // { cat: [key, ...] }
 
-  // --- Track pending deletes to prevent UI re-appearance ---
+  // --- Fix: Add these globals for deleted tables/items ---
   let pendingDeletedTables = new Set();
   let pendingDeletedItems = {}; // { cat: Set([key, ...]) }
 
-  // --- Utility: Professional, readable header color from table name ---
-  function stringToHeaderColor(str) {
-    // Map some common table names to professional colors, fallback to blue
-    const name = (str || '').toLowerCase();
-    if (name.includes('veggie'))      return { bg: "#388e3c", fg: "#fff" };      // Green
-    if (name.includes('indian'))      return { bg: "#8e24aa", fg: "#fff" };      // Purple
-    if (name.includes('kmart') || name.includes('bigw') || name.includes('target'))
-                                      return { bg: "#0288d1", fg: "#fff" };      // Blue
-    if (name.includes('bunnings'))    return { bg: "#455a64", fg: "#fff" };      // Slate
-    if (name.includes('office'))      return { bg: "#c62828", fg: "#fff" };      // Red
-    if (name.includes('test'))        return { bg: "#6d4c41", fg: "#fff" };      // Brown
-    // Add more mappings as needed
-    return { bg: "#1976d2", fg: "#fff" }; // Default: strong blue
+  // --- Utility: Get order for rendering (temp if exists, else original) ---
+  function getRenderOrder(cat, items) {
+    if (tempOrders[cat] && tempOrders[cat].length) {
+      // Only include keys that still exist in items
+      return tempOrders[cat].filter(k => items[k]);
+    }
+    // Fallback to original order
+    let keys = Array.isArray(items.order) ? [...items.order] : [];
+    Object.keys(items).forEach(k => {
+      if (
+        k !== 'order' &&
+        !keys.includes(k) &&
+        items[k] &&
+        typeof items[k] === 'object' &&
+        typeof items[k].name === 'string'
+      ) {
+        keys.push(k);
+      }
+    });
+    return keys;
+  }
+
+  // --- Utility: Save temp order for a table ---
+  function saveTempOrder(cat, orderArr) {
+    if (!USER_LIST_KEY) return;
+    const tempKey = `${cat}_temp_items_orders_check_zeros_btn`;
+    tempOrders[cat] = orderArr;
+    firebase.database().ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/${tempKey}`).set(orderArr);
+  }
+
+  // --- Utility: Clear all temp orders for this family ---
+  function clearAllTempOrders() {
+    if (!USER_LIST_KEY) return;
+    const updates = {};
+    categories.forEach(cat => {
+      const tempKey = `${cat}_temp_items_orders_check_zeros_btn`;
+      updates[tempKey] = null;
+      tempOrders[cat] = [];
+    });
+    firebase.database().ref(`/shoppingListsPerFamily/${USER_LIST_KEY}`).update(updates);
   }
 
   // --- Render Grocery Tables ---
@@ -814,28 +853,46 @@ document.addEventListener("DOMContentLoaded", function () {
     el.className = 'header-count'; // Ensure proper styling
   }
 
-  // --- Render List ---
-  function renderList(cat, forceCheckZerosSort = false) {
-    // --- Skip rendering if table is pending deleted ---
-    if (pendingDeletedTables.has(cat)) return;
+  // --- Inject custom CSS for moving/squeeze effects if not present ---
+  (function injectMoveSqueezeCSS() {
+    if (!document.getElementById('move-squeeze-css')) {
+      const style = document.createElement('style');
+      style.id = 'move-squeeze-css';
+      style.innerHTML = `
+        /* Highlight the item being moved: solid light blue fill, no border, smooth transition */
+        .item-moving {
+          background: #e3f2fd !important;
+          color: #01579b !important;
+          border: none !important;
+          box-shadow: 0 2px 12px 0 #90caf9;
+          z-index: 10;
+          transition: background 0.28s cubic-bezier(.68,-0.55,.27,1.55), color 0.18s, box-shadow 0.28s;
+        }
+        /* Squeeze effect for drop location: slightly different blue, dashed border */
+        .item-squeeze {
+          margin-top: 0.7em !important;
+          margin-bottom: 0.7em !important;
+          background: #bbdefb !important;
+          border: 2.5px dashed #0288d1 !important;
+          box-shadow: 0 0 8px 1px #4fc3f7;
+          transition: margin 0.22s cubic-bezier(.68,-0.55,.27,1.55), background 0.18s, border 0.18s, box-shadow 0.18s;
+        }
+        ul li {
+          transition: margin 0.22s cubic-bezier(.68,-0.55,.27,1.55), background 0.28s cubic-bezier(.68,-0.55,.27,1.55), border 0.18s, box-shadow 0.18s;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+  })();
 
+  // --- Render List (override displayOrder logic) ---
+  function renderList(cat) {
+    if (pendingDeletedTables.has(cat)) return;
     const ul = document.getElementById(cat);
     if (!ul) return;
     ul.innerHTML = '';
-
     const items = groceryData[cat] || {};
-    let keys = Array.isArray(items.order) ? [...items.order] : [];
-    Object.keys(items).forEach(k => {
-      if (
-        k !== 'order' &&
-        !keys.includes(k) &&
-        items[k] &&
-        typeof items[k] === 'object' &&
-        typeof items[k].name === 'string'
-      ) {
-        keys.push(k);
-      }
-    });
+    let keys = getRenderOrder(cat, items);
 
     // --- Filter out pending deleted items ---
     const pendingSet = pendingDeletedItems[cat] || new Set();
@@ -849,32 +906,7 @@ document.addEventListener("DOMContentLoaded", function () {
       groceryData[cat].order = validKeys;
       db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${cat}/order`).set(validKeys);
     }
-
     let displayOrder = keys.filter(k => !pendingSet.has(k));
-    let doTempSort = forceCheckZerosSort || (window._checkZerosSortFlags && window._checkZerosSortFlags[cat]);
-    if (doTempSort) {
-      // --- Sort: unchecked & count>0, then unchecked & count==0, then checked (any count) ---
-      const toBuy = [];
-      const zero = [];
-      const checked = [];
-      displayOrder.forEach(key => {
-        const item = items[key];
-        if (!item || typeof item !== 'object' || typeof item.name !== 'string') return;
-        if (item.checked) {
-          checked.push(key);
-        } else if ((item.count || 0) > 0) {
-          toBuy.push(key);
-        } else {
-          zero.push(key);
-        }
-      });
-      displayOrder = toBuy.concat(zero, checked);
-
-      // --- Persist the new order in DB so it doesn't revert after 2-3 seconds ---
-      groceryData[cat].order = displayOrder;
-      db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${cat}/order`).set(displayOrder);
-    }
-
     displayOrder.forEach(key => {
       const item = items[key];
       if (!item || typeof item !== 'object' || typeof item.name !== 'string') return;
@@ -974,25 +1006,41 @@ document.addEventListener("DOMContentLoaded", function () {
       });
     });
 
-    if (moveDeleteMode) {
-      if (!ul.sortableInstance) {
-        ul.sortableInstance = Sortable.create(ul, {
-          animation: 180,
-          handle: '.item-move-handle',
-          draggable: 'li',
-          ghostClass: 'dragging',
-          onEnd: function () {
-            const newOrder = [];
-            ul.querySelectorAll('li').forEach(li => {
-              if (li.dataset.key) newOrder.push(li.dataset.key);
-            });
-            groceryData[cat].order = newOrder;
-            db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${cat}/order`).set(newOrder);
-            renderList(cat);
-          }
-        });
-      }
-    } else {
+if (moveDeleteMode && !ul.sortableInstance) {
+  ul.sortableInstance = Sortable.create(ul, {
+    animation: 200, // Smoother drag animation
+    handle: '.item-move-handle',
+    draggable: 'li',
+    ghostClass: 'dragging',      // Applied to the dragged element clone
+    chosenClass: 'item-moving',  // Applied to the selected element
+
+    onStart() {
+      ul.querySelectorAll('.item-squeeze').forEach(el => el.classList.remove('item-squeeze'));
+    },
+
+    onEnd() {
+      ul.querySelectorAll('.item-squeeze').forEach(el => el.classList.remove('item-squeeze'));
+
+      const newOrder = Array.from(ul.querySelectorAll('li'))
+        .map(li => li.dataset.key)
+        .filter(Boolean);
+
+      groceryData[cat].order = newOrder;
+
+      db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${cat}/order`)
+        .set(newOrder)
+        .then(() => renderList(cat));
+    },
+
+    onChange(evt) {
+      // Remove all squeeze classes first
+      ul.querySelectorAll('.item-squeeze').forEach(el => el.classList.remove('item-squeeze'));
+
+      const movedTo = ul.querySelectorAll('li')[evt.newIndex];
+      movedTo?.classList.add('item-squeeze');
+    }
+  });
+} else {
       if (ul.sortableInstance) {
         ul.sortableInstance.destroy();
         ul.sortableInstance = null;
@@ -1243,38 +1291,48 @@ document.addEventListener("DOMContentLoaded", function () {
       const resetBtn = document.getElementById('reset-all');
       resetBtn.innerHTML = '<i class="fas fa-rotate fa-spin"></i> <span style="margin-left: 6px;">Reset</span>';
 
-      // 1. Update all local data instantly
-      categories.forEach(cat => {
+      // 1. Update all local data instantly (only count and checked, do NOT touch order)
+      for (let i = 0; i < categories.length; i++) {
+        const cat = categories[i];
         const items = groceryData[cat] || {};
-        Object.keys(items).forEach(key => {
+        for (const key in items) {
           if (key !== "order") {
-            groceryData[cat][key].count = 0;
+            if (typeof groceryData[cat][key].count === 'number') groceryData[cat][key].count = 0;
             groceryData[cat][key].checked = false;
           }
-        });
-        renderList(cat); // Instantly update UI for each table
-      });
+        }
+        tempOrders[cat] = [];
+      }
 
-      // 2. Update DB in the background (batch, non-blocking, async)
-      // --- FIX: Only update DB for changed items, and do NOT call renderList again after DB update ---
+      // --- Instantly update UI ---
+      renderAllTables();
+
+      // 2. Update DB in the background (only count and checked, do NOT touch order)
+      // (No setTimeout needed for UI, only for DB)
       setTimeout(() => {
-        categories.forEach(cat => {
+        for (let i = 0; i < categories.length; i++) {
+          const cat = categories[i];
           const items = groceryData[cat] || {};
-          Object.keys(items).forEach(key => {
+          const updates = {};
+          for (const key in items) {
             if (key !== "order") {
-              db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${cat}/${key}`).update({ count: 0, checked: false });
+              updates[`${key}/count`] = 0;
+              updates[`${key}/checked`] = false;
             }
-          });
-        });
-
-        // Reset the button icon after completion
+          }
+          if (Object.keys(updates).length > 0) {
+            db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${cat}`).update(updates);
+          }
+        }
+        // --- Clear all temp order tables in DB ---
+        clearAllTempOrders();
         setTimeout(() => {
           resetBtn.innerHTML = '<i class="fas fa-rotate-left"></i> <span style="margin-left: 6px;">Reset</span>';
-        }, 500); // small delay for visual feedback
+          // No need to call renderAllTables() again, already done above
+        }, 500);
       }, 0);
     });
   };
-
 
   // --- Move/Delete Toggle Button ---
   document.getElementById('move-delete-toggle').onclick = function () {
@@ -1309,37 +1367,130 @@ moveDeleteMode = !moveDeleteMode;
     });
   });
 
-  // --- Check Zeros Button ---
+  // --- Check Zeros Button: New Implementation ---
   document.getElementById('check-zeros-btn').onclick = function () {
+    if (!isLoggedIn) return;
+    // 1. Mark all items with count 0 as checked
     const updatesByCat = {};
-    categories.forEach(cat => {
+    for (let i = 0; i < categories.length; i++) {
+      const cat = categories[i];
       const items = groceryData[cat] || {};
-      let changed = false;
-      Object.keys(items).forEach(key => {
+      for (const key in items) {
         if (key !== "order") {
           const item = items[key];
           if (item && (item.count || 0) === 0 && !item.checked) {
             groceryData[cat][key].checked = true;
-            changed = true;
             if (!updatesByCat[cat]) updatesByCat[cat] = {};
             updatesByCat[cat][`${key}/checked`] = true;
           }
         }
-      });
-      // Always re-render with forceCheckZerosSort=true, even if nothing changed
-      renderList(cat, true);
-    });
+      }
+    }
+    // 2. For each table, create new order: count>0 at top, count==0 at bottom
+    for (let i = 0; i < categories.length; i++) {
+      const cat = categories[i];
+      const items = groceryData[cat] || {};
+      const keys = Object.keys(items).filter(k => k !== 'order' && items[k] && typeof items[k].name === 'string');
+      const toBuy = [];
+      const zero = [];
+      for (let j = 0; j < keys.length; j++) {
+        const key = keys[j];
+        const item = items[key];
+        if (!item) continue;
+        if ((item.count || 0) > 0) toBuy.push(key);
+        else zero.push(key);
+      }
+      const newOrder = toBuy.concat(zero);
+      saveTempOrder(cat, newOrder);
+    }
 
-    // 2. Update DB in the background (batch, non-blocking, async)
+    // --- Instantly update UI ---
+    renderAllTables();
+
+    // 3. Update DB for checked items (batch)
     setTimeout(() => {
-      Object.keys(updatesByCat).forEach(cat => {
+      for (const cat in updatesByCat) {
         const updates = updatesByCat[cat];
         if (Object.keys(updates).length > 0) {
           db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${cat}`).update(updates);
         }
-      });
+      }
+      // 4. No need to re-render all tables, already done above
     }, 0);
   };
+
+  // --- On family list subscribe, also load temp orders ---
+  function subscribeFamilyList(family) {
+    setSyncIndicator(true);
+    if (shoppingListRef) shoppingListRef.off();
+    shoppingListRef = db.ref(`/shoppingListsPerFamily/${family}`);
+    shoppingListRef.on('value', snap => {
+      const data = snap.val() || {};
+      groceryData = {};
+      tableNames = {};
+      categories = [];
+      let rawGroceryLists = data.groceryLists || {};
+      let rawTableNames = data.tableNames || {};
+      let rawTableOrder = Array.isArray(data.tableOrder) ? data.tableOrder : Object.keys(rawGroceryLists);
+      let changed = false;
+      Object.keys(rawGroceryLists).forEach(cat => {
+        if (!rawTableNames[cat]) {
+          rawTableNames[cat] = cat;
+          changed = true;
+        }
+        if (!rawTableOrder.includes(cat)) {
+          rawTableOrder.push(cat);
+          changed = true;
+        }
+      });
+      Object.keys(rawTableNames).forEach(cat => {
+        if (!rawGroceryLists[cat]) {
+          delete rawTableNames[cat];
+          changed = true;
+        }
+      });
+      rawTableOrder = rawTableOrder.filter(cat => rawGroceryLists[cat]);
+      if (changed) {
+        db.ref(`/shoppingListsPerFamily/${family}/tableNames`).set(rawTableNames);
+        db.ref(`/shoppingListsPerFamily/${family}/tableOrder`).set(rawTableOrder);
+      }
+      Object.keys(rawGroceryLists).forEach(cat => {
+        if (!pendingDeletedTables.has(cat)) {
+          groceryData[cat] = { ...rawGroceryLists[cat] };
+        }
+      });
+      Object.keys(rawTableNames).forEach(cat => {
+        if (!pendingDeletedTables.has(cat)) {
+          tableNames[cat] = rawTableNames[cat];
+        }
+      });
+      categories = Object.keys(groceryData);
+
+      // --- Load temp orders ---
+      tempOrders = {};
+      Object.keys(data).forEach(key => {
+        if (key.endsWith('_temp_items_orders_check_zeros_btn')) {
+          const cat = key.replace(/_temp_items_orders_check_zeros_btn$/, '');
+          tempOrders[cat] = Array.isArray(data[key]) ? data[key] : [];
+        }
+      });
+
+      if (!Array.isArray(rawTableOrder) || rawTableOrder.length === 0) {
+        tableOrder = categories;
+      } else {
+        tableOrder = rawTableOrder.filter(cat => !pendingDeletedTables.has(cat) && categories.includes(cat));
+        categories.forEach(cat => {
+          if (!tableOrder.includes(cat)) tableOrder.push(cat);
+        });
+      }
+      renderAllTables();
+      saveCache();
+      setSyncIndicator(false);
+    }, function(error) {
+      setSyncIndicator(false);
+      if (isLoggedIn) handleFirebaseError(error);
+    });
+  }
 
   // --- Error Handling ---
   function handleFirebaseError(error) {
@@ -1457,330 +1608,410 @@ moveDeleteMode = !moveDeleteMode;
     };
   }
 
-  // Add User Button click handler (revamped, improved)
+  // --- Add User Button click handler (revamped, improved) ---
   document.getElementById('add-user-btn').onclick = function () {
     firebase.database().ref('/authorisedUsers').once('value').then(snap => {
       const users = snap.val() || {};
       const emails = Object.values(users).map(u => (u && u.email ? u.email.trim().toLowerCase() : ''));
       const families = Object.values(users).map(u => (u && u.family ? u.family.trim() : ''));
-      // --- Restore the two-stage modal with radio buttons ---
       showAddUserTwoStageModal(emails, families);
     });
+  };
 
-    // --- Two-stage modal with radio buttons for existing/new family ---
-    function showAddUserTwoStageModal(existingEmails, existingFamilies) {
-      // Remove any existing modal
-      let backdrop = document.getElementById('add-user-modal-backdrop');
-      if (backdrop) backdrop.remove();
+  // --- Two-stage modal with radio buttons for existing/new family ---
+  function showAddUserTwoStageModal(existingEmails, existingFamilies) {
+    // Remove any existing modal
+    let backdrop = document.getElementById('add-user-modal-backdrop');
+    if (backdrop) backdrop.remove();
 
-      backdrop = document.createElement('div');
-      backdrop.id = 'add-user-modal-backdrop';
-      backdrop.style = 'position:fixed;left:0;top:0;right:0;bottom:0;z-index:4001;background:rgba(30,40,60,0.18);display:flex;align-items:center;justify-content:center;';
-      backdrop.innerHTML = `
-        <form id="add-user-form" style="background:#fff;border-radius:13px;box-shadow:0 3px 14px rgba(0,0,0,0.13);padding:22px 20px 16px 20px;min-width:240px;max-width:90vw;width:340px;display:flex;flex-direction:column;gap:13px;">
-          <div style="font-size:1.13rem;font-weight:700;margin-bottom:2px;text-align:center;">Add New User</div>
-          <div style="display:flex;flex-direction:column;gap:8px;justify-content:center;margin-bottom:8px;">
-            <label style="display:flex;align-items:center;gap:7px;font-size:1.09rem;font-weight:700;color:#1976d2;cursor:pointer;">
-              <input type="radio" name="add-user-mode" value="existing" checked style="margin-right:6px;vertical-align:middle;">
-              Add this new user to an existing family
-            </label>
-            <label style="display:flex;align-items:center;gap:7px;font-size:1.09rem;font-weight:700;color:#1976d2;cursor:pointer;">
-              <input type="radio" name="add-user-mode" value="new" style="margin-right:6px;vertical-align:middle;">
-              Add this new user along with a new family
-            </label>
-          </div>
-          <div id="add-user-stage"></div>
-          <div id="add-user-error" style="color:#e53935;font-size:0.98rem;min-height:1.2em;text-align:center;"></div>
-          <div style="display:flex;gap:10px;justify-content:center;margin-top:2px;">
-            <button type="button" id="add-user-cancel" style="flex:1 1 0;padding:7px 0;border-radius:8px;font-weight:600;border:none;background:#f3f6fa;color:#222;">Cancel</button>
-            <button type="submit" id="add-user-ok" style="flex:1 1 0;padding:7px 0;border-radius:8px;font-weight:600;border:none;background:linear-gradient(90deg,#388e3c 60%, #5dd05d 100%);color:#fff;">Add</button>
-          </div>
-        </form>
-      `;
-      document.body.appendChild(backdrop);
-      backdrop.style.display = 'flex';
-      backdrop.classList.add('active');
+    backdrop = document.createElement('div');
+    backdrop.id = 'add-user-modal-backdrop';
+    backdrop.style = 'position:fixed;left:0;top:0;right:0;bottom:0;z-index:4001;background:rgba(30,40,60,0.18);display:flex;align-items:center;justify-content:center;';
+    backdrop.innerHTML = `
+      <form id="add-user-form" style="background:#fff;border-radius:13px;box-shadow:0 3px 14px rgba(0,0,0,0.13);padding:22px 20px 16px 20px;min-width:240px;max-width:90vw;width:340px;display:flex;flex-direction:column;gap:13px;">
+        <div style="font-size:1.13rem;font-weight:700;margin-bottom:2px;text-align:center;">Add New User</div>
+        <div style="display:flex;flex-direction:column;gap:8px;justify-content:center;margin-bottom:8px;">
+          <label style="display:flex;align-items:center;gap:7px;font-size:1.09rem;font-weight:700;color:#1976d2;cursor:pointer;">
+            <input type="radio" name="add-user-mode" value="existing" checked style="margin-right:6px;vertical-align:middle;">
+            Add this new user to an existing family
+          </label>
+          <label style="display:flex;align-items:center;gap:7px;font-size:1.09rem;font-weight:700;color:#1976d2;cursor:pointer;">
+            <input type="radio" name="add-user-mode" value="new" style="margin-right:6px;vertical-align:middle;">
+            Add this new user along with a new family
+          </label>
+        </div>
+        <div id="add-user-stage"></div>
+        <div id="add-user-error" style="color:#e53935;font-size:0.98rem;min-height:1.2em;text-align:center;"></div>
+        <div style="display:flex;gap:10px;justify-content:center;margin-top:2px;">
+          <button type="button" id="add-user-cancel" style="flex:1 1 0;padding:7px 0;border-radius:8px;font-weight:600;border:none;background:#f3f6fa;color:#222;">Cancel</button>
+          <button type="submit" id="add-user-ok" style="flex:1 1 0;padding:7px 0;border-radius:8px;font-weight:600;border:none;background:linear-gradient(90deg,#388e3c 60%, #5dd05d 100%);color:#fff;">Add</button>
+        </div>
+      </form>
+    `;
+    document.body.appendChild(backdrop);
 
-      const form = document.getElementById('add-user-form');
-      const stageDiv = document.getElementById('add-user-stage');
-      const errorDiv = document.getElementById('add-user-error');
-      const okBtn = () => document.getElementById('add-user-ok');
-      let mode = 'existing';
-
-      // --- Store values to preserve across radio switch ---
-      let emailValue = '';
-      let familyValue = '';
-      let familySelectValue = '';
-
-      // --- Utility: sanitize family name for Firebase key ---
-      function sanitizeFamilyId(name) {
-        // Remove forbidden chars: . # $ [ ]
-        return (name || '')
-          .trim()
-          .toLowerCase()
-          .replace(/[\.\#\$\[\]]/g, '')
-          .replace(/\s+/g, '_')
-          .replace(/[^a-z0-9_\-]/g, ''); // allow a-z, 0-9, _, -
-      }
-
-      function renderStage() {
-        // Save current values before re-render
-        const prevEmail = emailValue;
-        const prevFamily = familyValue;
-        const prevFamilySelect = familySelectValue;
-
-        errorDiv.textContent = '';
-        if (mode === 'existing') {
-          stageDiv.innerHTML = `
-            <input id="add-user-email" type="email" placeholder="New user email" style="font-size:1.01rem;padding:7px 8px;border-radius:7px;border:1.2px solid #c7d1e6;background:#f7fafd;outline:none;width:100%;box-sizing:border-box;margin-bottom:7px;" autocomplete="off"/>
-            <select id="add-user-family-select" class="family-dropdown" style="font-size:1.01rem;padding:7px 8px;border-radius:7px;border:1.2px solid #c7d1e6;background:#f7fafd;outline:none;width:100%;box-sizing:border-box;">
-              <option value="">Select family</option>
-              ${[...new Set(existingFamilies)].map(fam => `<option value="${fam}" class="family-option">${fam}</option>`).join('')}
-            </select>
-          `;
-        } else {
-          stageDiv.innerHTML = `
-            <input id="add-user-email" type="email" placeholder="New user email" style="font-size:1.01rem;padding:7px 8px;border-radius:7px;border:1.2px solid #c7d1e6;background:#f7fafd;outline:none;width:100%;box-sizing:border-box;margin-bottom:7px;" autocomplete="off"/>
-            <input id="add-user-family" type="text" placeholder="New family name" style="font-size:1.01rem;padding:7px 8px;border-radius:7px;border:1.2px solid #c7d1e6;background:#f7fafd;outline:none;width:100%;box-sizing:border-box;" autocomplete="off"/>
-          `;
-        }
-        // Restore previous values after re-render
-        const emailInput = document.getElementById('add-user-email');
-        let famInput = null, famSelect = null;
-        if (mode === 'existing') famSelect = document.getElementById('add-user-family-select');
-        if (mode === 'new') famInput = document.getElementById('add-user-family');
-
-        // Restore values
-        if (emailInput) emailInput.value = prevEmail || '';
-        if (famInput) famInput.value = prevFamily || '';
-        if (famSelect) famSelect.value = prevFamilySelect || '';
-
-        // --- Auto-correct family name as user types (only for new family) ---
-        if (famInput) {
-          famInput.addEventListener('input', function(e) {
-            const orig = famInput.value;
-            // Only allow a-z, 0-9, _, -, and spaces (spaces will be converted to _)
-            let sanitized = orig
-              .replace(/[\.\#\$\[\]]/g, '')      // Remove forbidden chars
-              .replace(/[^a-zA-Z0-9_\-\s]/g, '') // Remove all except a-z, 0-9, _, -, space
-              .replace(/\s+/g, '_');             // Convert spaces to underscores
-            if (sanitized !== orig) {
-              famInput.value = sanitized;
-            }
-            // Save value for persistence
-            familyValue = famInput.value;
-          });
-        }
-
-        function validate() {
-          // Save values on every input for persistence
-          emailValue = emailInput ? emailInput.value : '';
-          familyValue = famInput ? famInput.value : '';
-          familySelectValue = famSelect ? famSelect.value : '';
-
-          let valid = true;
-          let emailVal = emailInput.value.trim().toLowerCase();
-          let emailErr = '';
-          if (!emailVal) {
-            valid = false;
-            emailErr = 'Please enter an email address.';
-          } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) {
-            valid = false;
-            emailErr = 'Please enter a valid email address.';
-          } else if (existingEmails.includes(emailVal)) {
-            valid = false;
-            emailErr = 'This email already exists.';
-          }
-          if (mode === 'existing') {
-            let famVal = famSelect.value;
-            if (!famVal) valid = false;
-          } else {
-            let famVal = famInput.value.trim();
-            if (!famVal) {
-              valid = false;
-              errorDiv.textContent = emailErr || 'Please enter a family name.';
-            } else if (existingFamilies.map(f => f.toLowerCase()).includes(famVal.toLowerCase())) {
-              valid = false;
-              errorDiv.textContent = 'This family name already exists.';
-            }
-          }
-          if (emailErr) errorDiv.textContent = emailErr;
-          if (mode === 'existing' && famSelect && !famSelect.value) {
-            if (!emailErr) errorDiv.textContent = 'Please select a family.';
-            valid = false;
-          }
-          if (valid) {
-            errorDiv.textContent = '';
-            okBtn().disabled = false;
-            okBtn().style.opacity = '';
-            okBtn().style.cursor = '';
-          } else {
-            okBtn().disabled = true;
-            okBtn().style.opacity = '0.6';
-            okBtn().style.cursor = 'not-allowed';
-          }
-        }
-
-        emailInput.addEventListener('input', validate);
-        if (famInput) famInput.addEventListener('input', validate);
-        if (famSelect) famSelect.addEventListener('change', validate);
-        setTimeout(validate, 0);
-      }
-
-      renderStage();
-
-      form.querySelectorAll('input[name="add-user-mode"]').forEach(radio => {
-        radio.onchange = function () {
-          // Save current values before switching
-          const emailInput = document.getElementById('add-user-email');
-          const famInput = document.getElementById('add-user-family');
-          const famSelect = document.getElementById('add-user-family-select');
-          emailValue = emailInput ? emailInput.value : '';
-          familyValue = famInput ? famInput.value : '';
-          familySelectValue = famSelect ? famSelect.value : '';
-          mode = this.value;
-          renderStage();
+    // --- Cancel handler: always set after every render ---
+    function setCancelHandler() {
+      const cancelBtn = document.getElementById('add-user-cancel');
+      if (cancelBtn) {
+        cancelBtn.onclick = () => {
+          if (backdrop && backdrop.parentNode) backdrop.parentNode.removeChild(backdrop);
         };
-      });
+      }
+    }
 
-      document.getElementById('add-user-cancel').onclick = () => {
-        backdrop.classList.remove('active');
-        backdrop.style.display = 'none';
-        backdrop.remove();
-      };
+    // --- Render the stage (inputs) and always re-set cancel handler after every render ---
+    function renderStage(mode, prevEmail = '', prevFamily = '', prevFamilySelect = '') {
+      const stageDiv = document.getElementById('add-user-stage');
+      if (mode === 'existing') {
+        stageDiv.innerHTML = `
+          <input id="add-user-email" type="email" placeholder="New user email" style="font-size:1.01rem;padding:7px 8px;border-radius:7px;border:1.2px solid #c7d1e6;background:#f7fafd;outline:none;width:100%;box-sizing:border-box;margin-bottom:7px;" autocomplete="off"/>
+          <select id="add-user-family-select" class="family-dropdown" style="font-size:1.01rem;padding:7px 8px;border-radius:7px;border:1.2px solid #c7d1e6;background:#f7fafd;outline:none;width:100%;box-sizing:border-box;">
+            <option value="">Select family</option>
+            ${[...new Set(existingFamilies)].map(fam => `<option value="${fam}" class="family-option">${fam}</option>`).join('')}
+          </select>
+        `;
+      } else {
+        stageDiv.innerHTML = `
+          <input id="add-user-email" type="email" placeholder="New user email" style="font-size:1.01rem;padding:7px 8px;border-radius:7px;border:1.2px solid #c7d1e6;background:#f7fafd;outline:none;width:100%;box-sizing:border-box;margin-bottom:7px;" autocomplete="off"/>
+          <input id="add-user-family" type="text" placeholder="New family name" style="font-size:1.01rem;padding:7px 8px;border-radius:7px;border:1.2px solid #c7d1e6;background:#f7fafd;outline:none;width:100%;box-sizing:border-box;" autocomplete="off"/>
+        `;
+      }
+      // Restore values
+      const emailInput = document.getElementById('add-user-email');
+      let famInput = null, famSelect = null;
+      if (mode === 'existing') famSelect = document.getElementById('add-user-family-select');
+      if (mode === 'new') famInput = document.getElementById('add-user-family');
+      if (emailInput) emailInput.value = prevEmail || '';
+      if (famInput) famInput.value = prevFamily || '';
+      if (famSelect) famSelect.value = prevFamilySelect || '';
+      setCancelHandler();
 
-      // --- Confirmation and DB logic (same as before, with padded user keys) ---
-      let awaitingConfirmation = false;
+      // --- Live validation for email and family name duplicacy ---
+      const errorDiv = document.getElementById('add-user-error');
+      function validate() {
+        let emailVal = emailInput ? emailInput.value.trim().toLowerCase() : '';
+        let famVal = famInput ? famInput.value.trim() : (famSelect ? famSelect.value : '');
+        let valid = true;
+        let errorMsg = '';
 
-      form.onsubmit = function (e) {
-        e.preventDefault();
-        const email = (document.getElementById('add-user-email')?.value || '').trim().toLowerCase();
-        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || existingEmails.includes(email)) return;
+        if (!emailVal) {
+          valid = false;
+          errorMsg = 'Please enter an email address.';
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) {
+          valid = false;
+          errorMsg = 'Please enter a valid email address.';
+        } else if (existingEmails.includes(emailVal)) {
+          valid = false;
+          errorMsg = 'This email already exists.';
+        }
+
         if (mode === 'existing') {
-          const fam = document.getElementById('add-user-family-select').value;
-          if (!fam) return;
-          const familyId = sanitizeFamilyId(fam);
-          if (!awaitingConfirmation) {
-            awaitingConfirmation = true;
-            showModal(
-              `Are you sure you want to add user "${email}" to family "${fam}"?`,
-              function (yes) {
-                awaitingConfirmation = false;
-                const modalBackdrop = document.getElementById('modal-backdrop');
-                if (modalBackdrop) {
-                  modalBackdrop.classList.remove('active');
-                  modalBackdrop.style.display = 'none';
-                }
-                if (!yes) return;
-                firebase.database().ref('/authorisedUsers').once('value').then(snap => {
-                  const users = snap.val() || {};
-                  let maxN = 0;
-                  Object.keys(users).forEach(key => {
-                    const m = key.match(/^user(\d+)$/);
-                    if (m) {
-                      const n = parseInt(m[1], 10);
-                      if (n > maxN) maxN = n;
-                    }
-                  });
-                  const nextKey = 'user' + String(maxN + 1).padStart(4, '0');
-                  firebase.database().ref('/authorisedUsers/' + nextKey).set({
-                    email: email,
-                    family: familyId
-                  }).then(() => {
-                    const modal = document.getElementById('add-user-modal-backdrop');
-                    if (modal && modal.parentNode) modal.parentNode.removeChild(modal);
-                    setTimeout(() => {
-                      const modalBackdrop = document.getElementById('modal-backdrop');
-                      if (modalBackdrop) {
-                        modalBackdrop.style.display = 'flex';
-                        modalBackdrop.classList.add('active');
-                        modalBackdrop.style.zIndex = 5000;
-                        document.getElementById('modal-title').innerHTML = `<div style="color: #4CAF50; font-weight: bold;">Success!</div>User "${email}" added to family "${fam}".`;
-                        document.getElementById('modal-btn-no').style.display = 'none';
-                        document.getElementById('modal-btn-yes').style.display = '';
-                        document.getElementById('modal-btn-yes').textContent = 'OK';
-                        document.getElementById('modal-btn-yes').onclick = function () {
-                          modalBackdrop.classList.remove('active');
-                          modalBackdrop.style.display = 'none';
-                        };
-                        document.getElementById('modal-btn-yes').focus();
-                      }
-                    }, 200);
-                  }).catch(err => {
-                    errorDiv.textContent = 'Failed to add user: ' + err.message;
-                  });
-               
-                });
-              }
-            );
-            return;
+          if (!famSelect || !famSelect.value) {
+            valid = false;
+            if (!errorMsg) errorMsg = 'Please select a family.';
           }
         } else {
-          const fam = (document.getElementById('add-user-family')?.value || '').trim();
-          if (!fam || existingFamilies.map(f => f.toLowerCase()).includes(fam.toLowerCase())) return;
-          const familyId = sanitizeFamilyId(fam);
-          if (!awaitingConfirmation) {
-            awaitingConfirmation = true;
-            showModal(
-              `Are you sure you want to add user "${email}" to new family "${fam}"?`,
-              function (yes) {
-                awaitingConfirmation = false;
-                const modalBackdrop = document.getElementById('modal-backdrop');
-                if (modalBackdrop) {
-                  modalBackdrop.classList.remove('active');
-                  modalBackdrop.style.display = 'none';
-                }
-                if (!yes) return;
-                firebase.database().ref('/authorisedUsers').once('value').then(snap => {
-                  const users = snap.val() || {};
-                  let maxN = 0;
-                  Object.keys(users).forEach(key => {
-                    const m = key.match(/^user(\d+)$/);
-                    if (m) {
-                      const n = parseInt(m[1], 10);
-                      if (n > maxN) maxN = n;
-                    }
-                  });
-                  const nextKey = 'user' + String(maxN + 1).padStart(4, '0');
-                  firebase.database().ref('/authorisedUsers/' + nextKey).set({
-                    email: email,
-                    family: familyId
-                  }).then(() => {
-                    const modal = document.getElementById('add-user-modal-backdrop');
-                    if (modal && modal.parentNode) modal.parentNode.removeChild(modal);
-                    setTimeout(() => {
-                      const modalBackdrop = document.getElementById('modal-backdrop');
-                      if (modalBackdrop) {
-                        modalBackdrop.style.display = 'flex';
-                        modalBackdrop.classList.add('active');
-                        modalBackdrop.style.zIndex = 5000;
-                        document.getElementById('modal-title').innerHTML = `<div style="color: #4CAF50; font-weight: bold;">Success!</div>User "${email}" added to new family "${fam}".`;
-                        document.getElementById('modal-btn-no').style.display = 'none';
-                        document.getElementById('modal-btn-yes').style.display = '';
-                        document.getElementById('modal-btn-yes').textContent = 'OK';
-                        document.getElementById('modal-btn-yes').onclick = function () {
-                          modalBackdrop.classList.remove('active');
-                          modalBackdrop.style.display = 'none';
-                        };
-                        document.getElementById('modal-btn-yes').focus();
-                      }
-                    }, 200);
-                  }).catch(err => {
-                    errorDiv.textContent = 'Failed to add user: ' + err.message;
-                  });
-                });
-              }
-            );
-            return;
+          if (!famVal) {
+            valid = false;
+            if (!errorMsg) errorMsg = 'Please enter a family name.';
+          } else if (existingFamilies.map(f => f.toLowerCase()).includes(famVal.toLowerCase())) {
+            valid = false;
+            errorMsg = 'This family name already exists.';
           }
         }
-     
-      };
+
+        errorDiv.textContent = errorMsg;
+        const okBtn = document.getElementById('add-user-ok');
+        if (okBtn) {
+          okBtn.disabled = !valid;
+          okBtn.style.opacity = valid ? '' : '0.6';
+          okBtn.style.cursor = valid ? '' : 'not-allowed';
+        }
+      }
+
+      if (emailInput) emailInput.addEventListener('input', validate);
+      if (famInput) famInput.addEventListener('input', validate);
+      if (famSelect) famSelect.addEventListener('change', validate);
+      setTimeout(validate, 0);
     }
+
+    // --- Initial render ---
+    let mode = 'existing';
+    renderStage(mode);
+
+    // --- Radio logic: re-render stage and re-set cancel handler ---
+    document.querySelectorAll('input[name="add-user-mode"]').forEach(radio => {
+      radio.addEventListener('change', function () {
+        mode = this.value;
+        // Save values before switching
+        const emailInput = document.getElementById('add-user-email');
+        const famInput = document.getElementById('add-user-family');
+        const famSelect = document.getElementById('add-user-family-select');
+        const prevEmail = emailInput ? emailInput.value : '';
+        const prevFamily = famInput ? famInput.value : '';
+        const prevFamilySelect = famSelect ? famSelect.value : '';
+        renderStage(mode, prevEmail, prevFamily, prevFamilySelect);
+      });
+    });
+
+    setCancelHandler();
+
+    // --- Confirmation and DB logic (same as before, with padded user keys) ---
+    let awaitingConfirmation = false;
+
+    // --- FIX: Get the form element after modal is added to DOM ---
+    const form = document.getElementById('add-user-form');
+    form.onsubmit = function (e) {
+      e.preventDefault();
+      const email = (document.getElementById('add-user-email')?.value || '').trim().toLowerCase();
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || existingEmails.includes(email)) return;
+      if (mode === 'existing') {
+        const fam = document.getElementById('add-user-family-select').value;
+        if (!fam) return;
+        const familyId = sanitizeFamilyId(fam);
+        if (!awaitingConfirmation) {
+          awaitingConfirmation = true;
+          showModal(
+            `Are you sure you want to add user "${email}" to family "${fam}"?`,
+            function (yes) {
+              awaitingConfirmation = false;
+              const modalBackdrop = document.getElementById('modal-backdrop');
+              if (modalBackdrop) {
+                modalBackdrop.classList.remove('active');
+                modalBackdrop.style.display = 'none';
+              }
+              if (!yes) return;
+              firebase.database().ref('/authorisedUsers').once('value').then(snap => {
+                const users = snap.val() || {};
+                let maxN = 0;
+                Object.keys(users).forEach(key => {
+                  const m = key.match(/^user(\d+)$/);
+                  if (m) {
+
+
+                    const n = parseInt(m[1], 10);
+                    if (n > maxN) maxN = n;
+                  }
+                });
+                const nextKey = 'user' + String(maxN + 1).padStart(4, '0');
+                firebase.database().ref('/authorisedUsers/' + nextKey).set({
+                  email: email,
+                  family: familyId
+                }).then(() => {
+                  const modal = document.getElementById('add-user-modal-backdrop');
+                  if (modal && modal.parentNode) modal.parentNode.removeChild(modal);
+                  setTimeout(() => {
+                    const modalBackdrop = document.getElementById('modal-backdrop');
+                    if (modalBackdrop) {
+                      modalBackdrop.style.display = 'flex';
+                      modalBackdrop.classList.add('active');
+                      modalBackdrop.style.zIndex = 5000;
+                      document.getElementById('modal-title').innerHTML = `<div style="color: #4CAF50; font-weight: bold;">Success!</div>User "${email}" added to family "${fam}".`;
+                      document.getElementById('modal-btn-no').style.display = 'none';
+                      document.getElementById('modal-btn-yes').style.display = '';
+                      document.getElementById('modal-btn-yes').textContent = 'OK';
+                      document.getElementById('modal-btn-yes').onclick = function () {
+                        modalBackdrop.classList.remove('active');
+                        modalBackdrop.style.display = 'none';
+                      };
+                      document.getElementById('modal-btn-yes').focus();
+                    }
+                  }, 200);
+                }).catch(err => {
+                  errorDiv.textContent = 'Failed to add user: ' + err.message;
+                });
+              });
+            }
+          );
+          return;
+        }
+      } else {
+        const fam = (document.getElementById('add-user-family')?.value || '').trim();
+        if (!fam || existingFamilies.map(f => f.toLowerCase()).includes(fam.toLowerCase())) return;
+        const familyId = sanitizeFamilyId(fam);
+        if (!awaitingConfirmation) {
+          awaitingConfirmation = true;
+          showModal(
+            `Are you sure you want to add user "${email}" to new family "${fam}"?`,
+            function (yes) {
+              awaitingConfirmation = false;
+              const modalBackdrop = document.getElementById('modal-backdrop');
+              if (modalBackdrop) {
+                modalBackdrop.classList.remove('active');
+                modalBackdrop.style.display = 'none';
+              }
+              if (!yes) return;
+              firebase.database().ref('/authorisedUsers').once('value').then(snap => {
+                const users = snap.val() || {};
+                let maxN = 0;
+                Object.keys(users).forEach(key => {
+                  const m = key.match(/^user(\d+)$/);
+                  if (m) {
+                    const n = parseInt(m[1], 10);
+                    if (n > maxN) maxN = n;
+                  }
+                });
+                const nextKey = 'user' + String(maxN + 1).padStart(4, '0');
+                firebase.database().ref('/authorisedUsers/' + nextKey).set({
+                  email: email,
+                  family: familyId
+                }).then(() => {
+                  const modal = document.getElementById('add-user-modal-backdrop');
+                  if (modal && modal.parentNode) modal.parentNode.removeChild(modal);
+                  setTimeout(() => {
+                    const modalBackdrop = document.getElementById('modal-backdrop');
+                    if (modalBackdrop) {
+                      modalBackdrop.style.display = 'flex';
+                      modalBackdrop.classList.add('active');
+                      modalBackdrop.style.zIndex = 5000;
+                      document.getElementById('modal-title').innerHTML = `<div style="color: #4CAF50; font-weight: bold;">Success!</div>User "${email}" added to new family "${fam}".`;
+                      document.getElementById('modal-btn-no').style.display = 'none';
+                      document.getElementById('modal-btn-yes').style.display = '';
+                      document.getElementById('modal-btn-yes').textContent = 'OK';
+                      document.getElementById('modal-btn-yes').onclick = function () {
+                        modalBackdrop.classList.remove('active');
+                        modalBackdrop.style.display = 'none';
+                      };
+                      document.getElementById('modal-btn-yes').focus();
+                    }
+                  }, 200);
+                }).catch(err => {
+                  errorDiv.textContent = 'Failed to add user: ' + err.message;
+                });
+              });
+            }
+          );
+          return;
+        }
+      }
+    };
   };
 
   // --- Always show the login screen on initial load ---
   showLogin();
 
+  // --- LocalStorage Caching for Fast Load ---
+  function saveCache() {
+    try {
+      const cache = {
+        groceryData,
+        tableNames,
+        tableOrder: typeof tableOrder !== 'undefined' ? tableOrder : [],
+        categories
+      };
+      localStorage.setItem('groceryListCache', JSON.stringify(cache));
+    } catch (e) { /* ignore */ }
+  }
+
+  function loadCache() {
+    try {
+      const cache = JSON.parse(localStorage.getItem('groceryListCache'));
+      if (cache && typeof cache === 'object') {
+        groceryData = cache.groceryData || {};
+        tableNames = cache.tableNames || {};
+        tableOrder = cache.tableOrder || Object.keys(groceryData);
+        categories = cache.categories || Object.keys(groceryData);
+        renderAllTables();
+      }
+    } catch (e) { /* ignore */ }
+  }
+
+  // --- On page load, render from cache immediately ---
+  loadCache();
+
+  // --- Show main section by default for instant load ---
+  document.getElementById('login-bg').style.display = 'none';
+  document.getElementById('main-section').style.display = '';
+
+  // --- If already authenticated, show main UI and email ---
+  if (auth.currentUser) {
+    showMain();
+    showLoggedInEmail(auth.currentUser.email);
+  }
+
+  // --- Auth State Change ---
+  auth.onAuthStateChanged(user => {
+    fetchAuthorisedUsers(() => {
+      if (user) {
+        showMain();
+        showLoggedInEmail(user.email);
+        handleUserLogin(user);
+      } else {
+        showLogin(); // Only show login if not authenticated
+      }
+    });
+  });
+
+  // --- Show main section and try to load lists before auth check ---
+  // (No need to call showMain() here, already showing main-section by default)
+  fetchAuthorisedUsers(() => {
+    const currentUser = auth.currentUser;
+    if (currentUser) {
+      USER_EMAIL = normalizeEmail(currentUser.email);
+      USER_FAMILY = EMAIL_TO_FAMILY[USER_EMAIL] || null;
+      if (USER_FAMILY) {
+        USER_LIST_KEY = USER_FAMILY;
+        subscribeFamilyList(USER_FAMILY);
+      }
+    }
+  });
+
+  // Add a sync indicator to the top of main-section if not present
+  (function addSyncIndicator() {
+    const mainSection = document.getElementById('main-section');
+    if (mainSection && !document.getElementById('sync-indicator')) {
+      const syncDiv = document.createElement('div');
+      syncDiv.id = 'sync-indicator';
+      syncDiv.style.display = 'none';
+      syncDiv.style.position = 'relative';
+      syncDiv.style.width = '100%';
+      syncDiv.style.textAlign = 'center';
+      syncDiv.style.zIndex = '6000';
+      syncDiv.innerHTML = `
+        <span style="display:inline-flex;align-items:center;gap:8px;font-size:1.08rem;font-weight:600;color:#1976d2;animation:sync-flash 1s linear infinite;">
+          <i class="fas fa-cloud-upload-alt" style="font-size:1.25em;"></i>
+          Syncing with cloud...
+        </span>
+        <style>@keyframes sync-flash { 0%,100%{opacity:1;} 50%{opacity:0.4;} }</style>
+      `;
+      mainSection.insertBefore(syncDiv, mainSection.firstChild);
+    }
+  })();
+
+  // Utility to show/hide sync indicator
+  function setSyncIndicator(visible) {
+    const el = document.getElementById('sync-indicator');
+    if (el) el.style.display = visible ? '' : 'none';
+  }
 }); // <-- Make sure this closes the DOMContentLoaded handler
 // (No more code after this)
+
+// --- Fix: Add stringToHeaderColor utility ---
+function stringToHeaderColor(str) {
+  // Deterministic color palette for table headers
+  const palettes = [
+    { bg: "#b8dbc7", fg: "#23472b" }, // veggies
+    { bg: "#d7c3e6", fg: "#4b2956" }, // indian
+    { bg: "#c3d4ea", fg: "#23324b" }, // bigw_target_kmart
+    { bg: "#cfd8dc", fg: "#263238" }, // bunnings
+    { bg: "#f3cccc", fg: "#8b1c1c" }, // officeworks
+    { bg: "#e2d3cb", fg: "#4e342e" }, // test
+    { bg: "#c3d4ea", fg: "#232c3d" }, // default
+  ];
+  // Pick palette based on hash of string
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  const idx = Math.abs(hash) % palettes.length;
+  return palettes[idx];
+}
+
+// --- Utility: sanitize family name for Firebase key ---
+function sanitizeFamilyId(name) {
+  return (name || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[\.\#\$\[\]]/g, '')
+    .replace(/\s+/g, '_')
+    .replace(/[^a-z0-9_\-]/g, ''); // allow a-z, 0-9, _, -
+}
