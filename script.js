@@ -1006,47 +1006,39 @@ document.addEventListener("DOMContentLoaded", function () {
       });
     });
 
-if (moveDeleteMode && !ul.sortableInstance) {
-  ul.sortableInstance = Sortable.create(ul, {
-    animation: 200, // Smoother drag animation
-    handle: '.item-move-handle',
-    draggable: 'li',
-    ghostClass: 'dragging',      // Applied to the dragged element clone
-    chosenClass: 'item-moving',  // Applied to the selected element
-
-    onStart() {
-      ul.querySelectorAll('.item-squeeze').forEach(el => el.classList.remove('item-squeeze'));
-    },
-
-    onEnd() {
-      ul.querySelectorAll('.item-squeeze').forEach(el => el.classList.remove('item-squeeze'));
-
-      const newOrder = Array.from(ul.querySelectorAll('li'))
-        .map(li => li.dataset.key)
-        .filter(Boolean);
-
-      groceryData[cat].order = newOrder;
-
-      db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${cat}/order`)
-        .set(newOrder)
-        .then(() => renderList(cat));
-    },
-
-    onChange(evt) {
-      // Remove all squeeze classes first
-      ul.querySelectorAll('.item-squeeze').forEach(el => el.classList.remove('item-squeeze'));
-
-      const movedTo = ul.querySelectorAll('li')[evt.newIndex];
-      movedTo?.classList.add('item-squeeze');
-    }
-  });
-} else {
-      if (ul.sortableInstance) {
-        ul.sortableInstance.destroy();
-        ul.sortableInstance = null;
+  // --- Fix: Always destroy and re-create Sortable instance on every render ---
+  if (ul.sortableInstance) {
+    ul.sortableInstance.destroy();
+    ul.sortableInstance = null;
+  }
+  if (moveDeleteMode) {
+    ul.sortableInstance = Sortable.create(ul, {
+      animation: 200,
+      handle: '.item-move-handle',
+      draggable: 'li',
+      ghostClass: 'dragging',
+      chosenClass: 'item-moving',
+      onStart() {
+        ul.querySelectorAll('.item-squeeze').forEach(el => el.classList.remove('item-squeeze'));
+      },
+      onEnd() {
+        ul.querySelectorAll('.item-squeeze').forEach(el => el.classList.remove('item-squeeze'));
+        const newOrder = Array.from(ul.querySelectorAll('li'))
+          .map(li => li.dataset.key)
+          .filter(Boolean);
+        groceryData[cat].order = newOrder;
+        db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${cat}/order`)
+          .set(newOrder)
+          .then(() => renderList(cat));
+      },
+      onChange(evt) {
+        ul.querySelectorAll('.item-squeeze').forEach(el => el.classList.remove('item-squeeze'));
+        const movedTo = ul.querySelectorAll('li')[evt.newIndex];
+        movedTo?.classList.add('item-squeeze');
       }
-    }
-    updateHeaderCount(cat); // Update header count after rendering list
+    });
+  }
+  updateHeaderCount(cat);
   }
 
   // --- Toggle Checked ---
