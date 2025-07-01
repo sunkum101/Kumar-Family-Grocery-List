@@ -1815,7 +1815,7 @@ input[type="checkbox"] {
 .header .table-delete-btn i,
 .header .table-move-handle i,
 .header .table-reset-btn i {
-  font-size: 15px !important;
+  font-size: 115px !important;
   margin: 0 !important;
   display: flex;
   align-items: center;
@@ -1858,15 +1858,15 @@ input[type="checkbox"] {
   .header .table-delete-btn,
   .header .table-move-handle,
   .header .table-reset-btn {
-    width: 22px !important;
-    height: 22px !important;
-    min-width: 22px !important;
-    min-height: 22px !important;
+    width: 30px !important;
+    height: 30px !important;
+    min-width: 30px !important;
+    min-height: 30px !important;
   }
   .header .table-delete-btn i,
   .header .table-move-handle i,
   .header .table-reset-btn i {
-    font-size: 13px !important;
+    font-size: 18px !important;
   }
   .collapse-arrow {
     min-width: 24px;
