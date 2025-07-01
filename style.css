@@ -175,6 +175,21 @@ body, html {
   white-space: nowrap; /* Prevent text wrapping */
   overflow: hidden; /* Prevent text overflow */
   text-overflow: ellipsis; /* Add ellipsis for overflowed text */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px; /* Evenly space icons */
+  min-width: 90px !important;
+  max-width: 120px !important;
+  min-height: 32px !important;
+  max-height: 36px !important;
+  padding: 0 10px !important;
+  border-radius: 12px !important;
+  font-size: 0.97rem !important;
+  /* Remove text-overflow/ellipsis since only icons */
+  white-space: nowrap;
+  overflow: visible;
+  text-overflow: unset;
 }
 
 .row-btns {
@@ -197,14 +212,25 @@ body, html {
 }
 
 .action-btn.check-zeros {
-  background: linear-gradient(90deg, #22c55e 70%, #6ee7b7 100%);
-  color: #fff;
-  border-radius: 10px;
-  font-size: 1.08rem;
-  min-height: 38px;
+  background: linear-gradient(90deg, #22c55e 70%, #38bdf8 100%) !important;
+  color: #fff !important;
+  border-radius: 12px !important;
+  font-size: 0.97rem !important;
+  min-height: 32px !important;
+  max-height: 36px !important;
+  padding: 0 12px !important;
   font-weight: 700;
   letter-spacing: 0.01em;
   box-shadow: 0 1px 4px rgba(60,80,130,0.09);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 70px !important;
+  max-width: 120px !important;
+  white-space: nowrap;
+  overflow: visible;
+  text-overflow: unset;
 }
 
 /* Force the three main buttons to always be in a single horizontal line */
@@ -1452,16 +1478,22 @@ input[type="checkbox"] {
   box-shadow: 0 2px 8px rgba(34,197,94,0.18);
 }
 
-/* --- Move Add New Store button further down for more space --- */
-.add-table-btn-wrap {
-  margin: 54px 0 0 0;           /* Increased from 38px to 54px for more space from top */
+/* --- Move/Delete/Reset Toggle Button: Blinking effect when active --- */
+@keyframes moveDeleteBlink {
+  0%   { filter: brightness(1.0) saturate(1.0); opacity: 1; }
+  40%  { filter: brightness(1.35) saturate(1.4); opacity: 1; box-shadow: 0 0 0 8px #ffe7b0; }
+  50%  { filter: brightness(0.8) saturate(0.8); opacity: 0.5; box-shadow: 0 0 0 0 #ffe7b0; }
+  60%  { filter: brightness(1.35) saturate(1.4); opacity: 1; box-shadow: 0 0 0 8px #ffe7b0; }
+  100% { filter: brightness(1.0) saturate(1.0); opacity: 1; box-shadow: 0 0 0 0 #ffe7b0; }
 }
-
-/* --- Professional Table Header Colors --- */
-.header {
-  background: #c3d4ea !important; /* Slightly darker blue-gray */
-  color: #232c3d !important;
-  transition: background 0.18s, color 0.18s;
+#move-delete-toggle.editing-mode {
+  animation: moveDeleteBlink 0.6s linear infinite !important;
+  /* Use !important to override any other animation/fade */
+  box-shadow: 0 0 0 0 #ffe7b0, 0 1px 4px rgba(60,80,130,0.09) !important;
+  border: 2px solid #fbbf24 !important;
+  opacity: 1 !important;
+  /* Prevent transitions from interfering with animation */
+  transition: none !important;
 }
 
 /* --- Per-table professional color classes (darker, accessible palette) --- */
@@ -1758,4 +1790,121 @@ input[type="checkbox"] {
     padding: 11px 0 !important;
   }
 
+/* --- Table Header Action Buttons: Uniform, Spaced, Clickable --- */
+.header .table-delete-btn,
+.header .table-move-handle,
+.header .table-reset-btn {
+  background: #fff !important;
+  border-radius: 6px !important;
+  border: 1.2px solid #bbb !important;
+  box-shadow: 0 1px 3px rgba(60,80,130,0.08) !important;
+  width: 26px !important;
+  height: 26px !important;
+  min-width: 26px !important;
+  min-height: 26px !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  margin: 0 !important;
+  padding: 0 !important;
+  cursor: pointer;
+  transition: background 0.13s, border-color 0.13s, box-shadow 0.13s;
+}
+
+/* Make icons inside header buttons smaller and centered */
+.header .table-delete-btn i,
+.header .table-move-handle i,
+.header .table-reset-btn i {
+  font-size: 15px !important;
+  margin: 0 !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Add a good gap between buttons */
+.header .table-delete-btn,
+.header .table-move-handle,
+.header .table-reset-btn {
+  margin-right: 6px !important;
+}
+.header .table-reset-btn { margin-right: 0 !important; }
+
+/* Collapse arrow: always at far right, large clickable area */
+.collapse-arrow {
+  margin-left: 10px;
+  min-width: 28px;
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
+  cursor: pointer;
+  user-select: none;
+  z-index: 2;
+  background: transparent;
+  border-radius: 50%;
+  transition: background 0.13s;
+}
+.collapse-arrow:hover {
+  background: #e3e7ee;
+}
+
+/* On mobile, shrink buttons and gaps further */
+@media (max-width: 600px) {
+  .header-actions {
+    gap: 4px;
+  }
+  .header .table-delete-btn,
+  .header .table-move-handle,
+  .header .table-reset-btn {
+    width: 22px !important;
+    height: 22px !important;
+    min-width: 22px !important;
+    min-height: 22px !important;
+  }
+  .header .table-delete-btn i,
+  .header .table-move-handle i,
+  .header .table-reset-btn i {
+    font-size: 13px !important;
+  }
+  .collapse-arrow {
+    min-width: 24px;
+    min-height: 24px;
+    font-size: 1.05rem;
+  }
+}
+
+/* Make icons and text inside check-zeros button visually balanced and compact */
+#check-zeros-btn i.fas {
+  font-size: 1.15em;
+  margin: 0 2px 0 0;
+  vertical-align: middle;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* If you use a "0" icon, make it smaller and aligned */
+#check-zeros-btn i.fa-0 {
+  font-size: 1.08em;
+  margin-left: 2px;
+  margin-right: 0;
+  font-family: inherit;
+  font-weight: 700;
+  opacity: 0.95;
+}
+
+/* If you use a text "0" instead of icon, style it like this: */
+#check-zeros-btn .zero-text {
+  font-size: 0.97em;
+  margin-left: 2px;
+  font-family: inherit;
+  font-weight: 700;
+  opacity: 0.95;
+  color: #fff;
+  letter-spacing: 0.01em;
+  display: inline-block;
+  vertical-align: middle;
+}
 
