@@ -168,6 +168,17 @@ document.addEventListener("DOMContentLoaded", function () {
   }
   document.getElementById('google-signin-btn').onclick = googleSignIn;
 
+   // --- Collapse All Tables Button ---
+  document.getElementById('collapse-all-btn')?.addEventListener('click', function () {
+    // Always get the latest list of containers from the DOM
+    document.querySelectorAll('.container').forEach(container => {
+      const cat = container.id.replace('-container', '');
+      localStorage.setItem('col-' + cat, 'true');
+      setCollapsed(cat, true);
+    });
+  });
+
+  
   // --- Handle User Login ---
   function handleUserLogin(user = null) {
     if (user) {
@@ -1238,6 +1249,57 @@ document.addEventListener("DOMContentLoaded", function () {
       this.classList.remove('editing-mode');
     }
     renderAllTables();
+  };
+
+  document.getElementById('reset-all').onclick = function () {
+    showModal("Reset all counters to 0 and uncheck all items in all tables?", function (yes) {
+      if (!yes) return;
+
+      // Change button icon to a spinning refresh to indicate action
+      const resetBtn = document.getElementById('reset-all');
+      resetBtn.innerHTML = '<i class="fas fa-rotate fa-spin"></i> <span style="margin-left: 6px;">Reset</span>';
+
+      // 1. Update all local data instantly (only count and checked, do NOT touch order)
+      for (let i = 0; i < categories.length; i++) {
+        const cat = categories[i];
+        const items = groceryData[cat] || {};
+        for (const key in items) {
+          if (key !== "order") {
+            if (typeof groceryData[cat][key].count === 'number') groceryData[cat][key].count = 0;
+            groceryData[cat][key].checked = false;
+          }
+        }
+        tempOrders[cat] = [];
+      }
+
+      // --- Instantly update UI ---
+      renderAllTables();
+
+      // 2. Update DB in the background (only count and checked, do NOT touch order)
+      // (No setTimeout needed for UI, only for DB)
+      setTimeout(() => {
+        for (let i = 0; i < categories.length; i++) {
+          const cat = categories[i];
+          const items = groceryData[cat] || {};
+          const updates = {};
+          for (const key in items) {
+            if (key !== "order") {
+              updates[`${key}/count`] = 0;
+              updates[`${key}/checked`] = false;
+            }
+          }
+          if (Object.keys(updates).length > 0) {
+            db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${cat}`).update(updates);
+          }
+        }
+        // --- Clear all temp order tables in DB ---
+        clearAllTempOrders();
+        setTimeout(() => {
+          resetBtn.innerHTML = '<i class="fas fa-rotate-left"></i> <span style="margin-left: 6px;">Reset</span>';
+          // No need to call renderAllTables() again, already done above
+        }, 500);
+      }, 0);
+    });
   };
 
   // --- Update Header Count ---
