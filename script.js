@@ -102,71 +102,45 @@ document.addEventListener("DOMContentLoaded", function () {
   // --- Subscribe to Family Shopping List ---
   let shoppingListRef = null;
   function subscribeFamilyList(family) {
-    setSyncIndicator(true); // Show sync indicator when subscribing
+    setSyncIndicator(true);
     if (shoppingListRef) shoppingListRef.off();
     shoppingListRef = db.ref(`/shoppingListsPerFamily/${family}`);
     shoppingListRef.on('value', snap => {
       const data = snap.val() || {};
-      // --- Filter out pending deleted tables ---
       groceryData = {};
       tableNames = {};
       categories = [];
-      let rawGroceryLists = data.groceryLists || {};
-      let rawTableNames = data.tableNames || {};
-      let rawTableOrder = Array.isArray(data.tableOrder) ? data.tableOrder : Object.keys(rawGroceryLists);
 
-      // --- Ensure all tables in groceryLists are in tableNames and tableOrder ---
-      let changed = false;
-      Object.keys(rawGroceryLists).forEach(cat => {
-        if (!rawTableNames[cat]) {
-          rawTableNames[cat] = cat;
-          changed = true;
-        }
-        if (!rawTableOrder.includes(cat)) {
-          rawTableOrder.push(cat);
-          changed = true;
-        }
-      });
-      // Remove ghost tables from tableNames/tableOrder
-      Object.keys(rawTableNames).forEach(cat => {
-        if (!rawGroceryLists[cat]) {
-          delete rawTableNames[cat];
-          changed = true;
-        }
-      });
-      rawTableOrder = rawTableOrder.filter(cat => rawGroceryLists[cat]);
-      if (changed) {
-        db.ref(`/shoppingListsPerFamily/${family}/tableNames`).set(rawTableNames);
-        db.ref(`/shoppingListsPerFamily/${family}/tableOrder`).set(rawTableOrder);
-      }
+      // --- Collect all unique table keys from groceryLists, tableNames, and tableOrder ---
+      const rawGroceryLists = data.groceryLists || {};
+      const rawTableNames = data.tableNames || {};
+      const rawTableOrder = Array.isArray(data.tableOrder) ? data.tableOrder : [];
+      const allKeysSet = new Set([
+        ...Object.keys(rawGroceryLists),
+        ...Object.keys(rawTableNames),
+        ...rawTableOrder
+      ]);
+      const allKeys = Array.from(allKeysSet);
 
-      Object.keys(rawGroceryLists).forEach(cat => {
-        if (!pendingDeletedTables.has(cat)) {
-          groceryData[cat] = { ...rawGroceryLists[cat] };
-        }
+      // --- Always display all tables present in any of the three DB locations ---
+      allKeys.forEach(cat => {
+        if (rawGroceryLists[cat]) groceryData[cat] = { ...rawGroceryLists[cat] };
+        if (rawTableNames[cat]) tableNames[cat] = rawTableNames[cat];
       });
-      Object.keys(rawTableNames).forEach(cat => {
-        if (!pendingDeletedTables.has(cat)) {
-          tableNames[cat] = rawTableNames[cat];
-        }
+      categories = allKeys;
+
+      // --- Table order: use DB order, but append any missing keys at the end ---
+      let order = Array.isArray(rawTableOrder) ? [...rawTableOrder] : [];
+      allKeys.forEach(cat => {
+        if (!order.includes(cat)) order.push(cat);
       });
-      categories = Object.keys(groceryData);
-      // --- FIX: If tableOrder is missing or incomplete, use all categories ---
-      if (!Array.isArray(rawTableOrder) || rawTableOrder.length === 0) {
-        tableOrder = categories;
-      } else {
-        // Add any missing categories (e.g. new tables not in tableOrder)
-        tableOrder = rawTableOrder.filter(cat => !pendingDeletedTables.has(cat) && categories.includes(cat));
-        categories.forEach(cat => {
-          if (!tableOrder.includes(cat)) tableOrder.push(cat);
-        });
-      }
+      tableOrder = order;
+
       renderAllTables();
-      // --- Save to cache after rendering from Firebase ---
       saveCache();
-      setSyncIndicator(false); // Hide after data loaded
+      setSyncIndicator(false);
     }, function(error) {
-      setSyncIndicator(false); // Hide on error
+      setSyncIndicator(false);
       if (isLoggedIn) handleFirebaseError(error);
     });
   }
@@ -659,9 +633,15 @@ document.addEventListener("DOMContentLoaded", function () {
       // Optionally, add a class for future CSS overrides
       header.classList.add(`${cat.replace(/[^a-z0-9_]/gi, '').toLowerCase()}-header`);
 
+      // Calculate count for header
+      const items = groceryData[cat] || {};
+      const count = Object.values(items)
+        .filter(item => item && typeof item === "object" && item.count > 0 && !item.checked)
+        .length;
+
       header.innerHTML = `
+        <span class="header-count" id="${cat}-count">${count}</span>
         <span class="header-title" data-cat="${cat}">${headerName}</span>
-        <span class="header-count" id="${cat}-count"></span>
         ${
           moveDeleteMode
             ? `
@@ -673,6 +653,11 @@ document.addEventListener("DOMContentLoaded", function () {
           <span class="table-move-handle" title="Move table">
             <i class="fas fa-up-down-left-right" style="font-size:22px;color:#666;"></i>
           </span>
+          <button class="table-reset-btn" onclick="resetTable('${cat}')">
+            <span class="table-reset-svg-wrap">
+              <i class="fas fa-rotate-left" style="font-size:22px;color:#ff6b35;" title="Reset table"></i>
+            </span>
+          </button>
         `
             : ''
         }
@@ -839,51 +824,6 @@ document.addEventListener("DOMContentLoaded", function () {
       arrow.classList.remove('collapsed');
     }
   }
-
-  // --- Update Header Count ---
-  function updateHeaderCount(cat) {
-    const items = groceryData[cat] || {};
-    // Only count items with count > 0 and not checked
-    const count = Object.values(items)
-      .filter(item => item && typeof item === "object" && item.count > 0 && !item.checked)
-      .length;
-    const el = document.getElementById(`${cat}-count`);
-    if (!el) return;
-    el.textContent = count; // Update the count in the header
-    el.className = 'header-count'; // Ensure proper styling
-  }
-
-  // --- Inject custom CSS for moving/squeeze effects if not present ---
-  (function injectMoveSqueezeCSS() {
-    if (!document.getElementById('move-squeeze-css')) {
-      const style = document.createElement('style');
-      style.id = 'move-squeeze-css';
-      style.innerHTML = `
-        /* Highlight the item being moved: solid light blue fill, no border, smooth transition */
-        .item-moving {
-          background: #e3f2fd !important;
-          color: #01579b !important;
-          border: none !important;
-          box-shadow: 0 2px 12px 0 #90caf9;
-          z-index: 10;
-          transition: background 0.28s cubic-bezier(.68,-0.55,.27,1.55), color 0.18s, box-shadow 0.28s;
-        }
-        /* Squeeze effect for drop location: slightly different blue, dashed border */
-        .item-squeeze {
-          margin-top: 0.7em !important;
-          margin-bottom: 0.7em !important;
-          background: #bbdefb !important;
-          border: 2.5px dashed #0288d1 !important;
-          box-shadow: 0 0 8px 1px #4fc3f7;
-          transition: margin 0.22s cubic-bezier(.68,-0.55,.27,1.55), background 0.18s, border 0.18s, box-shadow 0.18s;
-        }
-        ul li {
-          transition: margin 0.22s cubic-bezier(.68,-0.55,.27,1.55), background 0.28s cubic-bezier(.68,-0.55,.27,1.55), border 0.18s, box-shadow 0.18s;
-        }
-      `;
-      document.head.appendChild(style);
-    }
-  })();
 
   // --- Render List (override displayOrder logic) ---
   function renderList(cat) {
@@ -1274,215 +1214,76 @@ document.addEventListener("DOMContentLoaded", function () {
   }
   window.deleteTable = deleteTable;
 
-  // --- Reset All Button ---
-  document.getElementById('reset-all').onclick = function () {
-    showModal("Reset all counters to 0 and uncheck all items in all tables?", function (yes) {
-      if (!yes) return;
-
-      // Change button icon to a spinning refresh to indicate action
-      const resetBtn = document.getElementById('reset-all');
-      resetBtn.innerHTML = '<i class="fas fa-rotate fa-spin"></i> <span style="margin-left: 6px;">Reset</span>';
-
-      // 1. Update all local data instantly (only count and checked, do NOT touch order)
-      for (let i = 0; i < categories.length; i++) {
-        const cat = categories[i];
-        const items = groceryData[cat] || {};
-        for (const key in items) {
-          if (key !== "order") {
-            if (typeof groceryData[cat][key].count === 'number') groceryData[cat][key].count = 0;
-            groceryData[cat][key].checked = false;
-          }
-        }
-        tempOrders[cat] = [];
-      }
-
-      // --- Instantly update UI ---
-      renderAllTables();
-
-      // 2. Update DB in the background (only count and checked, do NOT touch order)
-      // (No setTimeout needed for UI, only for DB)
-      setTimeout(() => {
-        for (let i = 0; i < categories.length; i++) {
-          const cat = categories[i];
-          const items = groceryData[cat] || {};
-          const updates = {};
-          for (const key in items) {
-            if (key !== "order") {
-              updates[`${key}/count`] = 0;
-              updates[`${key}/checked`] = false;
-            }
-          }
-          if (Object.keys(updates).length > 0) {
-            db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${cat}`).update(updates);
-          }
-        }
-        // --- Clear all temp order tables in DB ---
-        clearAllTempOrders();
-        setTimeout(() => {
-          resetBtn.innerHTML = '<i class="fas fa-rotate-left"></i> <span style="margin-left: 6px;">Reset</span>';
-          // No need to call renderAllTables() again, already done above
-        }, 500);
-      }, 0);
-    });
-  };
-
-  // --- Move/Delete Toggle Button ---
-  document.getElementById('move-delete-toggle').onclick = function () {
-moveDeleteMode = !moveDeleteMode;
-
-  if (moveDeleteMode) {
-    this.innerHTML = `
-      <i class="fas fa-up-down-left-right" style="margin-right: 6px;" title="Move items"></i>
-      <i class="fas fa-trash" title="Delete items"></i>
-      <span style="margin-left: 6px;">Edit..</span>
-    `;
-    this.classList.add('editing-mode');
-  } else {
-    this.innerHTML = `
-      <i class="fas fa-up-down-left-right" style="margin-right: 6px;" title="Move items"></i>
-      <i class="fas fa-trash" title="Delete items"></i>
-    `;
-    this.classList.remove('editing-mode');
-  }
-
-  renderAllTables();
-};
-
-
-  // --- Collapse All Tables Button ---
-  document.getElementById('collapse-all-btn')?.addEventListener('click', function () {
-    // Always get the latest list of containers from the DOM
-    document.querySelectorAll('.container').forEach(container => {
-      const cat = container.id.replace('-container', '');
-      localStorage.setItem('col-' + cat, 'true');
-      setCollapsed(cat, true);
-    });
-  });
-
-  // --- Check Zeros Button: New Implementation ---
-  document.getElementById('check-zeros-btn').onclick = function () {
-    if (!isLoggedIn) return;
-    // 1. Mark all items with count 0 as checked
-    const updatesByCat = {};
-    for (let i = 0; i < categories.length; i++) {
-      const cat = categories[i];
-      const items = groceryData[cat] || {};
-      for (const key in items) {
-        if (key !== "order") {
-          const item = items[key];
-          if (item && (item.count || 0) === 0 && !item.checked) {
-            groceryData[cat][key].checked = true;
-            if (!updatesByCat[cat]) updatesByCat[cat] = {};
-            updatesByCat[cat][`${key}/checked`] = true;
-          }
-        }
-      }
+  // --- Move/Delete/Reset Toggle Button ---
+  document.getElementById('move-delete-toggle').onclick = function (e) {
+    // Remove reset logic from here: reset icon is now just an icon, not clickable
+    moveDeleteMode = !moveDeleteMode;
+    if (moveDeleteMode) {
+      this.innerHTML = `
+        <i class="fas fa-up-down-left-right" style="margin-right: 6px;" title="Move items"></i>
+        <i class="fas fa-trash" style="margin-right: 6px;" title="Delete items"></i>
+        <span class="reset-circle-icon" title="Reset all">
+          <i class="fas fa-rotate-left"></i>
+        </span>
+      `;
+      this.classList.add('editing-mode');
+    } else {
+      this.innerHTML = `
+        <i class="fas fa-up-down-left-right" style="margin-right: 6px;" title="Move items"></i>
+        <i class="fas fa-trash" style="margin-right: 6px;" title="Delete items"></i>
+        <span class="reset-circle-icon" title="Reset all">
+          <i class="fas fa-rotate-left"></i>
+        </span>
+      `;
+      this.classList.remove('editing-mode');
     }
-    // 2. For each table, create new order: count>0 at top, count==0 at bottom
-    for (let i = 0; i < categories.length; i++) {
-      const cat = categories[i];
-      const items = groceryData[cat] || {};
-      const keys = Object.keys(items).filter(k => k !== 'order' && items[k] && typeof items[k].name === 'string');
-      const toBuy = [];
-      const zero = [];
-      for (let j = 0; j < keys.length; j++) {
-        const key = keys[j];
-        const item = items[key];
-        if (!item) continue;
-        if ((item.count || 0) > 0) toBuy.push(key);
-        else zero.push(key);
-      }
-      const newOrder = toBuy.concat(zero);
-      saveTempOrder(cat, newOrder);
-    }
-
-    // --- Instantly update UI ---
     renderAllTables();
-
-    // 3. Update DB for checked items (batch)
-    setTimeout(() => {
-      for (const cat in updatesByCat) {
-        const updates = updatesByCat[cat];
-        if (Object.keys(updates).length > 0) {
-          db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${cat}`).update(updates);
-        }
-      }
-      // 4. No need to re-render all tables, already done above
-    }, 0);
   };
 
-  // --- On family list subscribe, also load temp orders ---
-  function subscribeFamilyList(family) {
-    setSyncIndicator(true);
-    if (shoppingListRef) shoppingListRef.off();
-    shoppingListRef = db.ref(`/shoppingListsPerFamily/${family}`);
-    shoppingListRef.on('value', snap => {
-      const data = snap.val() || {};
-      groceryData = {};
-      tableNames = {};
-      categories = [];
-      let rawGroceryLists = data.groceryLists || {};
-      let rawTableNames = data.tableNames || {};
-      let rawTableOrder = Array.isArray(data.tableOrder) ? data.tableOrder : Object.keys(rawGroceryLists);
-      let changed = false;
-      Object.keys(rawGroceryLists).forEach(cat => {
-        if (!rawTableNames[cat]) {
-          rawTableNames[cat] = cat;
-          changed = true;
-        }
-        if (!rawTableOrder.includes(cat)) {
-          rawTableOrder.push(cat);
-          changed = true;
-        }
-      });
-      Object.keys(rawTableNames).forEach(cat => {
-        if (!rawGroceryLists[cat]) {
-          delete rawTableNames[cat];
-          changed = true;
-        }
-      });
-      rawTableOrder = rawTableOrder.filter(cat => rawGroceryLists[cat]);
-      if (changed) {
-        db.ref(`/shoppingListsPerFamily/${family}/tableNames`).set(rawTableNames);
-        db.ref(`/shoppingListsPerFamily/${family}/tableOrder`).set(rawTableOrder);
-      }
-      Object.keys(rawGroceryLists).forEach(cat => {
-        if (!pendingDeletedTables.has(cat)) {
-          groceryData[cat] = { ...rawGroceryLists[cat] };
-        }
-      });
-      Object.keys(rawTableNames).forEach(cat => {
-        if (!pendingDeletedTables.has(cat)) {
-          tableNames[cat] = rawTableNames[cat];
-        }
-      });
-      categories = Object.keys(groceryData);
-
-      // --- Load temp orders ---
-      tempOrders = {};
-      Object.keys(data).forEach(key => {
-        if (key.endsWith('_temp_items_orders_check_zeros_btn')) {
-          const cat = key.replace(/_temp_items_orders_check_zeros_btn$/, '');
-          tempOrders[cat] = Array.isArray(data[key]) ? data[key] : [];
-        }
-      });
-
-      if (!Array.isArray(rawTableOrder) || rawTableOrder.length === 0) {
-        tableOrder = categories;
-      } else {
-        tableOrder = rawTableOrder.filter(cat => !pendingDeletedTables.has(cat) && categories.includes(cat));
-        categories.forEach(cat => {
-          if (!tableOrder.includes(cat)) tableOrder.push(cat);
-        });
-      }
-      renderAllTables();
-      saveCache();
-      setSyncIndicator(false);
-    }, function(error) {
-      setSyncIndicator(false);
-      if (isLoggedIn) handleFirebaseError(error);
-    });
+  // --- Update Header Count ---
+  function updateHeaderCount(cat) {
+    const items = groceryData[cat] || {};
+    // Only count items with count > 0 and not checked
+    const count = Object.values(items)
+      .filter(item => item && typeof item === "object" && item.count > 0 && !item.checked)
+      .length;
+    const el = document.getElementById(`${cat}-count`);
+    if (!el) return;
+    el.textContent = count; // Update the count in the header
+    el.className = 'header-count'; // Ensure proper styling
   }
+
+  // --- Inject custom CSS for moving/squeeze effects if not present ---
+  (function injectMoveSqueezeCSS() {
+    if (!document.getElementById('move-squeeze-css')) {
+      const style = document.createElement('style');
+      style.id = 'move-squeeze-css';
+      style.innerHTML = `
+        /* Highlight the item being moved: solid light blue fill, no border, smooth transition */
+        .item-moving {
+          background: #e3f2fd !important;
+          color: #01579b !important;
+          border: none !important;
+          box-shadow: 0 2px 12px 0 #90caf9;
+          z-index: 10;
+          transition: background 0.28s cubic-bezier(.68,-0.55,.27,1.55), color 0.18s, box-shadow 0.28s;
+        }
+        /* Squeeze effect for drop location: slightly different blue, dashed border */
+        .item-squeeze {
+          margin-top: 0.7em !important;
+          margin-bottom: 0.7em !important;
+          background: #bbdefb !important;
+          border: 2.5px dashed #0288d1 !important;
+          box-shadow: 0 0 8px 1px #4fc3f7;
+          transition: margin 0.22s cubic-bezier(.68,-0.55,.27,1.55), background 0.18s, border 0.18s, box-shadow 0.18s;
+        }
+        ul li {
+          transition: margin 0.22s cubic-bezier(.68,-0.55,.27,1.55), background 0.28s cubic-bezier(.68,-0.55,.27,1.55), border 0.18s, box-shadow 0.18s;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+  })();
 
   // --- Error Handling ---
   function handleFirebaseError(error) {
@@ -1814,6 +1615,8 @@ moveDeleteMode = !moveDeleteMode;
                   errorDiv.textContent = 'Failed to add user: ' + err.message;
                 });
               });
+           
+
             }
           );
           return;
@@ -1976,20 +1779,121 @@ moveDeleteMode = !moveDeleteMode;
     const el = document.getElementById('sync-indicator');
     if (el) el.style.display = visible ? '' : 'none';
   }
-}); // <-- Make sure this closes the DOMContentLoaded handler
-// (No more code after this)
+
+  // --- Reset Individual Table ---
+  function resetTable(cat) {
+    // Confirm reset action with YES/NO
+    showModal(
+      `Are you sure you want to reset all counters and uncheck all items in table "${tableNames[cat] || cat}"?`,
+      function(confirmed) {
+        if (!confirmed) return;
+
+        setSyncIndicator(true);
+
+        // 1. Update all local data instantly (only count and checked, do NOT touch order or remove items)
+        const items = groceryData[cat] || {};
+        for (const key in items) {
+          if (key !== "order") {
+            if (typeof items[key].count === 'number') items[key].count = 0;
+            items[key].checked = false;
+          }
+        }
+        tempOrders[cat] = [];
+
+        // Instantly update UI for this table
+        renderList(cat);
+        updateHeaderCount(cat);
+
+        // 2. Update DB in the background (only count and checked, do NOT touch order or remove items)
+        setTimeout(() => {
+          const updates = {};
+          for (const key in items) {
+            if (key !== "order") {
+              updates[`${key}/count`] = 0;
+              updates[`${key}/checked`] = false;
+            }
+          }
+          if (Object.keys(updates).length > 0) {
+            db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${cat}`).update(updates);
+          }
+          // Clear temp order for this table in DB
+          db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/${cat}_temp_items_orders_check_zeros_btn`).remove();
+
+          setTimeout(() => {
+            setSyncIndicator(false);
+          }, 500);
+        }, 0);
+      }
+    );
+  }
+  window.resetTable = resetTable;
+
+  // --- Mark Zeros Button: Highlight items to buy ---
+  // --- Check Zeros Button: New Implementation ---
+  document.getElementById('check-zeros-btn').onclick = function () {
+    if (!isLoggedIn) return;
+    // 1. Mark all items with count 0 as checked
+    const updatesByCat = {};
+    for (let i = 0; i < categories.length; i++) {
+      const cat = categories[i];
+      const items = groceryData[cat] || {};
+      for (const key in items) {
+        if (key !== "order") {
+          const item = items[key];
+          if (item && (item.count || 0) === 0 && !item.checked) {
+            groceryData[cat][key].checked = true;
+            if (!updatesByCat[cat]) updatesByCat[cat] = {};
+            updatesByCat[cat][`${key}/checked`] = true;
+          }
+        }
+      }
+    }
+    // 2. For each table, create new order: count>0 at top, count==0 at bottom
+    for (let i = 0; i < categories.length; i++) {
+      const cat = categories[i];
+      const items = groceryData[cat] || {};
+      const keys = Object.keys(items).filter(k => k !== 'order' && items[k] && typeof items[k].name === 'string');
+      const toBuy = [];
+      const zero = [];
+      for (let j = 0; j < keys.length; j++) {
+        const key = keys[j];
+        const item = items[key];
+        if (!item) continue;
+        if ((item.count || 0) > 0) toBuy.push(key);
+        else zero.push(key);
+      }
+      const newOrder = toBuy.concat(zero);
+      saveTempOrder(cat, newOrder);
+    }
+
+    // --- Instantly update UI ---
+    renderAllTables();
+
+    // 3. Update DB for checked items (batch)
+    setTimeout(() => {
+      for (const cat in updatesByCat) {
+        const updates = updatesByCat[cat];
+        if (Object.keys(updates).length > 0) {
+          db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${cat}`).update(updates);
+        }
+      }
+      // 4. No need to re-render all tables, already done above
+    }, 0);
+  };
+
+}); // <-- End DOMContentLoaded
 
 // --- Fix: Add stringToHeaderColor utility ---
 function stringToHeaderColor(str) {
   // Deterministic color palette for table headers
   const palettes = [
-    { bg: "#b8dbc7", fg: "#23472b" }, // veggies
-    { bg: "#d7c3e6", fg: "#4b2956" }, // indian
-    { bg: "#c3d4ea", fg: "#23324b" }, // bigw_target_kmart
-    { bg: "#cfd8dc", fg: "#263238" }, // bunnings
-    { bg: "#f3cccc", fg: "#8b1c1c" }, // officeworks
-    { bg: "#e2d3cb", fg: "#4e342e" }, // test
-    { bg: "#c3d4ea", fg: "#232c3d" }, // default
+    { bg: "#b8dbc7", fg: "#23472b" }, 
+    { bg: "#d7c3e6", fg: "#4b2956" }, 
+    { bg: "#c3d4ea", fg: "#23324b" }, 
+    { bg: "#cfd8dc", fg: "#263238" }, 
+    { bg: "#f3cccc", fg: "#8b1c1c" }, 
+    { bg: "#e2d3cb", fg: "#4e342e" }, 
+    { bg: "#c3d4ea", fg: "#232c3d" }, 
   ];
   // Pick palette based on hash of string
   let hash = 0;
