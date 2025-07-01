@@ -1229,6 +1229,8 @@ document.addEventListener("DOMContentLoaded", function () {
   document.getElementById('move-delete-toggle').onclick = function (e) {
     // Remove reset logic from here: reset icon is now just an icon, not clickable
     moveDeleteMode = !moveDeleteMode;
+    const resetAllBtn = document.getElementById('reset-all');
+    
     if (moveDeleteMode) {
       this.innerHTML = `
         <i class="fas fa-up-down-left-right" style="margin-right: 6px;" title="Move items"></i>
@@ -1238,6 +1240,8 @@ document.addEventListener("DOMContentLoaded", function () {
         </span>
       `;
       this.classList.add('editing-mode');
+      // Show the Reset All button when in editing mode
+      if (resetAllBtn) resetAllBtn.style.display = '';
     } else {
       this.innerHTML = `
         <i class="fas fa-up-down-left-right" style="margin-right: 6px;" title="Move items"></i>
@@ -1247,6 +1251,8 @@ document.addEventListener("DOMContentLoaded", function () {
         </span>
       `;
       this.classList.remove('editing-mode');
+      // Hide the Reset All button when not in editing mode
+      if (resetAllBtn) resetAllBtn.style.display = 'none';
     }
     renderAllTables();
   };
@@ -1257,7 +1263,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
       // Change button icon to a spinning refresh to indicate action
       const resetBtn = document.getElementById('reset-all');
-      resetBtn.innerHTML = '<i class="fas fa-rotate fa-spin"></i> <span style="margin-left: 6px;">Reset</span>';
+      resetBtn.innerHTML = '<i class="fas fa-rotate fa-spin"></i> <span style="margin-left: 6px;">Reset All</span>';
 
       // 1. Update all local data instantly (only count and checked, do NOT touch order)
       for (let i = 0; i < categories.length; i++) {
@@ -1295,7 +1301,7 @@ document.addEventListener("DOMContentLoaded", function () {
         // --- Clear all temp order tables in DB ---
         clearAllTempOrders();
         setTimeout(() => {
-          resetBtn.innerHTML = '<i class="fas fa-rotate-left"></i> <span style="margin-left: 6px;">Reset</span>';
+          resetBtn.innerHTML = '<i class="fas fa-rotate-left"></i> <span style="margin-left: 6px;">Reset All</span>';
           // No need to call renderAllTables() again, already done above
         }, 500);
       }, 0);
