@@ -1815,7 +1815,7 @@ input[type="checkbox"] {
 .header .table-delete-btn i,
 .header .table-move-handle i,
 .header .table-reset-btn i {
-  font-size: 115px !important;
+  font-size: 20px !important;
   margin: 0 !important;
   display: flex;
   align-items: center;
