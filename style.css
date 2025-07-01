@@ -227,7 +227,7 @@ body, html {
   justify-content: center;
   gap: 8px;
   min-width: 70px !important;
-  max-width: 120px !important;
+  max-width: 80px !important;
   white-space: nowrap;
   overflow: visible;
   text-overflow: unset;
