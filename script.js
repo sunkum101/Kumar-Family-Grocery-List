@@ -681,6 +681,13 @@ document.addEventListener("DOMContentLoaded", function () {
         ) return;
         toggleCollapse(cat);
       });
+
+      // --- Add context menu for Mark Zeros ---
+      header.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+        showHeaderContextMenu(cat, header, e.clientX, e.clientY);
+      });
+
       container.appendChild(header);
 
       const ul = document.createElement('ul');
@@ -760,6 +767,106 @@ document.addEventListener("DOMContentLoaded", function () {
         area.sortableInstance.destroy();
         area.sortableInstance = null;
       }
+    }
+  }
+
+  // --- Show custom context menu for table header ---
+  function showHeaderContextMenu(cat, headerEl, x, y) {
+    // Remove any existing menu
+    document.querySelectorAll('.header-context-menu').forEach(menu => menu.remove());
+
+    const menu = document.createElement('div');
+    menu.className = 'header-context-menu';
+    menu.style.position = 'fixed';
+    menu.style.left = x + 'px';
+    menu.style.top = y + 'px';
+    menu.style.zIndex = 6001;
+    menu.style.background = '#fff';
+    menu.style.borderRadius = '8px';
+    menu.style.boxShadow = '0 2px 12px rgba(30,40,60,0.18)';
+    menu.style.padding = '8px 0';
+    menu.style.minWidth = '140px';
+    menu.style.fontSize = '1.05rem';
+
+    // Add Mark Zeros option
+    const markZeros = document.createElement('div');
+    markZeros.textContent = 'Mark Zeros';
+    markZeros.style.padding = '8px 18px';
+    markZeros.style.cursor = 'pointer';
+    markZeros.style.fontWeight = '600';
+    markZeros.onmouseenter = () => markZeros.style.background = '#e3f2fd';
+    markZeros.onmouseleave = () => markZeros.style.background = '';
+    markZeros.onclick = function() {
+      menu.remove();
+      markZerosInTable(cat);
+    };
+    menu.appendChild(markZeros);
+
+    document.body.appendChild(menu);
+
+    // --- Auto-adjust menu position to avoid overflow ---
+    setTimeout(() => {
+      const rect = menu.getBoundingClientRect();
+      let newLeft = x, newTop = y;
+      const padding = 8;
+      if (rect.right > window.innerWidth) {
+        newLeft = Math.max(window.innerWidth - rect.width - padding, 0);
+        menu.style.left = newLeft + 'px';
+      }
+      if (rect.bottom > window.innerHeight) {
+        newTop = Math.max(window.innerHeight - rect.height - padding, 0);
+        menu.style.top = newTop + 'px';
+      }
+    }, 0);
+
+    // Remove menu on click elsewhere
+    setTimeout(() => {
+      document.addEventListener('mousedown', function handler(ev) {
+        if (!menu.contains(ev.target)) {
+          menu.remove();
+          document.removeEventListener('mousedown', handler);
+        }
+      });
+    }, 0);
+  }
+
+  // --- Mark Zeros in a single table ---
+  function markZerosInTable(cat) {
+    if (!isLoggedIn) return;
+    const items = groceryData[cat] || {};
+    const updates = {};
+    let changed = false;
+    for (const key in items) {
+      if (key !== "order") {
+        const item = items[key];
+        if (item && (item.count || 0) === 0 && !item.checked) {
+          groceryData[cat][key].checked = true;
+          updates[`${key}/checked`] = true;
+          changed = true;
+        }
+      }
+    }
+    // Move zeros to bottom
+    const keys = Object.keys(items).filter(k => k !== 'order' && items[k] && typeof items[k].name === 'string');
+    const toBuy = [];
+    const zero = [];
+    for (let j = 0; j < keys.length; j++) {
+      const key = keys[j];
+      const item = items[key];
+      if (!item) continue;
+      if ((item.count || 0) > 0) toBuy.push(key);
+      else zero.push(key);
+    }
+    const newOrder = toBuy.concat(zero);
+    saveTempOrder(cat, newOrder);
+
+    renderList(cat);
+
+    // Batch update DB for checked items
+    if (changed) {
+      setTimeout(() => {
+        db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${cat}`).update(updates);
+      }, 0);
     }
   }
 
@@ -1603,7 +1710,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // --- Radio logic: re-render stage and re-set cancel handler ---
     document.querySelectorAll('input[name="add-user-mode"]').forEach(radio => {
-      radio.addEventListener('change', function () {
+           radio.addEventListener('change', function () {
         mode = this.value;
         // Save values before switching
         const emailInput = document.getElementById('add-user-email');
@@ -1896,58 +2003,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
   window.resetTable = resetTable;
 
-  // --- Mark Zeros Button: Highlight items to buy ---
-  // --- Check Zeros Button: New Implementation ---
-  document.getElementById('check-zeros-btn').onclick = function () {
-    if (!isLoggedIn) return;
-    // 1. Mark all items with count 0 as checked
-    const updatesByCat = {};
-    for (let i = 0; i < categories.length; i++) {
-      const cat = categories[i];
-      const items = groceryData[cat] || {};
-      for (const key in items) {
-        if (key !== "order") {
-          const item = items[key];
-          if (item && (item.count || 0) === 0 && !item.checked) {
-            groceryData[cat][key].checked = true;
-            if (!updatesByCat[cat]) updatesByCat[cat] = {};
-            updatesByCat[cat][`${key}/checked`] = true;
-          }
-        }
-      }
-    }
-    // 2. For each table, create new order: count>0 at top, count==0 at bottom
-    for (let i = 0; i < categories.length; i++) {
-      const cat = categories[i];
-      const items = groceryData[cat] || {};
-      const keys = Object.keys(items).filter(k => k !== 'order' && items[k] && typeof items[k].name === 'string');
-      const toBuy = [];
-      const zero = [];
-      for (let j = 0; j < keys.length; j++) {
-        const key = keys[j];
-        const item = items[key];
-        if (!item) continue;
-        if ((item.count || 0) > 0) toBuy.push(key);
-        else zero.push(key);
-      }
-      const newOrder = toBuy.concat(zero);
-      saveTempOrder(cat, newOrder);
-    }
 
-    // --- Instantly update UI ---
-    renderAllTables();
-
-    // 3. Update DB for checked items (batch)
-    setTimeout(() => {
-      for (const cat in updatesByCat) {
-        const updates = updatesByCat[cat];
-        if (Object.keys(updates).length > 0) {
-          db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${cat}`).update(updates);
-        }
-      }
-      // 4. No need to re-render all tables, already done above
-    }, 0);
-  };
 
 }); // <-- End DOMContentLoaded
 
@@ -1979,3 +2035,4 @@ function sanitizeFamilyId(name) {
     .replace(/\s+/g, '_')
     .replace(/[^a-z0-9_\-]/g, ''); // allow a-z, 0-9, _, -
 }
+
