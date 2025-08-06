@@ -682,10 +682,29 @@ document.addEventListener("DOMContentLoaded", function () {
         toggleCollapse(cat);
       });
 
-      // --- Add context menu for Mark Zeros ---
+      // --- Add context menu for right-click and long-press ---
+      let longPressTimer = null;
+      
+      // Right-click context menu
       header.addEventListener('contextmenu', function(e) {
         e.preventDefault();
         showHeaderContextMenu(cat, header, e.clientX, e.clientY);
+      });
+
+      // Long-press for touch devices
+      header.addEventListener('touchstart', function(e) {
+        longPressTimer = setTimeout(() => {
+          const touch = e.touches[0];
+          showHeaderContextMenu(cat, header, touch.clientX, touch.clientY);
+        }, 800); // 800ms for long press
+      });
+
+      header.addEventListener('touchend', function(e) {
+        clearTimeout(longPressTimer);
+      });
+
+      header.addEventListener('touchmove', function(e) {
+        clearTimeout(longPressTimer);
       });
 
       container.appendChild(header);
@@ -785,12 +804,64 @@ document.addEventListener("DOMContentLoaded", function () {
     menu.style.borderRadius = '8px';
     menu.style.boxShadow = '0 2px 12px rgba(30,40,60,0.18)';
     menu.style.padding = '8px 0';
-    menu.style.minWidth = '140px';
+    menu.style.minWidth = '180px';
     menu.style.fontSize = '1.05rem';
+
+    // Add Move Table option
+    const moveTable = document.createElement('div');
+    moveTable.innerHTML = '<i class="fas fa-up-down-left-right" style="margin-right:8px;color:#f59e42;"></i>Move Table';
+    moveTable.style.padding = '8px 18px';
+    moveTable.style.cursor = 'pointer';
+    moveTable.style.fontWeight = '600';
+    moveTable.onmouseenter = () => moveTable.style.background = '#e3f2fd';
+    moveTable.onmouseleave = () => moveTable.style.background = '';
+    moveTable.onclick = function() {
+      menu.remove();
+      // Enable move/delete mode (same as orange button)
+      if (!moveDeleteMode) {
+        document.getElementById('move-delete-toggle').click();
+      }
+    };
+    menu.appendChild(moveTable);
+
+    // Add Delete Table option  
+    const deleteTable = document.createElement('div');
+    deleteTable.innerHTML = '<i class="fas fa-trash" style="margin-right:8px;color:#e53935;"></i>Delete Table';
+    deleteTable.style.padding = '8px 18px';
+    deleteTable.style.cursor = 'pointer';
+    deleteTable.style.fontWeight = '600';
+    deleteTable.onmouseenter = () => deleteTable.style.background = '#e3f2fd';
+    deleteTable.onmouseleave = () => deleteTable.style.background = '';
+    deleteTable.onclick = function() {
+      menu.remove();
+      window.deleteTable(cat);
+    };
+    menu.appendChild(deleteTable);
+
+    // Add Reset Table option
+    const resetTable = document.createElement('div');
+    resetTable.innerHTML = '<i class="fas fa-rotate-left" style="margin-right:8px;color:#ff6b35;"></i>Reset Table';
+    resetTable.style.padding = '8px 18px';
+    resetTable.style.cursor = 'pointer';
+    resetTable.style.fontWeight = '600';
+    resetTable.onmouseenter = () => resetTable.style.background = '#e3f2fd';
+    resetTable.onmouseleave = () => resetTable.style.background = '';
+    resetTable.onclick = function() {
+      menu.remove();
+      window.resetTable(cat);
+    };
+    menu.appendChild(resetTable);
+
+    // Add separator
+    const separator = document.createElement('div');
+    separator.style.height = '1px';
+    separator.style.background = '#e3e7ee';
+    separator.style.margin = '4px 0';
+    menu.appendChild(separator);
 
     // Add Mark Zeros option
     const markZeros = document.createElement('div');
-    markZeros.textContent = 'Mark Zeros';
+    markZeros.innerHTML = '<i class="fas fa-check" style="margin-right:8px;color:#22c55e;"></i>Mark Zeros';
     markZeros.style.padding = '8px 18px';
     markZeros.style.cursor = 'pointer';
     markZeros.style.fontWeight = '600';

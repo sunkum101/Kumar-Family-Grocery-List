@@ -1566,7 +1566,7 @@ input[type="checkbox"] {
   border-radius: 8px;
   box-shadow: 0 2px 12px rgba(30,40,60,0.18);
   padding: 8px 0;
-  min-width: 140px;
+  min-width: 180px;
   font-size: 1.05rem;
   z-index: 6001;
   border: 1px solid #e3e7ee;
@@ -1581,9 +1581,16 @@ input[type="checkbox"] {
   cursor: pointer;
   font-weight: 600;
   transition: background 0.13s;
+  display: flex;
+  align-items: center;
 }
 .header-context-menu > div:hover {
   background: #e3f2fd;
+}
+.header-context-menu > div i {
+  margin-right: 8px;
+  width: 16px;
+  text-align: center;
 }
 
 .modern-title-main {
