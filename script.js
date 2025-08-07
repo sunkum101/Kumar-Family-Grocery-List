@@ -560,6 +560,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // --- Globals ---
   let moveDeleteMode = false;
+  let moveMode = false; // New: separate move mode
+  let deleteMode = false; // New: separate delete mode
   let originalKeyOrder = {};
   let groceryData = {};
   let tableNames = {};
@@ -654,24 +656,25 @@ document.addEventListener("DOMContentLoaded", function () {
         <span class="header-count" id="${cat}-count">${count}</span>
         <span class="header-title" data-cat="${cat}">${headerName}</span>
         ${
-          moveDeleteMode
+          moveMode
+            ? `
+          <span class="table-move-handle" title="Move table">
+            <i class="fas fa-up-down-left-right" style="font-size:22px;color:#666;"></i>
+          </span>
+        `
+            : deleteMode
             ? `
           <button class="table-delete-btn" onclick="deleteTable('${cat}')">
             <span class="table-delete-svg-wrap">
               <i class="fas fa-trash" style="font-size:18px;color:#e53935;" title="Delete table"></i>
             </span>
           </button>
-          <span class="table-move-handle" title="Move table">
-            <i class="fas fa-up-down-left-right" style="font-size:22px;color:#666;"></i>
-          </span>
-          <button class="table-reset-btn" onclick="resetTable('${cat}')">
-            <span class="table-reset-svg-wrap">
-              <i class="fas fa-rotate-left" style="font-size:22px;color:#ff6b35;" title="Reset table"></i>
-            </span>
-          </button>
         `
             : ''
         }
+        <button class="header-burger-menu" data-cat="${cat}" title="More options">
+          <i class="fas fa-bars"></i>
+        </button>
         <span class="collapse-arrow">&#9654;</span>
       `;
       header.addEventListener('click', function (e) {
@@ -682,11 +685,49 @@ document.addEventListener("DOMContentLoaded", function () {
         toggleCollapse(cat);
       });
 
-      // --- Add context menu for Mark Zeros ---
-      header.addEventListener('contextmenu', function(e) {
-        e.preventDefault();
-        showHeaderContextMenu(cat, header, e.clientX, e.clientY);
-      });
+      // --- Add burger menu click handler ---
+      const burgerMenu = header.querySelector('.header-burger-menu');
+      if (burgerMenu) {
+        // --- Add context menu for long press/right click on burger menu only ---
+        let longPressTimer = null;
+        
+        burgerMenu.addEventListener('mousedown', function(e) {
+          if (e.button !== 0) return; // Only left mouse button
+          longPressTimer = setTimeout(() => {
+            showHeaderContextMenu(cat, header, e.clientX, e.clientY);
+          }, 1000); // 1 second long press
+        });
+        
+        burgerMenu.addEventListener('mouseup', function() {
+          clearTimeout(longPressTimer);
+        });
+        
+        burgerMenu.addEventListener('mouseleave', function() {
+          clearTimeout(longPressTimer);
+        });
+
+        // --- Add right-click context menu on burger menu ---
+        burgerMenu.addEventListener('contextmenu', function(e) {
+          e.preventDefault();
+          showHeaderContextMenu(cat, header, e.clientX, e.clientY);
+        });
+
+        // --- Touch events for mobile long press on burger menu ---
+        burgerMenu.addEventListener('touchstart', function(e) {
+          longPressTimer = setTimeout(() => {
+            const touch = e.touches[0];
+            showHeaderContextMenu(cat, header, touch.clientX, touch.clientY);
+          }, 1000);
+        });
+        
+        burgerMenu.addEventListener('touchend', function() {
+          clearTimeout(longPressTimer);
+        });
+        
+        burgerMenu.addEventListener('touchmove', function() {
+          clearTimeout(longPressTimer);
+        });
+      }
 
       container.appendChild(header);
 
@@ -771,7 +812,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   // --- Show custom context menu for table header ---
-  function showHeaderContextMenu(cat, headerEl, x, y) {
+  function showHeaderContextMenu(cat, headerEl, x, y, showUpward = false) {
     // Remove any existing menu
     document.querySelectorAll('.header-context-menu').forEach(menu => menu.remove());
 
@@ -779,21 +820,56 @@ document.addEventListener("DOMContentLoaded", function () {
     menu.className = 'header-context-menu';
     menu.style.position = 'fixed';
     menu.style.left = x + 'px';
-    menu.style.top = y + 'px';
     menu.style.zIndex = 6001;
     menu.style.background = '#fff';
     menu.style.borderRadius = '8px';
     menu.style.boxShadow = '0 2px 12px rgba(30,40,60,0.18)';
     menu.style.padding = '8px 0';
-    menu.style.minWidth = '140px';
+    menu.style.minWidth = '180px';
     menu.style.fontSize = '1.05rem';
+    menu.style.border = '1px solid #ddd';
 
-    // Add Mark Zeros option
+    // Add upward arrow indicator if showing upward
+    if (showUpward) {
+      menu.classList.add('upward');
+      menu.style.bottom = (window.innerHeight - y) + 'px';
+      
+      // Add downward arrow at bottom of menu
+      const arrow = document.createElement('div');
+      arrow.className = 'context-menu-arrow-down';
+      arrow.innerHTML = '▼';
+      arrow.style.position = 'absolute';
+      arrow.style.bottom = '-8px';
+      arrow.style.left = '50%';
+      arrow.style.transform = 'translateX(-50%)';
+      arrow.style.color = '#fff';
+      arrow.style.fontSize = '12px';
+      arrow.style.textShadow = '0 1px 2px rgba(0,0,0,0.3)';
+      menu.appendChild(arrow);
+    } else {
+      menu.style.top = y + 'px';
+      
+      // Add upward arrow at top of menu for normal positioning
+      const arrow = document.createElement('div');
+      arrow.className = 'context-menu-arrow-up';
+      arrow.innerHTML = '▲';
+      arrow.style.position = 'absolute';
+      arrow.style.top = '-8px';
+      arrow.style.left = '50%';
+      arrow.style.transform = 'translateX(-50%)';
+      arrow.style.color = '#fff';
+      arrow.style.fontSize = '12px';
+      arrow.style.textShadow = '0 1px 2px rgba(0,0,0,0.3)';
+      menu.appendChild(arrow);
+    }
+
+    // Add Highlight items to buy option FIRST
     const markZeros = document.createElement('div');
-    markZeros.textContent = 'Mark Zeros';
-    markZeros.style.padding = '8px 18px';
+    markZeros.innerHTML = '<i class="fas fa-check" style="margin-right:8px;color:#1976d2;"></i> Highlight items to buy';
+    markZeros.style.padding = '10px 18px';
     markZeros.style.cursor = 'pointer';
     markZeros.style.fontWeight = '600';
+    markZeros.style.color = '#1976d2';
     markZeros.onmouseenter = () => markZeros.style.background = '#e3f2fd';
     markZeros.onmouseleave = () => markZeros.style.background = '';
     markZeros.onclick = function() {
@@ -802,20 +878,72 @@ document.addEventListener("DOMContentLoaded", function () {
     };
     menu.appendChild(markZeros);
 
+    // Add divider
+    const divider = document.createElement('div');
+    divider.style.height = '1px';
+    divider.style.background = '#eee';
+    divider.style.margin = '8px 0';
+    menu.appendChild(divider);
+
+    // Add Move Items option
+    const moveItems = document.createElement('div');
+    moveItems.innerHTML = '<i class="fas fa-up-down-left-right" style="margin-right:8px;color:#1976d2;"></i> Move Items Mode';
+    moveItems.style.padding = '10px 18px';
+    moveItems.style.cursor = 'pointer';
+    moveItems.style.fontWeight = '600';
+    moveItems.style.color = '#1976d2';
+    moveItems.onmouseenter = () => moveItems.style.background = '#e3f2fd';
+    moveItems.onmouseleave = () => moveItems.style.background = '';
+    moveItems.onclick = function() {
+      menu.remove();
+      enableMoveMode();
+    };
+    menu.appendChild(moveItems);
+
+    // Add Delete Items option
+    const deleteItems = document.createElement('div');
+    deleteItems.innerHTML = '<i class="fas fa-trash" style="margin-right:8px;color:#1976d2;"></i> Delete Items Mode';
+    deleteItems.style.padding = '10px 18px';
+    deleteItems.style.cursor = 'pointer';
+    deleteItems.style.fontWeight = '600';
+    deleteItems.style.color = '#1976d2';
+    deleteItems.onmouseenter = () => deleteItems.style.background = '#e3f2fd';
+    deleteItems.onmouseleave = () => deleteItems.style.background = '';
+    deleteItems.onclick = function() {
+      menu.remove();
+      enableDeleteMode();
+    };
+    menu.appendChild(deleteItems);
+
+    // Add Reset Items option
+    const resetItems = document.createElement('div');
+    resetItems.innerHTML = '<i class="fas fa-rotate-left" style="margin-right:8px;color:#1976d2;"></i> Reset All Items';
+    resetItems.style.padding = '10px 18px';
+    resetItems.style.cursor = 'pointer';
+    resetItems.style.fontWeight = '600';
+    resetItems.style.color = '#1976d2';
+    resetItems.onmouseenter = () => resetItems.style.background = '#e3f2fd';
+    resetItems.onmouseleave = () => resetItems.style.background = '';
+    resetItems.onclick = function() {
+      menu.remove();
+      resetAllItems();
+    };
+    menu.appendChild(resetItems);
+
     document.body.appendChild(menu);
 
     // --- Auto-adjust menu position to avoid overflow ---
     setTimeout(() => {
       const rect = menu.getBoundingClientRect();
-      let newLeft = x, newTop = y;
+      let newLeft = x;
       const padding = 8;
       if (rect.right > window.innerWidth) {
         newLeft = Math.max(window.innerWidth - rect.width - padding, 0);
         menu.style.left = newLeft + 'px';
       }
-      if (rect.bottom > window.innerHeight) {
-        newTop = Math.max(window.innerHeight - rect.height - padding, 0);
-        menu.style.top = newTop + 'px';
+      if (rect.left < 0) {
+        newLeft = padding;
+        menu.style.left = newLeft + 'px';
       }
     }, 0);
 
@@ -836,6 +964,8 @@ document.addEventListener("DOMContentLoaded", function () {
     const items = groceryData[cat] || {};
     const updates = {};
     let changed = false;
+    
+    // First, mark all items with count 0 as checked
     for (const key in items) {
       if (key !== "order") {
         const item = items[key];
@@ -846,18 +976,28 @@ document.addEventListener("DOMContentLoaded", function () {
         }
       }
     }
-    // Move zeros to bottom
+    
+    // Move ALL checked items to bottom (both newly checked and manually checked)
     const keys = Object.keys(items).filter(k => k !== 'order' && items[k] && typeof items[k].name === 'string');
-    const toBuy = [];
-    const zero = [];
+    const toBuy = []; // Items with count > 0 and not checked
+    const checked = []; // All checked items (regardless of count)
+    
     for (let j = 0; j < keys.length; j++) {
       const key = keys[j];
       const item = items[key];
       if (!item) continue;
-      if ((item.count || 0) > 0) toBuy.push(key);
-      else zero.push(key);
+      
+      if (item.checked) {
+        checked.push(key); // All checked items go to bottom
+      } else if ((item.count || 0) > 0) {
+        toBuy.push(key); // Unchecked items with count > 0 stay at top
+      } else {
+        // Unchecked items with count 0 - these were just marked as checked above
+        checked.push(key);
+      }
     }
-    const newOrder = toBuy.concat(zero);
+    
+    const newOrder = toBuy.concat(checked);
     saveTempOrder(cat, newOrder);
 
     renderList(cat);
@@ -985,15 +1125,16 @@ document.addEventListener("DOMContentLoaded", function () {
       li.innerHTML = `
         <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleChecked('${cat}', '${key}', this.checked)">
         <div class="name" title="Alt+Click to edit item name" data-cat="${cat}" data-key="${key}">${item.name}</div>
-        ${moveDeleteMode ? `
+        ${moveMode ? `
+          <span class="item-move-handle" title="Move item">
+            <i class="fas fa-up-down-left-right" style="font-size:18px;color:#666;"></i>
+          </span>
+        ` : deleteMode ? `
           <button class="item-delete-btn" onclick="deleteItem('${cat}', '${key}')">
             <span class="item-delete-svg-wrap">
               <i class="fas fa-trash" style="font-size:18px;color:#e53935;" title="Delete item"></i>
             </span>
           </button>
-          <span class="item-move-handle" title="Move item">
-            <i class="fas fa-up-down-left-right" style="font-size:18px;color:#666;"></i>
-          </span>
         ` : `
           <div class="counter">
             <button onclick="updateCount('${cat}', '${key}', -1)">-</button>
@@ -1069,7 +1210,7 @@ document.addEventListener("DOMContentLoaded", function () {
     ul.sortableInstance.destroy();
     ul.sortableInstance = null;
   }
-  if (moveDeleteMode) {
+  if (moveMode) {
     ul.sortableInstance = Sortable.create(ul, {
       animation: 200,
       handle: '.item-move-handle',
@@ -1165,76 +1306,70 @@ document.addEventListener("DOMContentLoaded", function () {
   // --- Delete Item ---
   function deleteItem(cat, key) {
     const itemName = groceryData[cat]?.[key]?.name || '';
-    showModal(`Delete this item${itemName ? ` "<b>${itemName}</b>"` : ''}?`, function(yes) {
-      if (!yes) return;
+    
+    // --- Mark as pending deleted ---
+    if (!pendingDeletedItems[cat]) pendingDeletedItems[cat] = new Set();
+    pendingDeletedItems[cat].add(key);
 
-      // --- Mark as pending deleted ---
-      if (!pendingDeletedItems[cat]) pendingDeletedItems[cat] = new Set();
-      pendingDeletedItems[cat].add(key);
+    const backupItem = groceryData[cat][key];
+    const backupOrder = Array.isArray(groceryData[cat].order) ? [...groceryData[cat].order] : [];
 
-      const backupItem = groceryData[cat][key];
-      const backupOrder = Array.isArray(groceryData[cat].order) ? [...groceryData[cat].order] : [];
+    // Remove from local data
+    delete groceryData[cat][key];
+    if (Array.isArray(groceryData[cat].order)) {
+      groceryData[cat].order = groceryData[cat].order.filter(k => k !== key);
+    }
+    renderList(cat);
 
-      // Remove from local data
-      delete groceryData[cat][key];
-      if (Array.isArray(groceryData[cat].order)) {
-        groceryData[cat].order = groceryData[cat].order.filter(k => k !== key);
-      }
+    // --- Create undo toast after re-render so it is not wiped out ---
+    const undoToast = document.createElement('div');
+    undoToast.className = 'undo-toast';
+    undoToast.innerHTML = `
+      <span class="undo-message">Item "${backupItem.name}" deleted.</span>
+      <button class="undo-btn" type="button" tabindex="0">UNDO</button>
+    `;
+    document.body.appendChild(undoToast);
+
+    let undone = false;
+    let undoTimeout;
+
+    function handleUndo(e) {
+      if (undone) return;
+      undone = true;
+      clearTimeout(undoTimeout);
+      // --- Remove from pending deletes ---
+      pendingDeletedItems[cat].delete(key);
+      // Restore in local data and UI
+      groceryData[cat][key] = backupItem;
+      groceryData[cat].order = backupOrder;
       renderList(cat);
+      if (undoToast.parentNode) document.body.removeChild(undoToast);
+    }
 
-      // --- Create undo toast after re-render so it is not wiped out ---
-      const undoToast = document.createElement('div');
-      undoToast.className = 'undo-toast';
-      undoToast.innerHTML = `
-        <span class="undo-message">Item "${backupItem.name}" deleted.</span>
-        <button class="undo-btn" type="button" tabindex="0">UNDO</button>
-      `;
-      document.body.appendChild(undoToast);
+    const undoBtn = undoToast.querySelector('.undo-btn');
+    if (undoBtn) {
+      undoBtn.addEventListener('click', handleUndo, { passive: false });
+      undoBtn.addEventListener('touchend', function(e) {
+        e.preventDefault();
+        handleUndo();
+      }, { passive: false });
+      undoBtn.focus(); // Ensure button is focused for accessibility
+    }
 
-      let undone = false;
-      let undoTimeout;
-
-      function handleUndo(e) {
-        if (undone) return;
-        undone = true;
-        clearTimeout(undoTimeout);
-        // --- Remove from pending deletes ---
-        pendingDeletedItems[cat].delete(key);
-        // Restore in local data and UI
-        groceryData[cat][key] = backupItem;
-        groceryData[cat].order = backupOrder;
-        renderList(cat);
+    undoTimeout = setTimeout(() => {
+      if (!undone) {
+        db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${cat}/${key}`).remove();
+        // Remove from order array in DB
+        db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${cat}/order`).once('value').then(snap => {
+          let order = snap.val() || [];
+          order = order.filter(k => k !== key);
+          db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${cat}/order`).set(order);
+        });
         if (undoToast.parentNode) document.body.removeChild(undoToast);
+        // --- Remove from pending deletes after DB update ---
+        if (pendingDeletedItems[cat]) pendingDeletedItems[cat].delete(key);
       }
-
-      const undoBtn = undoToast.querySelector('.undo-btn');
-      if (undoBtn) {
-        undoBtn.addEventListener('click', handleUndo, { passive: false });
-        undoBtn.addEventListener('touchend', function(e) {
-          e.preventDefault();
-          handleUndo();
-        }, { passive: false });
-        undoBtn.focus(); // Ensure button is focused for accessibility
-      }
-
-      undoTimeout = setTimeout(() => {
-        if (!undone) {
-          db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${cat}/${key}`).remove();
-          // Remove from order array in DB
-          db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${cat}/order`).once('value').then(snap => {
-            let order = snap.val() || [];
-            order = order.filter(k => k !== key);
-            db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${cat}/order`).set(order);
-          });
-          if (undoToast.parentNode) document.body.removeChild(undoToast);
-          // --- Remove from pending deletes after DB update ---
-          if (pendingDeletedItems[cat]) pendingDeletedItems[cat].delete(key);
-          // Remove this line to fix the error:
-          // subscribeAllLists();
-          // Instead, just re-render the UI if needed (optional)
-        }
-      }, 8000);
-    });
+    }, 8000);
   }
   window.deleteItem = deleteItem;
 
@@ -1322,9 +1457,6 @@ document.addEventListener("DOMContentLoaded", function () {
             });
             if (undoToast.parentNode) document.body.removeChild(undoToast);
             pendingDeletedTables.delete(cat);
-            // Remove this line to fix the error:
-            // subscribeAllLists();
-            // Instead, just re-render the UI if needed (optional)
           }
         }, 8000);
       }
@@ -1389,7 +1521,6 @@ document.addEventListener("DOMContentLoaded", function () {
       renderAllTables();
 
       // 2. Update DB in the background (only count and checked, do NOT touch order)
-      // (No setTimeout needed for UI, only for DB)
       setTimeout(() => {
         for (let i = 0; i < categories.length; i++) {
           const cat = categories[i];
@@ -1611,7 +1742,7 @@ document.addEventListener("DOMContentLoaded", function () {
         <div id="add-user-stage"></div>
         <div id="add-user-error" style="color:#e53935;font-size:0.98rem;min-height:1.2em;text-align:center;"></div>
         <div style="display:flex;gap:10px;justify-content:center;margin-top:2px;">
-          <button type="button" id="add-user-cancel" style="flex:1 1 0;padding:7px 0;border-radius:8px;font-weight:600;border:none;background:#f3f6fa;color:#222;">Cancel</button>
+                   <button type="button" id="add-user-cancel" style="flex:1 1 0;padding:7px 0;border-radius:8px;font-weight:600;border:none;background:#f3f6fa;color:#222;">Cancel</button>
           <button type="submit" id="add-user-ok" style="flex:1 1 0;padding:7px 0;border-radius:8px;font-weight:600;border:none;background:linear-gradient(90deg,#388e3c 60%, #5dd05d 100%);color:#fff;">Add</button>
         </div>
       </form>
@@ -2003,9 +2134,97 @@ document.addEventListener("DOMContentLoaded", function () {
   }
   window.resetTable = resetTable;
 
+  // --- Enable Move/Delete Mode ---
+  function enableMoveDeleteMode() {
+    moveDeleteMode = true;
+    renderAllTables();
+    // Add history entry for back button functionality
+    history.pushState({ moveMode: true }, '', '');
+  }
 
+  // --- Enable Move Mode ---
+  function enableMoveMode() {
+    moveMode = true;
+    deleteMode = false;
+    moveDeleteMode = true; // Keep for compatibility
+    renderAllTables();
+    // Add history entry for back button functionality
+    history.pushState({ moveMode: true }, '', '');
+  }
+
+  // --- Enable Delete Mode ---
+  function enableDeleteMode() {
+    deleteMode = true;
+    moveMode = false;
+    moveDeleteMode = true; // Keep for compatibility
+    renderAllTables();
+    // Add history entry for back button functionality
+    history.pushState({ deleteMode: true }, '', '');
+  }
+
+  // --- Disable Move/Delete Mode ---
+  function disableMoveDeleteMode() {
+    moveDeleteMode = false;
+    moveMode = false;
+    deleteMode = false;
+    renderAllTables();
+  }
+
+  // --- Reset All Items ---
+  function resetAllItems() {
+    showModal("Reset all counters to 0 and uncheck all items in all tables?", function (yes) {
+      if (!yes) return;
+
+      // 1. Update all local data instantly (only count and checked, do NOT touch order)
+      for (let i = 0; i < categories.length; i++) {
+        const cat = categories[i];
+        const items = groceryData[cat] || {};
+        for (const key in items) {
+          if (key !== "order") {
+            if (typeof groceryData[cat][key].count === 'number') groceryData[cat][key].count = 0;
+            groceryData[cat][key].checked = false;
+          }
+        }
+        tempOrders[cat] = [];
+      }
+
+      // --- Instantly update UI ---
+      renderAllTables();
+
+      // 2. Update DB in the background (only count and checked, do NOT touch order)
+      setTimeout(() => {
+        for (let i = 0; i < categories.length; i++) {
+          const cat = categories[i];
+          const items = groceryData[cat] || {};
+          const updates = {};
+          for (const key in items) {
+            if (key !== "order") {
+              updates[`${key}/count`] = 0;
+              updates[`${key}/checked`] = false;
+            }
+          }
+          if (Object.keys(updates).length > 0) {
+            db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${cat}`).update(updates);
+          }
+        }
+        // --- Clear all temp order tables in DB ---
+        clearAllTempOrders();
+      }, 0);
+    });
+  }
+
+  // --- Handle browser back button to exit move mode ---
+  window.addEventListener('popstate', function(event) {
+    if (moveDeleteMode || moveMode || deleteMode) {
+      // Exit move/delete mode when back button is pressed
+      disableMoveDeleteMode();
+      // Prevent default back navigation
+      event.preventDefault();
+    }
+  });
 
 }); // <-- End DOMContentLoaded
+
 
 // --- Fix: Add stringToHeaderColor utility ---
 function stringToHeaderColor(str) {
@@ -2035,4 +2254,3 @@ function sanitizeFamilyId(name) {
     .replace(/\s+/g, '_')
     .replace(/[^a-z0-9_\-]/g, ''); // allow a-z, 0-9, _, -
 }
-
