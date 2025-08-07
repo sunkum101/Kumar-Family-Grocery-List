@@ -112,6 +112,9 @@
     <div id="highlight-items-menu-item" style="padding:9px 18px;cursor:pointer;font-size:1.07rem;color:#1976d2;font-weight:600;">
       <i class="fas fa-check" style="margin-right:8px;"></i> Highlight items to buy
     </div>
+    <div id="move-items-menu-item" style="padding:9px 18px;cursor:pointer;font-size:1.07rem;color:#1976d2;font-weight:600;">
+      <i class="fas fa-up-down-left-right" style="margin-right:8px;"></i> Move Items Mode
+    </div>
   </div>
 
   <script>
@@ -254,41 +257,36 @@
         lastTableId = null;
       }
 
-      // Attach to all table headers (assume each table has .table-header and data-table-id)
+      // Helper to show context menu at the event position
+      function showContextMenu(e) {
+        contextMenu.style.top = e.clientY + 'px';
+        contextMenu.style.left = e.clientX + 'px';
+        contextMenu.style.display = 'block';
+      }
+
+      // Attach to all table headers
       function attachHeaderListeners() {
-        const headers = tablesArea.querySelectorAll('.table-header');
+        const headers = tablesArea.querySelectorAll('.header');
         headers.forEach(header => {
           header.onmousedown = (e) => {
             if (e.button !== 0) return; // Only left mouse
             longPressTimer = setTimeout(() => {
               lastHeader = header;
-              lastTableId = header.dataset.tableId;
-              // Show context menu at mouse position
-              contextMenu.style.top = e.clientY + 'px';
-              contextMenu.style.left = e.clientX + 'px';
-              contextMenu.style.display = 'block';
-            }, 2000);
+              lastTableId = header.closest('.container')?.id?.replace('-container', '');
+              showContextMenu(e);
+            }, 1000);
           };
           header.onmouseup = header.onmouseleave = () => {
             clearTimeout(longPressTimer);
           };
-          // Prevent default context menu on header
+          // Right-click context menu
           header.oncontextmenu = (e) => {
             e.preventDefault();
+            lastHeader = header;
+            lastTableId = header.closest('.container')?.id?.replace('-container', '');
+            showContextMenu(e);
           };
         });
-      }
-
-      // When tables are rendered/refreshed, re-attach listeners
-      if (window.renderTables) {
-        const origRenderTables = window.renderTables;
-        window.renderTables = function() {
-          origRenderTables.apply(this, arguments);
-          attachHeaderListeners();
-        };
-      } else {
-        // If tables are static, attach once after DOMContentLoaded
-        document.addEventListener('DOMContentLoaded', attachHeaderListeners);
       }
 
       // Hide menu on click elsewhere
@@ -298,35 +296,67 @@
         }
       });
 
-      // Handle menu item click
+      // Handle menu item clicks
       document.getElementById('highlight-items-menu-item').onclick = function() {
         hideContextMenu();
-        if (lastTableId) {
-          highlightZeroItemsInTable(lastTableId);
+        if (lastTableId && typeof window.markZerosInTable === 'function') {
+          window.markZerosInTable(lastTableId); // Use the function from script.js
+        } else {
+          console.error('markZerosInTable function not available or lastTableId is null');
         }
       };
-    }
 
-    // --- Highlight zero items in a table by tableId ---
-    function highlightZeroItemsInTable(tableId) {
-      // Find the table by tableId and highlight items with zero quantity
-      const table = document.querySelector(`.grocery-table[data-table-id="${tableId}"]`);
-      if (!table) return;
-      const rows = table.querySelectorAll('.grocery-row');
-      rows.forEach(row => {
-        const qtyCell = row.querySelector('.grocery-qty');
-        if (qtyCell && (qtyCell.textContent.trim() === '0' || qtyCell.textContent.trim() === '')) {
-          row.classList.add('highlight-to-buy');
-        } else {
-          row.classList.remove('highlight-to-buy');
+      document.getElementById('move-items-menu-item').onclick = function() {
+        hideContextMenu();
+        const moveDeleteToggle = document.getElementById('move-delete-toggle');
+        if (moveDeleteToggle) {
+          moveDeleteToggle.click(); // Enter move mode
+          // Add a history entry when entering move mode
+          history.pushState({ moveMode: true }, '', '');
         }
-      });
+      };
+
+      // Initial attachment
+      attachHeaderListeners();
     }
 
-    // --- Add CSS for highlight ---
-    const style = document.createElement('style');
-    style.textContent = `.highlight-to-buy { background: #ffe9e1 !important; transition: background 0.2s; }`;
-    document.head.appendChild(style);
+    // --- Handle browser back button to exit move mode ---
+    window.addEventListener('popstate', function(event) {
+      const moveDeleteToggle = document.getElementById('move-delete-toggle');
+      const isInMoveMode = moveDeleteToggle && moveDeleteToggle.classList.contains('editing-mode');
+      
+      if (isInMoveMode) {
+        // Exit move mode when back button is pressed
+        moveDeleteToggle.click();
+        // Prevent default back navigation
+        event.preventDefault();
+      }
+    });
+
+    // --- Also handle the move/delete toggle button to manage history ---
+    document.addEventListener('DOMContentLoaded', function() {
+      const moveDeleteToggle = document.getElementById('move-delete-toggle');
+      if (moveDeleteToggle) {
+        const originalOnClick = moveDeleteToggle.onclick;
+        moveDeleteToggle.onclick = function(e) {
+          const wasInMoveMode = this.classList.contains('editing-mode');
+          
+          if (originalOnClick) originalOnClick.call(this, e);
+          
+          const isNowInMoveMode = this.classList.contains('editing-mode');
+          
+          if (!wasInMoveMode && isNowInMoveMode) {
+            // Entering move mode - add history entry
+            history.pushState({ moveMode: true }, '', '');
+          } else if (wasInMoveMode && !isNowInMoveMode) {
+            // Exiting move mode - go back in history if we added an entry
+            if (history.state && history.state.moveMode) {
+              history.back();
+            }
+          }
+        };
+      }
+    });
 
     // --- Initialize context menu logic ---
     setupTableHeaderContextMenu();
