@@ -414,13 +414,55 @@ body, html {
   text-align:center;
 }
 .collapse-arrow{
-  margin-left:auto;
-  font-size:1.09rem;
-  transition:transform 0.18s;
-  display:inline-block;
-  opacity:.67;
+  margin-left:auto; /* Push to far right */
+  margin-right: 8px; /* Some space from right edge */
+  min-width: 32px;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0; /* Hide default triangle text */
+  cursor: pointer;
+  user-select: none;
+  z-index: 2;
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 6px;
+  transition: all 0.18s ease;
+  position: relative;
+  order: 999; /* Ensure it's always last */
 }
-.collapsed .collapse-arrow{transform:rotate(-90deg);}
+
+/* Modern chevron icon using CSS */
+.collapse-arrow::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform 0.18s ease;
+  opacity: 0.85;
+}
+
+/* Hover effect */
+.collapse-arrow:hover {
+  background: rgba(255,255,255,0.25);
+  border-color: rgba(255,255,255,0.4);
+  transform: scale(1.05);
+}
+
+/* Collapsed state - rotate chevron */
+.collapsed .collapse-arrow::before {
+  transform: rotate(-135deg);
+}
+
+/* Active state */
+.collapse-arrow:active {
+  background: rgba(255,255,255,0.35);
+  transform: scale(0.98);
+}
+
 ul { list-style:none; margin:0; padding:0 }
 li {
   border: 1px solid #ccc;
@@ -1205,7 +1247,7 @@ input[type="checkbox"] {
 .row-btns .action-btn.move-delete.editing-mode {
   background: linear-gradient(90deg, #f59e42 0%, #fbbf24 100%) !important;
   color: #333 !important;
-  border: 1.5px solid #f59e42 !important;
+  border: 1.5px 
 }
 
 /* Reset Button */
@@ -1830,27 +1872,58 @@ input[type="checkbox"] {
 }
 .header .table-reset-btn { margin-right: 0 !important; }
 
-/* Collapse arrow: always at far right, large clickable area */
+/* Collapse arrow: always at far right, large clickable area, modern design */
 .collapse-arrow {
-  margin-left: 10px;
-  min-width: 28px;
-  min-height: 28px;
+  margin-left:auto; /* Push to far right */
+  margin-right: 8px; /* Some space from right edge */
+  min-width: 32px;
+  min-height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.15rem;
+  font-size: 0; /* Hide default triangle text */
   cursor: pointer;
   user-select: none;
   z-index: 2;
-  background: transparent;
-  border-radius: 50%;
-  transition: background 0.13s;
-}
-.collapse-arrow:hover {
-  background: #e3e7ee;
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 6px;
+  transition: all 0.18s ease;
+  position: relative;
+  order: 999; /* Ensure it's always last */
 }
 
-/* On mobile, shrink buttons and gaps further */
+/* Modern chevron icon using CSS */
+.collapse-arrow::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform 0.18s ease;
+  opacity: 0.85;
+}
+
+/* Hover effect */
+.collapse-arrow:hover {
+  background: rgba(255,255,255,0.25);
+  border-color: rgba(255,255,255,0.4);
+  transform: scale(1.05);
+}
+
+/* Collapsed state - rotate chevron */
+.collapsed .collapse-arrow::before {
+  transform: rotate(-135deg);
+}
+
+/* Active state */
+.collapse-arrow:active {
+  background: rgba(255,255,255,0.35);
+  transform: scale(0.98);
+}
+
+/* On mobile, adjust size and spacing */
 @media (max-width: 600px) {
   .header-actions {
     gap: 4px;
@@ -1869,9 +1942,13 @@ input[type="checkbox"] {
     font-size: 18px !important;
   }
   .collapse-arrow {
-    min-width: 24px;
-    min-height: 24px;
-    font-size: 1.05rem;
+    min-width: 28px;
+    min-height: 28px;
+    margin-right: 6px;
+  }
+  .collapse-arrow::before {
+    width: 7px;
+    height: 7px;
   }
 }
 
@@ -1907,4 +1984,3 @@ input[type="checkbox"] {
   display: inline-block;
   vertical-align: middle;
 }
-
