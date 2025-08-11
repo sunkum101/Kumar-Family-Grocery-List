@@ -17,6 +17,14 @@ body, html {
   box-sizing: border-box !important;
 }
 
+/* When editing text, allow selection globally */
+body.text-selection-active {
+  -webkit-user-select: auto;
+     -moz-user-select: auto;
+      -ms-user-select: auto;
+          user-select: auto;
+}
+
 /* --- Modern Top Bar --- */
 .top-bar {
   display: flex;
@@ -402,7 +410,7 @@ body, html {
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 12px; /* Increased from 6px for better spacing */
+  gap: 21px; /* This is line 405. It controls the spacing. */
   margin-left: auto; /* Push to the right, before collapse arrow */
 }
 
@@ -720,7 +728,8 @@ li.zero-count {
 
 /* Move handle for items: square white background, like bin icon */
 .item-move-handle {
-  margin-left: 8px;
+  margin-left: 4px;      /* Reduce left margin */
+  margin-right: 20px;     /* Add right margin to move icon leftwards */
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -735,10 +744,9 @@ li.zero-count {
   color: #888;
 }
 
-.item-move-handle svg {
-  width: 18px;
-  height: 18px;
-  display: block;
+.item-move-handle i {
+  font-size: 18px;
+  color: #666;
 }
 
 .item-move-handle:active {
@@ -1660,51 +1668,49 @@ input[type="checkbox"] {
 .undo-toast {
   position: fixed;
   left: 50%;
-  bottom: 120px; /* Place above the Add New Store button (which has margin-bottom: 100px) */
+  bottom: 38px;
   transform: translateX(-50%);
   z-index: 3000;
-  background: #f1f5f9; /* Lighter background */
-  color: #1e293b; /* Darker text */
-  padding: 13px 22px 13px 18px;
-  border-radius: 13px;
-  box-shadow: 0 4px 24px rgba(30,40,60,0.18), 0 1.5px 4px rgba(60,80,130,0.10);
-  font-size: 1.09rem;
-  font-weight: 700;
+  background: rgba(34,44,61,0.82);
+  color: #fff;
+  padding: 10px 18px 10px 14px;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(30,40,60,0.18), 0 1.5px 4px rgba(60,80,130,0.10);
+  font-size: 1.01rem;
+  font-weight: 600;
   display: flex;
   align-items: center;
-  gap: 18px;
-  animation: undo-flash 0.5s;
+  gap: 12px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   opacity: 0.97;
   pointer-events: auto;
-  width: 90vw; /* Make it wider */
-  max-width: 450px; /* Set a max-width for desktop */
-  box-sizing: border-box; /* Ensure padding is included in width */
+  min-width: 0;
+  max-width: 85vw;
   white-space: pre-line;
-}
-
-@keyframes undo-flash {
-  0% { box-shadow: 0 0 0 0 #22c55e55; }
-  60% { box-shadow: 0 0 0 12px #22c55e33; }
-  100% { box-shadow: 0 4px 24px rgba(30,40,60,0.18), 0 1.5px 4px rgba(60,80,130,0.10);}
+  border: 1.5px solid rgba(255,255,255,0.10);
+  transition: box-shadow 0.18s, background 0.18s;
 }
 
 .undo-toast .undo-message {
   flex: 1 1 auto;
-  font-size: 1.09rem;
-  font-weight: 700;
-  color: #1e293b; /* Match the new darker text color */
-  margin-right: 8px;
+  font-size: 1.01rem;
+  font-weight: 600;
+  color: #fff;
+  margin-right: 6px;
+  letter-spacing: 0.01em;
+  line-height: 1.3;
 }
 
 .undo-toast .undo-btn {
   background: linear-gradient(90deg, #22c55e 0%, #38bdf8 100%);
   color: #fff;
-  font-size: 1.01rem;
+  font-size: 0.97rem;
   font-weight: 700;
   border: none;
   border-radius: 8px;
-  padding: 7px 18px;
-  margin-left: 8px;
+  padding: 7px 16px;
+  margin-left: 4px;
   cursor: pointer;
   box-shadow: 0 1px 4px rgba(34,197,94,0.13);
   transition: background 0.13s, color 0.13s, box-shadow 0.13s;
@@ -1717,25 +1723,33 @@ input[type="checkbox"] {
   box-shadow: 0 2px 8px rgba(34,197,94,0.18);
 }
 
-/* --- Move/Delete/Reset Toggle Button: Blinking effect when active --- */
-@keyframes moveDeleteBlink {
-  0%   { filter: brightness(1.0) saturate(1.0); opacity: 1; }
-  40%  { filter: brightness(1.35) saturate(1.4); opacity: 1; box-shadow: 0 0 0 8px #ffe7b0; }
-  50%  { filter: brightness(0.8) saturate(0.8); opacity: 0.5; box-shadow: 0 0 0 0 #ffe7b0; }
-  60%  { filter: brightness(1.35) saturate(1.4); opacity: 1; box-shadow: 0 0 0 8px #ffe7b0; }
-  100% { filter: brightness(1.0) saturate(1.0); opacity: 1; box-shadow: 0 0 0 0 #ffe7b0; }
+/* Animation for subtle appearance */
+@keyframes undo-flash {
+  0% { box-shadow: 0 0 0 0 #22c55e55; }
+  60% { box-shadow: 0 0 0 8px #22c55e33; }
+  100% { box-shadow: 0 8px 32px rgba(30,40,60,0.18), 0 1.5px 4px rgba(60,80,130,0.10);}
 }
-#move-delete-toggle.editing-mode {
-  animation: moveDeleteBlink 0.6s linear infinite !important;
-  /* Use !important to override any other animation/fade */
-  box-shadow: 0 0 0 0 #ffe7b0, 0 1px 4px rgba(60,80,130,0.09) !important;
-  border: 2px solid #fbbf24 !important;
-  opacity: 1 !important;
-  /* Prevent transitions from interfering with animation */
-  transition: none !important;
+.undo-toast {
+  animation: undo-flash 0.5s;
 }
 
-/* --- Per-table professional color classes (darker, accessible palette) --- */
+/* Responsive: make toast even more compact on small screens */
+@media (max-width: 430px) {
+  .undo-toast {
+    padding: 8px 10px 8px 10px;
+    font-size: 0.97rem;
+    border-radius: 13px;
+    gap: 8px;
+    bottom: 18px;
+    max-width: 98vw;
+  }
+  .undo-toast .undo-btn {
+    padding: 6px 12px;
+    font-size: 0.93rem;
+  }
+}
+
+/* --- Table header colors: readable, not white --- */
 .header.veggies-header      { background: #b8dbc7 !important; color: #23472b !important; }
 .header.indian-header       { background: #d7c3e6 !important; color: #4b2956 !important; }
 .header.bigw_target_kmart-header { background: #c3d4ea !important; color: #23324b !important; }
@@ -1744,16 +1758,7 @@ input[type="checkbox"] {
 .header.test-header         { background: #e2d3cb !important; color: #4e342e !important; }
 .header.default-header      { background: #c3d4ea !important; color: #232c3d !important; }
 
-/* --- Remove duplicate header color rules and keep only one per class --- */
-/* .header.veggies-header      { background: #b8dbc7 !important; color: #23472b !important; } */
-/* .header.indian-header       { background: #d7c3e6 !important; color: #4b2956 !important; } */
-/* .header.bigw_target_kmart-header { background: #c3d4ea !important; color: #23324b !important; } */
-/* .header.bunnings-header     { background: #cfd8dc !important; color: #263238 !important; } */
-/* .header.officeworks-header  { background: #f3cccc !important; color: #8b1c1c !important; } */
-/* .header.test-header         { background: #e2d3cb !important; color: #4e342e !important; } */
-/* .header.default-header      { background: #c3d4ea !important; color: #232c3d !important; } */
-
-/* Remove duplicate color rules for header children */
+/* Ensure header children also use readable color */
 .header,
 .header * { color: #232c3d !important; }
 .header.veggies-header,
@@ -1771,984 +1776,67 @@ input[type="checkbox"] {
 .header.default-header,
 .header.default-header * { color: #232c3d !important; }
 
-/* --- Context Menu for Table Header --- */
-.header-context-menu {
-  position: fixed;
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(30,40,60,0.18);
-  padding: 8px 0;
-  min-width: 140px;
-  font-size: 1.05rem;
-  z-index: 6001;
-  border: 1px solid #e3e7ee;
-  animation: fadeInMenu 0.18s;
-}
-@keyframes fadeInMenu {
-  from { opacity: 0; transform: scale(0.97);}
-  to   { opacity: 1; transform: scale(1);}
-}
-.header-context-menu > div {
-  padding: 8px 18px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: background 0.13s;
-}
-.header-context-menu > div:hover {
-  background: #e3f2fd;
-}
-
-.modern-title-main {
-  display: inline-block;
-}
-
-.modern-title-accent {
-  color: #1976d2;
-  font-weight: 900;
-  margin-left: 2px;
-  letter-spacing: 0.01em;
-}
-
-/* Style for family dropdown in Add User modal */
-.family-dropdown {
-  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
-  font-size: 1.08rem;
-  color: #1976d2;
-  font-weight: 700;
-  background: #f7fafd;
-  border: 1.2px solid #c7d1e6;
-  border-radius: 7px;
-  outline: none;
-  margin-bottom: 2px;
-}
-
-/* Style for family options in dropdown */
-.family-dropdown option,
-.family-option {
-  color: #1976d2;
-  font-weight: 700;
-  background: #e3e7ee;
-  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
-}
-
-/* Disabled Add button style in Add User modal */
-#add-user-ok:disabled {
-  opacity: 0.6 !important;
-  cursor: not-allowed !important;
-  background: #bdbdbd !important;
-  color: #fff !important;
-}
-
-/* --- Add User Modal: Modern, bold, large buttons and text --- */
-#add-user-modal-backdrop form#add-user-form {
-  background: #fff;
-  border-radius: 18px;
-  box-shadow: 0 4px 24px rgba(30,40,60,0.18), 0 1.5px 4px rgba(60,80,130,0.10);
-  padding: 28px 18px 18px 18px;
-  min-width: 0;
-  width: 96vw;
-  max-width: 400px;
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  margin: 0 auto;
-  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
-}
-
-#add-user-modal-backdrop .login-title,
-#add-user-modal-backdrop .login-title-modern,
-#add-user-modal-backdrop > div > div:first-child,
-#add-user-modal-backdrop form > div:first-child {
-  font-size: 1.25rem !important;
-  font-weight: 800 !important;
-  color: #232c3d !important;
-  text-align: center;
-  margin-bottom: 6px !important;
-  letter-spacing: 0.01em;
-}
-
-#add-user-modal-backdrop input[type="email"],
-#add-user-modal-backdrop input[type="text"],
-#add-user-modal-backdrop select {
-  font-size: 1.13rem !important;
-  padding: 10px 10px !important;
-  border-radius: 8px !important;
-  border: 1.5px solid #c7d1e6 !important;
-  background: #f7fafd !important;
-  outline: none !important;
-  width: 100% !important;
-  box-sizing: border-box !important;
-  margin-bottom: 8px !important;
-  font-weight: 600 !important;
-}
-
-#add-user-modal-backdrop select {
-  color: #1976d2 !important;
-  font-weight: 700 !important;
-}
-
-#add-user-modal-backdrop .family-dropdown option,
-#add-user-modal-backdrop .family-option {
-  color: #1976d2 !important;
-  font-weight: 700 !important;
-  background: #e3e7ee !important;
-}
-
-#add-user-modal-backdrop #add-user-error {
-  color: #e53935 !important;
-  font-size: 1.09rem !important;
-  min-height: 1.2em;
-  text-align: center;
-  font-weight: 700 !important;
-  margin-bottom: 2px;
-}
-
-#add-user-modal-backdrop .modal-btns,
-#add-user-modal-backdrop .input-modal-btns,
-#add-user-modal-backdrop form > div:last-child {
-  display: flex !important;
-  flex-direction: row !important;
-  gap: 14px !important;
-  justify-content: center !important;
-  align-items: center !important;
-  margin-top: 10px !important;
-  width: 100% !important;
-}
-
-#add-user-modal-backdrop button,
-#add-user-modal-backdrop #add-user-ok,
-#add-user-modal-backdrop #add-user-cancel {
-  min-width: 0 !important;
-  max-width: 180px !important;
-  padding: 13px 0 !important;
-  font-size: 1.13rem !important;
-  border-radius: 9px !important;
-  font-weight: 800 !important;
-  border: none !important;
-  margin: 0 !important;
-  box-shadow: 0 1px 4px rgba(60,80,130,0.09) !important;
-  flex: 1 1 0 !important;
-  transition: background 0.14s, color 0.14s;
-  letter-spacing: 0.01em;
-  outline: none !important;
-  cursor: pointer !important;
-}
-
-#add-user-modal-backdrop #add-user-ok {
-  background: linear-gradient(90deg,#388e3c 60%, #5dd05d 100%) !important;
-  color: #fff !important;
-}
-
-#add-user-modal-backdrop #add-user-cancel {
-  background: #f3f6fa !important;
-  color: #222 !important;
-}
-
-#add-user-modal-backdrop #add-user-ok:active {
-  background: linear-gradient(90deg,#3070b3 0%,#2b79c2 100%) !important;
-}
-#add-user-modal-backdrop #add-user-cancel:active {
-  background: #e0e7ef !important;
-}
-
-#add-user-modal-backdrop #add-user-ok:disabled {
-  opacity: 0.6 !important;
-  cursor: not-allowed !important;
-  background: #bdbdbd !important;
-  color: #fff !important;
-}
-
-/* Radio buttons: larger and spaced */
-#add-user-modal-backdrop input[type="radio"] {
-  width: 1.2em !important;
-  height: 1.2em !important;
-  accent-color: #388e3c !important;
-  margin-right: 7px !important;
-  vertical-align: middle !important;
-}
-
-#add-user-modal-backdrop label {
-  font-size: 1.09rem !important;
-  font-weight: 700 !important;
-  color: #1976d2 !important;
-  display: flex !important;
-  align-items: center !important;
-  gap: 7px !important;
-  margin-bottom: 0 !important;
-  cursor: pointer !important;
-}
-
-/* Responsive: modal width and padding on small screens */
-@media (max-width: 430px) {
-  #add-user-modal-backdrop form#add-user-form {
-    width: 99vw !important;
-    max-width: 99vw !important;
-    padding: 18px 4vw 14px 4vw !important;
-  }
-  #add-user-modal-backdrop .modal-btns,
-  #add-user-modal-backdrop .input-modal-btns,
-  #add-user-modal-backdrop form > div:last-child {
-    gap: 8px !important;
-  }
-  #add-user-modal-backdrop button,
- 
-  #add-user-modal-backdrop #add-user-ok,
-  #add-user-modal-backdrop #add-user-cancel {
-    font-size: 1.09rem !important;
-    padding: 11px 0 !important;
-  }
-}
-
-
-.google-btn-modern:hover,
-.google-btn-modern:focus {
-  background: #f3f6fa;
-  border-color: #1976d2;
-  color: #1976d2;
-  box-shadow: 0 4px 16px rgba(60,80,130,0.13);
-  outline: none;
-}
-.google-logo-modern {
-  width: 32px;
-  height: 32px;
-  display: block;
-}
-
-#google-btn-text-modern {
-  font-size: 1.18rem;
-  font-weight: 700;
-  color: #232c3d;
-}
-
-.login-error-modern {
-  color: #e53935;
-  font-size: 1.01rem;
-  margin-top: 8px;
-  text-align: center;
-  min-height: 1.2em;
-}
-
-/* Responsive for login card */
-@media (max-width: 600px) {
-  .login-card-modern {
-    padding: 32px 8vw 32px 8vw;
-    max-width: 98vw;
-    min-width: 0;
-    border-radius: 16px;
-  }
-  .login-title-modern {
-    font-size: 1.45rem;
-  }
-  .login-desc-modern {
-    font-size: 1.08rem;
-  }
-  .google-btn-modern {
-    font-size: 1.08rem;
-    padding: 12px 0;
-    border-radius: 10px;
-    max-width: 99vw;
-  }
-  .login-logo-modern {
-    width: 54px;
-    height: 54px;
-  }
-}
-
-/* Hide old login card if present */
-.login-card, .login-bg {
-  display: none !important;
-}
-
-/* --- MODALS: Position input modals higher on mobile to avoid keyboard overlap --- */
-@media (max-width: 600px) {
-  .input-modal-backdrop.active,
-  .modal-backdrop.active {
-    align-items: flex-start !important;
-    justify-content: center !important;
-  }
-  .input-modal-dialog,
-  .modal-dialog {
-    margin-top: 10vh !important;
-    margin-bottom: 0 !important;
-  }
-}
-
-/* For very small screens, push even higher */
-@media (max-width: 430px) {
-  .input-modal-dialog,
-  .modal-dialog {
-    margin-top: 4vh !important;
-  }
-}
-
-/* --- Make input modal dialog float above keyboard, centered, not full width --- */
-@media (max-width: 600px) {
-  .input-modal-backdrop.active {
-    align-items: flex-end !important;
-    justify-content: center !important;
-  }
-  .input-modal-dialog {
-    position: fixed !important;
-    left: 50% !important;
-    /* Place the dialog above the keyboard, but not at the very bottom */
-    bottom: 18vh !important;
-    transform: translateX(-50%) !important;
-    width: 92vw !important;
-    max-width: 340px !important;
-    min-width: 0 !important;
-    border-radius: 13px !important;
-    margin: 0 !important;
-    z-index: 2001 !important;
-    box-shadow: 0 2px 16px rgba(0,0,0,0.13);
-    background: #fff;
-    padding-bottom: 12px;
-  }
-}
-
-/* For very small screens, float a bit higher and keep width reasonable */
-@media (max-width: 430px) {
-  .input-modal-dialog {
-    bottom: 24vh !important;
-    width: 97vw !important;
-    max-width: 99vw !important;
-  }
-}
-
-/* Add white rectangle background to the delete and move buttons in table headers */
-.table-delete-btn, .table-move-handle {
-  background: #fff !important;
-  border-radius: 7px !important;
-  box-shadow: 0 1.5px 4px rgba(60,80,130,0.10);
-  border: 1.5px solid #bbb !important;
-  padding: 0 !important;
-  width: 32px !important;
-  height: 32px !important;
-  min-width: 32px !important;
-  min-height: 32px !important;
-  display: inline-flex !important;
-  align-items: center;
-  justify-content: center;
-  margin-right: 0 !important;
-}
-
-/* Hide modals by default, show only when active */
-.modal-backdrop {
-  display: none !important;
-}
-
-/* --- MODAL DEBUG: Hide all modals by default, only show when .active is present --- */
-.modal-backdrop {
-  display: none !important;
-  align-items: center !important;
-  justify-content: center !important;
-  position: fixed !important;
-  left: 0; top: 0; right: 0; bottom: 0;
-  z-index: 2000;
-  background: rgba(30,40,60,0.18);
-}
-.modal-backdrop.active {
-  display: flex !important;
-}
-
-/* Make sure .modal-dialog is only visible when .modal-backdrop is active */
-.modal-backdrop:not(.active) .modal-dialog {
-  display: none !important;
-}
-
-/* --- Modern Professional Action Buttons --- */
-.row-btns .action-btn,
-.row-btns .add-table-btn {
-  font-family: 'Inter', 'Segoe UI', Arial, sans-serif !important;
-  font-size: 1.13rem !important;
-  font-weight: 700 !important;
-  border-radius: 13px !important;
-  border: none !important;
-  box-shadow: 0 2px 8px rgba(60,80,130,0.09);
-  padding: 0.85em 0.5em !important;
-  margin: 0 7px 0 0 !important;
-  min-height: 44px !important;
-  max-height: 54px !important;
-  flex: 1 1 0;
-  transition: background 0.16s, box-shadow 0.13s, color 0.13s, transform 0.11s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  letter-spacing: 0.01em;
-  outline: none;
-  cursor: pointer;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  box-sizing: border-box;
-}
-
-.row-btns .action-btn:last-child,
-.row-btns .add-table-btn:last-child {
-  margin-right: 0 !important;
-}
-
-/* Edit Button */
-.row-btns .action-btn.move-delete {
-  background: linear-gradient(90deg, #ffb347 0%, #ffcc80 100%) !important;
-  color: #232323 !important;
-  border: 1.5px solid #f59e42 !important;
-  box-shadow: 0 2px 8px rgba(245,158,66,0.10);
-}
-.row-btns .action-btn.move-delete.editing-mode {
-  background: linear-gradient(90deg, #f59e42 0%, #fbbf24 100%) !important;
-  color: #333 !important;
-  border: 1.5px solid #f59e42 !important;
-}
-
-/* Reset Button */
-.row-btns .action-btn.reset {
-  background: linear-gradient(90deg, #6366f1 0%, #60a5fa 100%) !important;
-  color: #fff !important;
-  border: 1.5px solid #6366f1 !important;
-  box-shadow: 0 2px 8px rgba(99,102,241,0.10);
-}
-
-/* Check Zeros Button */
-.row-btns .action-btn.check-zeros {
-  background: linear-gradient(90deg, #22c55e 0%, #38bdf8 100%) !important;
-  color: #fff !important;
-  border: 1.5px solid #22c55e !important;
-  box-shadow: 0 2px 8px rgba(34,197,94,0.10);
-}
-
-/* Button hover/active/focus states */
-.row-btns .action-btn:hover,
-.row-btns .action-btn:focus {
-  filter: brightness(1.07) saturate(1.08);
-  transform: translateY(-2px) scale(1.04);
-  box-shadow: 0 4px 16px rgba(60,80,130,0.13);
-  outline: none;
-}
-.row-btns .action-btn:active {
-  filter: brightness(0.97);
-  transform: scale(0.98);
-}
-
-/* Make sure text is always centered and ellipsis if too long */
-.row-btns .action-btn span,
-.row-btns .action-btn {
-  text-align: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* Reduce height for the three main action buttons */
-.row-btns .action-btn,
-.row-btns .add-table-btn {
-  min-height: 28px !important; /* was 32px */
-  max-height: 32px !important; /* was 38px */
-  padding: 0.35em 0.35em !important; /* was 0.5em 0.5em */
-  font-size: 0.97rem !important; /* was 1.13rem */
-}
-
-/* Responsive: smaller on mobile */
-@media (max-width: 600px) {
-  .row-btns .action-btn,
-  .row-btns .add-table-btn {
-    min-height: 28px !important;
-    max-height: 34px !important;
-    padding: 0.4em 0.3em !important;
-  }
-}
-
-/* Hide the add-table-btn when the table is collapsed */
-.container.collapsed > .add-table-btn {
-  display: none !important;
-}
-
-/* Remove !important from display for .add-table-btn so JS/CSS can control it */
-.container > .add-table-btn,
-.container > .add-table-btn:only-child {
-  width: auto !important;
-  min-width: 0 !important;
-  max-width: 180px !important;
-  display: inline-flex;
-}
-
-/* Style the main "+ Add New Store & Item" button to be darker, centered, and spaced down */
-.add-table-btn-wrap {
-  width: 100%;
-  display: flex;
-  justify-content: center;      /* Center horizontally */
-  align-items: flex-start;
-  margin: 54px 0 0 0;           /* Increased from 38px to 54px for more space from top */
-  padding-left: 0;
-  margin-bottom: 160px; /* Keep as is for bottom space */
-}
-
-#add-table-btn-main.add-table-btn {
-  background: linear-gradient(90deg, #959494 0%, #959494 100%) !important;
-  color: #fff !important;
-  border: 1.5px solid #222 !important;
-  font-size: 1.09rem !important;
-  min-height: 34px !important;
-  max-height: 40px !important;
-  padding: 0 22px !important;
-  border-radius: 9px !important;
-  font-weight: 700 !important;
-  margin: 0 auto !important;
-  box-shadow: 0 2px 8px rgba(60,80,130,0.10);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.13s, border-color 0.13s, color 0.13s;
-}
-
-#add-table-btn-main.add-table-btn:hover {
-  background: linear-gradient(90deg, #222 0%, #444 100%) !important;
-  color: #fff !important;
-  border-color: #111 !important;
-}
-
-/* Restore per-table "+ Add Item" button styles (do NOT override with dark color or center) */
-.container > .add-table-btn,
-.container > .add-table-btn:only-child {
-  width: auto !important;
-  min-width: 0 !important;
-  max-width: 180px !important;
-  display: inline-flex;
-}
-
-/* Center and space down the main button only */
-.add-table-btn-wrap {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  margin: 38px 0 0 0;
-  padding-left: 0;
-}
-
-/* Center modal dialog vertically and horizontally on all screens */
-.modal-backdrop {
-  display: none !important;
-  align-items: center !important;
-  justify-content: center !important;
-}
-.modal-backdrop.active {
-  display: flex !important;
-}
-
-/* --- MODAL CENTERING FIX: Always center modal dialog in viewport --- */
-.modal-backdrop,
-.modal-backdrop.active {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  position: fixed !important;
-  left: 0; top: 0; right: 0; bottom: 0;
-  z-index: 2000;
-  background: rgba(30,40,60,0.18);
-}
-
-/* Ensure modal-dialog is centered and not positioned at the bottom */
-.modal-dialog {
-  margin: 0 !important;
-  position: relative !important;
-  top: auto !important;
-  left: auto !important;
-  right: auto !important;
-  bottom: auto !important;
-  transform: none !important;
-}
-
-/* Remove any mobile overrides that push modal to the top or bottom */
-@media (max-width: 600px) {
-  .modal-backdrop.active {
-    align-items: center !important;
-    justify-content: center !important;
-  }
-  .modal-dialog {
-    margin: 0 !important;
-    position: relative !important;
-    top: auto !important;
-    left: auto !important;
-    right: auto !important;
-    bottom: auto !important;
-    transform: none !important;
-  }
-}
-
-/* --- FIX: Prevent modal-backdrop from blocking clicks when not active --- */
-.modal-backdrop {
-  display: none !important;
-  pointer-events: none !important; /* Do not block clicks when hidden */
-}
-.modal-backdrop.active {
-  display: flex !important;
-  pointer-events: auto !important; /* Only block clicks when active */
-}
-
-/* Add gap between delete and move icons in table header */
-.header .table-delete-btn {
-  margin-right: 14px !important; /* Increase this value for more gap */
-}
-
-/* Table header delete and move icons: same height and width */
-.header .table-delete-btn,
-.header .table-move-handle {
-  width: 32px !important;
-  height: 32px !important;
-  min-width: 32px !important;
-  min-height: 32px !important;
-  display: inline-flex !important;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Make SVGs inside both icons the same size */
-.header .table-delete-btn svg,
-.header .table-move-handle svg {
-  width: 22px !important;
-  height: 22px !important;
-  display: block;
-}
-
-/* --- Undo Toast: Show above the Add New Store button, floating, centered, visually clear --- */
-.undo-toast {
+/* --- SYNC TOAST: Floating notification for sync status --- */
+.sync-toast {
   position: fixed;
   left: 50%;
-  bottom: 120px; /* Place above the Add New Store button (which has margin-bottom: 100px) */
+  top: 22px;
   transform: translateX(-50%);
-  z-index: 3000;
-  background: #232c3d;
+  z-index: 4000;
+  background: rgba(25, 118, 210, 0.85); /* glassy blue */
   color: #fff;
-  padding: 13px 22px 13px 18px;
-  border-radius: 13px;
-  box-shadow: 0 4px 24px rgba(30,40,60,0.18), 0 1.5px 4px rgba(60,80,130,0.10);
-  font-size: 1.09rem;
+  padding: 14px 32px 14px 22px;
+  border-radius: 18px;
+  box-shadow: 0 8px 32px rgba(30,40,60,0.18), 0 1.5px 4px rgba(60,80,130,0.10);
+  font-size: 1.13rem;
   font-weight: 700;
   display: flex;
   align-items: center;
-  gap: 18px;
-  animation: undo-flash 0.5s;
+  gap: 14px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   opacity: 0.97;
-  pointer-events: auto;
+  pointer-events: none;
   min-width: 0;
-  max-width: 90vw;
-  white-space: pre-line;
+  max-width: 92vw;
+  white-space: nowrap;
+  border: 1.5px solid rgba(255,255,255,0.18);
+  animation: sync-flash 1.2s linear infinite;
+  transition: box-shadow 0.18s, background 0.18s;
 }
-
-@keyframes undo-flash {
-  0% { box-shadow: 0 0 0 0 #22c55e55; }
-  60% { box-shadow: 0 0 0 12px #22c55e33; }
-  100% { box-shadow: 0 4px 24px rgba(30,40,60,0.18), 0 1.5px 4px rgba(60,80,130,0.10);}
-}
-
-.undo-toast .undo-message {
-  flex: 1 1 auto;
-  font-size: 1.09rem;
-  font-weight: 700;
-  color: #fff;
+.sync-toast i {
+  font-size: 1.35em;
   margin-right: 8px;
-}
-
-.undo-toast .undo-btn {
-  background: linear-gradient(90deg, #22c55e 0%, #38bdf8 100%);
   color: #fff;
-  font-size: 1.01rem;
-  font-weight: 700;
-  border: none;
-  border-radius: 8px;
-  padding: 7px 18px;
-  margin-left: 8px;
-  cursor: pointer;
-  box-shadow: 0 1px 4px rgba(34,197,94,0.13);
-  transition: background 0.13s, color 0.13s, box-shadow 0.13s;
-  outline: none;
+  filter: drop-shadow(0 2px 6px #1565c0aa);
 }
-.undo-toast .undo-btn:active,
-.undo-toast .undo-btn:focus {
-  background: linear-gradient(90deg, #38bdf8 0%, #22c55e 100%);
-  color: #fff;
-  box-shadow: 0 2px 8px rgba(34,197,94,0.18);
+.sync-toast .sync-progress-bar {
+  height: 4px;
+  width: 48px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #fff 0%, #90caf9 100%);
+  margin-left: 12px;
+  overflow: hidden;
+  position: relative;
 }
-
-/* --- Move/Delete/Reset Toggle Button: Blinking effect when active --- */
-@keyframes moveDeleteBlink {
-  0%   { filter: brightness(1.0) saturate(1.0); opacity: 1; }
-  40%  { filter: brightness(1.35) saturate(1.4); opacity: 1; box-shadow: 0 0 0 8px #ffe7b0; }
-  50%  { filter: brightness(0.8) saturate(0.8); opacity: 0.5; box-shadow: 0 0 0 0 #ffe7b0; }
-  60%  { filter: brightness(1.35) saturate(1.4); opacity: 1; box-shadow: 0 0 0 8px #ffe7b0; }
-  100% { filter: brightness(1.0) saturate(1.0); opacity: 1; box-shadow: 0 0 0 0 #ffe7b0; }
+.sync-toast .sync-progress-bar::before {
+  content: '';
+  position: absolute;
+  left: -48px;
+  top: 0;
+  height: 100%;
+  width: 48px;
+  background: linear-gradient(90deg, #90caf9 0%, #fff 100%);
+  animation: sync-progress-move 1.2s linear infinite;
+  border-radius: 2px;
 }
-#move-delete-toggle.editing-mode {
-  animation: moveDeleteBlink 0.6s linear infinite !important;
-  /* Use !important to override any other animation/fade */
-  box-shadow: 0 0 0 0 #ffe7b0, 0 1px 4px rgba(60,80,130,0.09) !important;
-  border: 2px solid #fbbf24 !important;
-  opacity: 1 !important;
-  /* Prevent transitions from interfering with animation */
-  transition: none !important;
+@keyframes sync-progress-move {
+  0% { left: -48px; }
+  100% { left: 48px; }
 }
-
-/* --- Per-table professional color classes (darker, accessible palette) --- */
-.header.veggies-header      { background: #b8dbc7 !important; color: #23472b !important; }
-.header.indian-header       { background: #d7c3e6 !important; color: #4b2956 !important; }
-.header.bigw_target_kmart-header { background: #c3d4ea !important; color: #23324b !important; }
-.header.bunnings-header     { background: #cfd8dc !important; color: #263238 !important; }
-.header.officeworks-header  { background: #f3cccc !important; color: #8b1c1c !important; }
-.header.test-header         { background: #e2d3cb !important; color: #4e342e !important; }
-.header.default-header      { background: #c3d4ea !important; color: #232c3d !important; }
-
-/* --- Remove duplicate header color rules and keep only one per class --- */
-/* .header.veggies-header      { background: #b8dbc7 !important; color: #23472b !important; } */
-/* .header.indian-header       { background: #d7c3e6 !important; color: #4b2956 !important; } */
-/* .header.bigw_target_kmart-header { background: #c3d4ea !important; color: #23324b !important; } */
-/* .header.bunnings-header     { background: #cfd8dc !important; color: #263238 !important; } */
-/* .header.officeworks-header  { background: #f3cccc !important; color: #8b1c1c !important; } */
-/* .header.test-header         { background: #e2d3cb !important; color: #4e342e !important; } */
-/* .header.default-header      { background: #c3d4ea !important; color: #232c3d !important; } */
-
-/* Remove duplicate color rules for header children */
-.header,
-.header * { color: #232c3d !important; }
-.header.veggies-header,
-.header.veggies-header * { color: #23472b !important; }
-.header.indian-header,
-.header.indian-header * { color: #4b2956 !important; }
-.header.bigw_target_kmart-header,
-.header.bigw_target_kmart-header * { color: #23324b !important; }
-.header.bunnings-header,
-.header.bunnings-header * { color: #263238 !important; }
-.header.officeworks-header,
-.header.officeworks-header * { color: #8b1c1c !important; }
-.header.test-header,
-.header.test-header * { color: #4e342e !important; }
-.header.default-header,
-.header.default-header * { color: #232c3d !important; }
-
-/* --- Context Menu for Table Header --- */
-.header-context-menu {
-  position: fixed;
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(30,40,60,0.18);
-  padding: 8px 0;
-  min-width: 140px;
-  font-size: 1.05rem;
-  z-index: 6001;
-  border: 1px solid #e3e7ee;
-  animation: fadeInMenu 0.18s;
-}
-@keyframes fadeInMenu {
-  from { opacity: 0; transform: scale(0.97);}
-  to   { opacity: 1; transform: scale(1);}
-}
-.header-context-menu > div {
-  padding: 8px 18px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: background 0.13s;
-}
-.header-context-menu > div:hover {
-  background: #e3f2fd;
-}
-
-.modern-title-main {
-  display: inline-block;
-}
-
-.modern-title-accent {
-  color: #1976d2;
-  font-weight: 900;
-  margin-left: 2px;
-  letter-spacing: 0.01em;
-}
-
-/* Style for family dropdown in Add User modal */
-.family-dropdown {
-  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
-  font-size: 1.08rem;
-  color: #1976d2;
-  font-weight: 700;
-  background: #f7fafd;
-  border: 1.2px solid #c7d1e6;
-  border-radius: 7px;
-  outline: none;
-  margin-bottom: 2px;
-}
-
-/* Style for family options in dropdown */
-.family-dropdown option,
-.family-option {
-  color: #1976d2;
-  font-weight: 700;
-  background: #e3e7ee;
-  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
-}
-
-/* Disabled Add button style in Add User modal */
-#add-user-ok:disabled {
-  opacity: 0.6 !important;
-  cursor: not-allowed !important;
-  background: #bdbdbd !important;
-  color: #fff !important;
-}
-
-/* --- Add User Modal: Modern, bold, large buttons and text --- */
-#add-user-modal-backdrop form#add-user-form {
-  background: #fff;
-  border-radius: 18px;
-  box-shadow: 0 4px 24px rgba(30,40,60,0.18), 0 1.5px 4px rgba(60,80,130,0.10);
-  padding: 28px 18px 18px 18px;
-  min-width: 0;
-  width: 96vw;
-  max-width: 400px;
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  margin: 0 auto;
-  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
-}
-
-#add-user-modal-backdrop .login-title,
-#add-user-modal-backdrop .login-title-modern,
-#add-user-modal-backdrop > div > div:first-child,
-#add-user-modal-backdrop form > div:first-child {
-  font-size: 1.25rem !important;
-  font-weight: 800 !important;
-  color: #232c3d !important;
-  text-align: center;
-  margin-bottom: 6px !important;
-  letter-spacing: 0.01em;
-}
-
-#add-user-modal-backdrop input[type="email"],
-#add-user-modal-backdrop input[type="text"],
-#add-user-modal-backdrop select {
-  font-size: 1.13rem !important;
-  padding: 10px 10px !important;
-  border-radius: 8px !important;
-  border: 1.5px solid #c7d1e6 !important;
-  background: #f7fafd !important;
-  outline: none !important;
-  width: 100% !important;
-  box-sizing: border-box !important;
-  margin-bottom: 8px !important;
-  font-weight: 600 !important;
-}
-
-#add-user-modal-backdrop select {
-  color: #1976d2 !important;
-  font-weight: 700 !important;
-}
-
-#add-user-modal-backdrop .family-dropdown option,
-#add-user-modal-backdrop .family-option {
-  color: #1976d2 !important;
-  font-weight: 700 !important;
-  background: #e3e7ee !important;
-}
-
-#add-user-modal-backdrop #add-user-error {
-  color: #e53935 !important;
-  font-size: 1.09rem !important;
-  min-height: 1.2em;
-  text-align: center;
-  font-weight: 700 !important;
-  margin-bottom: 2px;
-}
-
-#add-user-modal-backdrop .modal-btns,
-#add-user-modal-backdrop .input-modal-btns,
-#add-user-modal-backdrop form > div:last-child {
-  display: flex !important;
-  flex-direction: row !important;
-  gap: 14px !important;
-  justify-content: center !important;
-  align-items: center !important;
-  margin-top: 10px !important;
-  width: 100% !important;
-}
-
-#add-user-modal-backdrop button,
-#add-user-modal-backdrop #add-user-ok,
-#add-user-modal-backdrop #add-user-cancel {
-  min-width: 0 !important;
-  max-width: 180px !important;
-  padding: 13px 0 !important;
-  font-size: 1.13rem !important;
-  border-radius: 9px !important;
-  font-weight: 800 !important;
-  border: none !important;
-  margin: 0 !important;
-  box-shadow: 0 1px 4px rgba(60,80,130,0.09) !important;
-  flex: 1 1 0 !important;
-  transition: background 0.14s, color 0.14s;
-  letter-spacing: 0.01em;
-  outline: none !important;
-  cursor: pointer !important;
-}
-
-#add-user-modal-backdrop #add-user-ok {
-  background: linear-gradient(90deg,#388e3c 60%, #5dd05d 100%) !important;
-  color: #fff !important;
-}
-
-#add-user-modal-backdrop #add-user-cancel {
-  background: #f3f6fa !important;
-  color: #222 !important;
-}
-
-#add-user-modal-backdrop #add-user-ok:active {
-  background: linear-gradient(90deg,#3070b3 0%,#2b79c2 100%) !important;
-}
-#add-user-modal-backdrop #add-user-cancel:active {
-  background: #e0e7ef !important;
-}
-
-#add-user-modal-backdrop #add-user-ok:disabled {
-  opacity: 0.6 !important;
-  cursor: not-allowed !important;
-  background: #bdbdbd !important;
-  color: #fff !important;
-}
-
-/* Radio buttons: larger and spaced */
-#add-user-modal-backdrop input[type="radio"] {
-  width: 1.2em !important;
-  height: 1.2em !important;
-  accent-color: #388e3c !important;
-  margin-right: 7px !important;
-  vertical-align: middle !important;
-}
-
-#add-user-modal-backdrop label {
-  font-size: 1.09rem !important;
-  font-weight: 700 !important;
-  color: #1976d2 !important;
-  display: flex !important;
-  align-items: center !important;
-  gap: 7px !important;
-  margin-bottom: 0 !important;
-  cursor: pointer !important;
-}
-
-/* Responsive: modal width and padding on small screens */
-@media (max-width: 430px) {
-  #add-user-modal-backdrop form#add-user-form {
-    width: 99vw !important;
-    max-width: 99vw !important;
-    padding: 18px 4vw 14px 4vw !important;
-  }
-  #add-user-modal-backdrop .modal-btns,
-  #add-user-modal-backdrop .input-modal-btns,
-  #add-user-modal-backdrop form > div:last-child {
-    gap: 8px !important;
-  }
-  #add-user-modal-backdrop button,
-  #add-user-modal-backdrop #add-user-ok,
-  #add-user-modal-backdrop #add-user-cancel {
-    font-size: 1.09rem !important;
-    padding: 11px 0 !important;
-  }
+@keyframes sync-flash {
+  0%,100%{opacity:1;}
+  50%{opacity:0.7;}
 }
 
 
