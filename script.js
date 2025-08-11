@@ -1,9 +1,29 @@
 // --- AUTH & DOM READY ---
 document.addEventListener("DOMContentLoaded", function () {
+  // --- Set application title and branding ---
+  const mainTitle = document.querySelector('.center-title');
+  if (mainTitle) {
+    mainTitle.innerHTML = '<i class="fas fa-clipboard-list" style="margin-right: 10px; color: #1976d2;"></i> <span class="main-title-your">Your</span> <span class="main-title-swiftlist">SwiftList</span>';
+  }
+  const loginTitle = document.querySelector('.login-title-modern');
+  if (loginTitle) {
+    loginTitle.innerHTML = 'Welcome to Your <span class="brand-accent">SwiftList</span>';
+  }
+  const loginLogo = document.querySelector('.login-logo-modern');
+  if (loginLogo) {
+    loginLogo.innerHTML = '<i class="fas fa-clipboard-list" style="font-size: 48px; color: #1976d2;"></i>';
+  }
+
   // --- Ensure Firebase SDK is loaded ---
   if (typeof firebase === "undefined" || !firebase.app) {
     alert("Firebase SDK not loaded. Please check your internet connection and script includes.");
     return;
+  }
+
+  // --- Hide the Edit button on load ---
+  const moveDeleteBtn = document.getElementById('move-delete-toggle');
+  if (moveDeleteBtn) {
+    moveDeleteBtn.style.display = 'none';
   }
 
   // --- Prevent double initialization ---
@@ -31,10 +51,22 @@ document.addEventListener("DOMContentLoaded", function () {
   let USER_EMAIL = null;
   let USER_LIST_KEY = null; // This will be set to the user's family
   let isLoggedIn = false; // Track login state
+  let isVoiceAdding = false; // Flag to prevent re-render during voice add
 
   // --- Utility: Normalize email for matching ---
   function normalizeEmail(email) {
     return (email || '').trim().toLowerCase();
+  }
+
+  // --- Utility: Convert string to Proper Case ---
+  function toProperCase(str) {
+    if (!str) return '';
+    return str.replace(
+      /\w\S*/g,
+      function(txt) {
+        return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
+      }
+    );
   }
 
   // --- Fetch Authorised Users from DB ---
@@ -106,10 +138,15 @@ document.addEventListener("DOMContentLoaded", function () {
     if (shoppingListRef) shoppingListRef.off();
     shoppingListRef = db.ref(`/shoppingListsPerFamily/${family}`);
     shoppingListRef.on('value', snap => {
+      // --- If a voice add is in progress, skip this update to prevent duplicates ---
+      if (isVoiceAdding) {
+        return;
+      }
       const data = snap.val() || {};
       groceryData = {};
       tableNames = {};
       categories = [];
+      tempOrders = {}; // Clear and reload temp orders on each sync
 
       // --- Collect all unique table keys from groceryLists, tableNames, and tableOrder ---
       const rawGroceryLists = data.groceryLists || {};
@@ -128,6 +165,16 @@ document.addEventListener("DOMContentLoaded", function () {
         if (rawTableNames[cat]) tableNames[cat] = rawTableNames[cat];
       });
       categories = allKeys;
+
+      // --- Load temporary orders from DB ---
+      Object.keys(data).forEach(key => {
+        if (key.endsWith('_temp_items_orders_check_zeros_btn')) {
+          const cat = key.replace('_temp_items_orders_check_zeros_btn', '');
+          if (data[key] && Array.isArray(data[key])) {
+            tempOrders[cat] = data[key];
+          }
+        }
+      });
 
       // --- Table order: use DB order, but append any missing keys at the end ---
       let order = Array.isArray(rawTableOrder) ? [...rawTableOrder] : [];
@@ -519,7 +566,7 @@ document.addEventListener("DOMContentLoaded", function () {
     if (!isLoggedIn) return;
     showInputModal('Add new item:', function(name) {
       if (!name) return;
-      const trimmedName = name.trim().replace(/\s+/g, ' ');
+      const trimmedName = toProperCase(name.trim().replace(/\s+/g, ' '));
       if (!trimmedName) return;
 
       // 1. Get current items
@@ -550,6 +597,7 @@ document.addEventListener("DOMContentLoaded", function () {
       groceryData[cat].order.push(nextKey);
       renderList(cat);
       saveCache(); // Save after local update
+      highlightAndScrollToItem(cat, nextKey);
 
       // 3. Add to DB in background (write to shoppingListsPerFamily, not userLists)
       db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${cat}/${nextKey}`).set(item);
@@ -672,18 +720,47 @@ document.addEventListener("DOMContentLoaded", function () {
         `
             : ''
         }
-        <button class="header-burger-menu" data-cat="${cat}" title="More options">
-          <i class="fas fa-bars"></i>
-        </button>
+        <div class="header-actions">
+            <button class="voice-add-btn" data-cat="${cat}" title="Long-press to add item by voice">
+                <span class="icon-stack">
+                  <i class="fas fa-microphone-alt"></i>
+                  <i class="fas fa-plus"></i>
+                </span>
+            </button>
+            <button class="header-burger-menu" data-cat="${cat}" title="More options">
+              <i class="fas fa-ellipsis-v"></i>
+            </button>
+        </div>
         <span class="collapse-arrow">&#9654;</span>
       `;
       header.addEventListener('click', function (e) {
-        if (
-          e.target.classList.contains('header-title') ||
-          e.target.closest('.header-title')
-        ) return;
+        // This listener should ONLY trigger when the header background is clicked,
+        // not its buttons or other child elements.
+        if (e.target !== header) {
+          return;
+        }
         toggleCollapse(cat);
       });
+
+      // --- Add a dedicated click listener for the collapse arrow ---
+      const collapseArrow = header.querySelector('.collapse-arrow');
+      if (collapseArrow) {
+        collapseArrow.addEventListener('click', function(e) {
+          e.stopPropagation(); // Prevent the header's click listener from firing
+          toggleCollapse(cat);
+        });
+      }
+
+      // --- Add a dedicated click listener for the header title ---
+      const headerTitle = header.querySelector('.header-title');
+      if (headerTitle) {
+        headerTitle.addEventListener('click', function(e) {
+          // Do not toggle if a dblclick is in progress for editing
+          if (e.detail > 1) return;
+          e.stopPropagation();
+          toggleCollapse(cat);
+        });
+      }
 
       // --- Add burger menu click handler ---
       const burgerMenu = header.querySelector('.header-burger-menu');
@@ -728,6 +805,48 @@ document.addEventListener("DOMContentLoaded", function () {
           clearTimeout(longPressTimer);
         });
       }
+
+      // --- VOICE BUTTON: Add direct listeners for long-press (mimics burger menu logic) ---
+      const voiceBtn = header.querySelector('.voice-add-btn');
+      if (voiceBtn) {
+        let voiceLongPressTimer = null;
+
+        const startPress = (e) => {
+          // DO NOT preventDefault. The working burger menu does not, and it was breaking this.
+          e.stopPropagation(); // Only stop propagation to prevent header collapse.
+          
+          voiceBtn.classList.add('pressing');
+          
+          voiceLongPressTimer = setTimeout(() => {
+            startVoiceAddItem(cat);
+            if (voiceBtn) voiceBtn.classList.remove('pressing');
+            voiceLongPressTimer = null;
+          }, 500); // 0.5 second press
+        };
+
+        const cancelPress = (e) => {
+          if (voiceLongPressTimer) {
+            clearTimeout(voiceLongPressTimer);
+            voiceLongPressTimer = null;
+          }
+          if (voiceBtn) voiceBtn.classList.remove('pressing');
+        };
+
+        // Mouse events
+        voiceBtn.addEventListener('mousedown', startPress);
+        voiceBtn.addEventListener('mouseup', cancelPress);
+        voiceBtn.addEventListener('mouseleave', cancelPress);
+
+        // Touch events - simplified to match the working burger menu
+        voiceBtn.addEventListener('touchstart', startPress); // Removed { passive: false }
+        voiceBtn.addEventListener('touchend', cancelPress);
+        voiceBtn.addEventListener('touchmove', cancelPress); // Cancel on any finger movement
+        voiceBtn.addEventListener('touchcancel', cancelPress);
+
+        // Prevent click from bubbling to header and causing collapse
+        voiceBtn.addEventListener('click', (e) => e.stopPropagation());
+      }
+
 
       container.appendChild(header);
 
@@ -811,6 +930,80 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
+  // --- DELEGATED EVENT LISTENER FOR VOICE BUTTON LONG-PRESS ---
+  // This is more stable than re-attaching listeners on every render.
+  /* (function setupVoiceButtonListener() {
+    const area = document.getElementById('tables-area');
+    let longPressTimer = null;
+    let pressTarget = null;
+
+    const handlePressStart = (e) => {
+      const btn = e.target.closest('.voice-add-btn');
+      if (!btn) return;
+
+      // Prevent default browser actions (scrolling, context menu) which is CRITICAL for mobile.
+      e.preventDefault(); 
+      e.stopPropagation();
+
+      pressTarget = btn;
+      const cat = btn.dataset.cat;
+      if (!cat) return;
+
+      btn.classList.add('pressing');
+
+      // Clear any existing timer
+      clearTimeout(longPressTimer);
+
+      longPressTimer = setTimeout(() => {
+        startVoiceAddItem(cat);
+        // Once action is fired, we can clear the target
+        if (pressTarget) {
+          pressTarget.classList.remove('pressing');
+          pressTarget = null;
+        }
+        longPressTimer = null; // Mark timer as fired
+      }, 500); // 0.5-second long press
+    };
+
+    const handlePressEnd = (e) => {
+      // If the timer is still running, cancel it.
+      if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
+      }
+      // Always remove the visual feedback
+      if (pressTarget) {
+        pressTarget.classList.remove('pressing');
+        pressTarget = null;
+      }
+    };
+
+    // This listener stops the "click" that fires after touchend from bubbling to the header.
+    const stopClickPropagation = (e) => {
+        const btn = e.target.closest('.voice-add-btn');
+        if (btn) {
+            e.stopPropagation();
+        }
+    };
+
+    // MOUSE EVENTS
+    area.addEventListener('mousedown', handlePressStart);
+    area.addEventListener('mouseup', handlePressEnd);
+    area.addEventListener('mouseleave', handlePressEnd, true); // Use capture for mouseleave
+
+    // TOUCH EVENTS
+    // { passive: false } is required for e.preventDefault() to work in touch events.
+    area.addEventListener('touchstart', handlePressStart, { passive: false });
+    area.addEventListener('touchend', handlePressEnd);
+    area.addEventListener('touchcancel', handlePressEnd); // Handle cases where the touch is cancelled by the system
+    area.addEventListener('touchmove', handlePressEnd); // If finger moves, cancel the long press
+
+    // CLICK EVENT (to prevent header collapse)
+    area.addEventListener('click', stopClickPropagation, true); // Use capture to stop it early
+
+  })(); */
+
+
   // --- Show custom context menu for table header ---
   function showHeaderContextMenu(cat, headerEl, x, y, showUpward = false) {
     // Remove any existing menu
@@ -821,7 +1014,12 @@ document.addEventListener("DOMContentLoaded", function () {
     menu.style.position = 'fixed';
     menu.style.left = x + 'px';
     menu.style.zIndex = 6001;
-    menu.style.background = '#fff';
+    
+    // --- FIX: Set background to a very light shade of the header color ---
+    const headerName = tableNames[cat] || cat;
+    const headerColors = stringToHeaderColor(headerName);
+    menu.style.background = headerColors.lightBg || '#fff'; // Use lightBg from palette
+
     menu.style.borderRadius = '8px';
     menu.style.boxShadow = '0 2px 12px rgba(30,40,60,0.18)';
     menu.style.padding = '8px 0';
@@ -887,7 +1085,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Add Move Items option
     const moveItems = document.createElement('div');
-    moveItems.innerHTML = '<i class="fas fa-up-down-left-right" style="margin-right:8px;color:#1976d2;"></i> Move Items Mode';
+    moveItems.innerHTML = '<i class="fas fa-up-down-left-right" style="margin-right:8px;color:#1976d2;"></i> Move items';
     moveItems.style.padding = '10px 18px';
     moveItems.style.cursor = 'pointer';
     moveItems.style.fontWeight = '600';
@@ -902,7 +1100,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Add Delete Items option
     const deleteItems = document.createElement('div');
-    deleteItems.innerHTML = '<i class="fas fa-trash" style="margin-right:8px;color:#1976d2;"></i> Delete Items Mode';
+    deleteItems.innerHTML = '<i class="fas fa-trash" style="margin-right:8px;color:#1976d2;"></i> Delete Items/List';
     deleteItems.style.padding = '10px 18px';
     deleteItems.style.cursor = 'pointer';
     deleteItems.style.fontWeight = '600';
@@ -917,7 +1115,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Add Reset Items option
     const resetItems = document.createElement('div');
-    resetItems.innerHTML = '<i class="fas fa-rotate-left" style="margin-right:8px;color:#1976d2;"></i> Reset All Items';
+    resetItems.innerHTML = '<i class="fas fa-rotate-left" style="margin-right:8px;color:#1976d2;"></i> Reset List';
     resetItems.style.padding = '10px 18px';
     resetItems.style.cursor = 'pointer';
     resetItems.style.fontWeight = '600';
@@ -926,11 +1124,14 @@ document.addEventListener("DOMContentLoaded", function () {
     resetItems.onmouseleave = () => resetItems.style.background = '';
     resetItems.onclick = function() {
       menu.remove();
-      resetAllItems();
+      resetTable(cat); // <-- FIX: Call resetTable(cat) instead of resetAllItems()
     };
     menu.appendChild(resetItems);
 
     document.body.appendChild(menu);
+
+    // --- Push state for back button dismissal ---
+    history.pushState({ contextMenu: true }, 'Context Menu');
 
     // --- Auto-adjust menu position to avoid overflow ---
     setTimeout(() => {
@@ -952,6 +1153,10 @@ document.addEventListener("DOMContentLoaded", function () {
       document.addEventListener('mousedown', function handler(ev) {
         if (!menu.contains(ev.target)) {
           menu.remove();
+          // If the history state is ours, go back to remove it
+          if (history.state && history.state.contextMenu) {
+            history.back();
+          }
           document.removeEventListener('mousedown', handler);
         }
       });
@@ -1014,15 +1219,15 @@ document.addEventListener("DOMContentLoaded", function () {
   document.getElementById('add-table-btn-main').onclick = function () {
     if (!isLoggedIn) return;
     // Use custom modal for new table name
-    showInputModal('New Store Name:', function(storeName) {
-      if (!storeName) return;
-      const trimmedStoreName = storeName.trim().replace(/\s+/g, ' ');
-      if (!trimmedStoreName) return;
-      const catKey = trimmedStoreName.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+    showInputModal('New List Name:', function(listName) {
+      if (!listName) return;
+      const trimmedListName = listName.trim().replace(/\s+/g, ' ');
+      if (!trimmedListName) return;
+      const catKey = trimmedListName.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
 
       // Add new table to DB (shoppingListsPerFamily)
       db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${catKey}`).set({ order: [] });
-      db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/tableNames/${catKey}`).set(trimmedStoreName);
+      db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/tableNames/${catKey}`).set(trimmedListName);
       db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/tableOrder`).once('value')
         .then(snap => {
           let order = snap.val() || [];
@@ -1037,7 +1242,7 @@ document.addEventListener("DOMContentLoaded", function () {
       // Prompt for first item
       showInputModal('First item name:', function(itemName) {
         if (!itemName) return;
-        const trimmedItemName = itemName.trim().replace(/\s+/g, ' ');
+        const trimmedItemName = toProperCase(itemName.trim().replace(/\s+/g, ' '));
         if (!trimmedItemName) return;
         const nextKey = `item1`;
         const item = { name: trimmedItemName, count: 0, checked: false };
@@ -1127,7 +1332,7 @@ document.addEventListener("DOMContentLoaded", function () {
         <div class="name" title="Alt+Click to edit item name" data-cat="${cat}" data-key="${key}">${item.name}</div>
         ${moveMode ? `
           <span class="item-move-handle" title="Move item">
-            <i class="fas fa-up-down-left-right" style="font-size:18px;color:#666;"></i>
+            <i class="fas fa-up-down-left" style="font-size:18px;color:#666;"></i>
           </span>
         ` : deleteMode ? `
           <button class="item-delete-btn" onclick="deleteItem('${cat}', '${key}')">
@@ -1464,37 +1669,248 @@ document.addEventListener("DOMContentLoaded", function () {
   }
   window.deleteTable = deleteTable;
 
-  // --- Move/Delete/Reset Toggle Button ---
-  document.getElementById('move-delete-toggle').onclick = function (e) {
-    // Remove reset logic from here: reset icon is now just an icon, not clickable
-    moveDeleteMode = !moveDeleteMode;
-    const resetAllBtn = document.getElementById('reset-all');
-    
-    if (moveDeleteMode) {
-      this.innerHTML = `
-        <i class="fas fa-up-down-left-right" style="margin-right: 6px;" title="Move items"></i>
-        <i class="fas fa-trash" style="margin-right: 6px;" title="Delete items"></i>
-        <span class="reset-circle-icon" title="Reset all">
-          <i class="fas fa-rotate-left"></i>
-        </span>
-      `;
-      this.classList.add('editing-mode');
-      // Show the Reset All button when in editing mode
-      if (resetAllBtn) resetAllBtn.style.display = '';
-    } else {
-      this.innerHTML = `
-        <i class="fas fa-up-down-left-right" style="margin-right: 6px;" title="Move items"></i>
-        <i class="fas fa-trash" style="margin-right: 6px;" title="Delete items"></i>
-        <span class="reset-circle-icon" title="Reset all">
-          <i class="fas fa-rotate-left"></i>
-        </span>
-      `;
-      this.classList.remove('editing-mode');
-      // Hide the Reset All button when not in editing mode
-      if (resetAllBtn) resetAllBtn.style.display = 'none';
+  // --- Voice Add Item ---
+  function startVoiceAddItem(cat) {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      showModal("Sorry, your browser doesn't support voice recognition.", () => {});
+      return;
     }
-    renderAllTables();
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-IN'; // <-- Set to English (India)
+    recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
+
+    const listName = tableNames[cat] || cat;
+    const headerColors = stringToHeaderColor(listName);
+    
+    // Remove any existing notification
+    const existingNotification = document.querySelector('.voice-notification-backdrop');
+    if (existingNotification) existingNotification.remove();
+
+    const backdrop = document.createElement('div');
+    backdrop.className = 'voice-notification-backdrop';
+    backdrop.innerHTML = `
+        <div class="voice-notification">
+            <div class="voice-icon-wrapper">
+                <i class="fas fa-microphone-alt"></i>
+            </div>
+            <div class="voice-text-wrapper">
+                <span class="voice-title">Speak now...</span>
+                <div class="voice-interim-results" id="voice-interim-results"></div>
+                <span class="voice-subtitle">Adding item to:</span>
+                <span class="voice-list-name" style="background-color: ${headerColors.bg}; color: ${headerColors.fg};">${listName}</span>
+            </div>
+            <button id="voice-cancel-btn" class="voice-cancel-btn">Cancel</button>
+        </div>
+    `;
+    document.body.appendChild(backdrop);
+
+    // --- History API for back button dismissal ---
+    const voicePromptState = { voicePromptActive: true };
+    history.pushState(voicePromptState, 'Voice Input');
+
+    let cleanedUp = false;
+    const cleanup = (isPopState) => {
+      if (cleanedUp) return;
+      cleanedUp = true;
+      recognition.stop();
+      if (backdrop.parentNode) {
+        backdrop.parentNode.removeChild(backdrop);
+      }
+      window.removeEventListener('popstate', handlePopState);
+
+      // If cleanup was triggered by something other than the back button,
+      // we need to go back in history to remove the state we pushed.
+      if (!isPopState && history.state && history.state.voicePromptActive) {
+        history.back();
+      }
+    };
+
+    const handlePopState = (event) => {
+        cleanup(true); // Pass true to indicate it was triggered by popstate
+    };
+    window.addEventListener('popstate', handlePopState);
+
+
+    let final_transcript = '';
+    let final_transcript_timer = null;
+
+    document.getElementById('voice-cancel-btn').onclick = () => cleanup(false);
+
+    recognition.onresult = function(event) {
+      // Clear any pending timer if new results are coming in.
+      clearTimeout(final_transcript_timer);
+
+      let interim_transcript = '';
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          final_transcript += event.results[i][0].transcript;
+        } else {
+          interim_transcript += event.results[i][0].transcript;
+        }
+      }
+
+      const interimEl = document.getElementById('voice-interim-results');
+      if (interimEl) {
+        interimEl.textContent = final_transcript || interim_transcript;
+      }
+
+      // If we have a final transcript, set a timer to process it.
+      // This gives a 1-second pause after the user finishes speaking.
+      if (final_transcript) {
+        if (interimEl) {
+          interimEl.style.color = '#388e3c'; // Green for success
+        }
+        final_transcript_timer = setTimeout(() => {
+          processVoiceResult(cat, final_transcript);
+          cleanup(false); // Close the modal after processing
+        }, 1000); // 1-second delay
+      }
+    };
+
+    recognition.onspeechend = function() {
+      // Do not cleanup here, onresult with its timer is now responsible.
+    };
+
+    recognition.onerror = function(event) {
+      // The 'onend' event will fire after an error, so cleanup will happen there.
+      // We only need to show the modal message here.
+      if (event.error === 'not-allowed') {
+        // Check if on insecure origin that is not localhost
+        if (window.location.protocol === 'http:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+            showModal("<b>Microphone access denied.</b><br><br>For development on a private network, you must enable a browser flag. On Chrome, go to:<br><b>chrome://flags/#unsafely-treat-insecure-origin-as-secure</b><br><br>Add your site's address (e.g., http://192.168.1.140:5500) to the list, enable it, and relaunch.", () => {});
+        } else {
+            showModal("<b>Microphone access denied.</b><br><br>To use voice input, please grant microphone permission for this site. Note: Most browsers require a secure (HTTPS) connection.", () => {});
+        }
+      } else if (event.error !== 'no-speech' && event.error !== 'aborted') {
+        showModal(`Voice recognition error: ${event.error}`, () => {});
+      }
+    };
+    
+    recognition.onend = function() {
+      // Only cleanup if a final result was NOT being processed.
+      // This handles cases where the user cancels or there's an error.
+      if (!final_transcript) {
+        cleanup(false);
+      }
+    };
+
+    recognition.start();
+  }
+  window.startVoiceAddItem = startVoiceAddItem;
+
+  function highlightAndScrollToItem(cat, itemKey) {
+    setTimeout(() => {
+      const li = document.querySelector(`#${cat} li[data-key='${itemKey}']`);
+      if (li) {
+        // Expand table if collapsed
+        const container = document.getElementById(`${cat}-container`);
+        if (container && container.classList.contains('collapsed')) {
+          toggleCollapse(cat);
+        }
+        
+        li.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        // Add a class to trigger the animation. This is more robust than inline styles.
+        li.classList.add('item-blink');
+        
+        // After the animation duration (2 seconds), remove the class
+        // to allow the original CSS classes to take effect again.
+        setTimeout(() => {
+          li.classList.remove('item-blink');
+        }, 2000);
+      }
+    }, 150); // Increased delay slightly to ensure the element is ready.
+  }
+
+  function processVoiceResult(cat, itemName) {
+    if (!itemName) return;
+    const trimmedName = toProperCase(itemName.trim().replace(/\s+/g, ' '));
+    if (!trimmedName) return;
+
+    const items = groceryData[cat] || {};
+    const existingKeys = Object.keys(items).filter(key => key !== 'order' && items[key] && typeof items[key] === 'object' && typeof items[key].name === 'string');
+    
+    const searchName = trimmedName.toLowerCase();
+    const existingItemKey = existingKeys.find(key => items[key].name.trim().toLowerCase() === searchName);
+
+    let targetKey;
+
+    // --- Set a flag to prevent the 'on' listener from re-rendering and creating duplicates ---
+    isVoiceAdding = true;
+
+    if (existingItemKey) {
+      // Item exists, increment count
+      targetKey = existingItemKey;
+      const currentCount = items[targetKey].count || 0;
+      groceryData[cat][targetKey].count = currentCount + 1;
+      groceryData[cat][targetKey].checked = false; // Uncheck if it was checked
+      db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${cat}/${targetKey}`).update({
+        count: currentCount + 1,
+        checked: false
+      });
+    } else {
+      // Item does not exist, add it with count 1
+      let maxNum = 0;
+      existingKeys.forEach(key => {
+        const match = key.match(/-?item(\d+)/);
+        if (match) {
+          const num = parseInt(match[1], 10);
+          if (num > maxNum) maxNum = num;
+        }
+      });
+      targetKey = `item${maxNum + 1}`;
+      const newItem = { name: trimmedName, count: 1, checked: false };
+
+      if (!groceryData[cat]) groceryData[cat] = {};
+      groceryData[cat][targetKey] = newItem;
+      if (!Array.isArray(groceryData[cat].order)) groceryData[cat].order = [];
+                groceryData[cat].order.push(targetKey);
+      
+      // --- FIX: If a temporary order is active, add the new item to it ---
+      if (tempOrders[cat] && tempOrders[cat].length > 0) {
+        // Add the new item to the beginning of the temporary order
+        tempOrders[cat].unshift(targetKey);
+        // Save the updated temporary order to Firebase
+        saveTempOrder(cat, tempOrders[cat]);
+      }
+      
+      db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${cat}/${targetKey}`).set(newItem);
+      db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${cat}/order`).set(groceryData[cat].order);
+    }
+
+    // Re-render and then scroll and blink
+    renderList(cat);
+    saveCache();
+    highlightAndScrollToItem(cat, targetKey);
+
+    // --- Clear the flag after a short delay to allow the next real sync to proceed ---
+    setTimeout(() => {
+      isVoiceAdding = false;
+    }, 1500); // 1.5 seconds should be enough for DB to sync
+  }
+
+  // --- Move/Delete/Reset Toggle Button ---
+  /* This button is being removed. The functionality is available in the table header context menu.
+  document.getElementById('move-delete-toggle').onclick = function (e) {
+    // This button is now only for entering/exiting move/delete item mode.
+    // The specific mode (move vs delete) is handled by the context menu.
+    // We just need to toggle a general "editing" state.
+    
+    const wasInMoveDeleteMode = moveMode || deleteMode;
+
+    if (wasInMoveDeleteMode) {
+      // If we were in any edit mode, exit all of them.
+      disableMoveDeleteMode();
+    } else {
+      // If we were not in an edit mode, enter the default one (e.g., move items).
+      // The user can switch to delete via the context menu.
+      enableMoveMode();
+    }
   };
+ */
 
   document.getElementById('reset-all').onclick = function () {
     showModal("Reset all counters to 0 and uncheck all items in all tables?", function (yes) {
@@ -1504,7 +1920,7 @@ document.addEventListener("DOMContentLoaded", function () {
       const resetBtn = document.getElementById('reset-all');
       resetBtn.innerHTML = '<i class="fas fa-rotate fa-spin"></i> <span style="margin-left: 6px;">Reset All</span>';
 
-      // 1. Update all local data instantly (only count and checked, do NOT touch order)
+      // 1. Update all local data instantly (only count and checked, do NOT touch order or remove items)
       for (let i = 0; i < categories.length; i++) {
         const cat = categories[i];
         const items = groceryData[cat] || {};
@@ -1518,9 +1934,9 @@ document.addEventListener("DOMContentLoaded", function () {
       }
 
       // --- Instantly update UI ---
-      renderAllTables();
+           renderAllTables();
 
-      // 2. Update DB in the background (only count and checked, do NOT touch order)
+      // 2. Update DB in the background (only count and checked, do NOT touch order or remove items)
       setTimeout(() => {
         for (let i = 0; i < categories.length; i++) {
           const cat = categories[i];
@@ -1539,7 +1955,7 @@ document.addEventListener("DOMContentLoaded", function () {
         // --- Clear all temp order tables in DB ---
         clearAllTempOrders();
         setTimeout(() => {
-          resetBtn.innerHTML = '<i class="fas fa-rotate-left"></i> <span style="margin-left: 6px;">Reset All</span>';
+   resetBtn.innerHTML = '<i class="fas fa-rotate-left"></i> <span style="margin-left: 6px;">Reset All</span>';
           // No need to call renderAllTables() again, already done above
         }, 500);
       }, 0);
@@ -1875,11 +2291,6 @@ document.addEventListener("DOMContentLoaded", function () {
             `Are you sure you want to add user "${email}" to family "${fam}"?`,
             function (yes) {
               awaitingConfirmation = false;
-              const modalBackdrop = document.getElementById('modal-backdrop');
-              if (modalBackdrop) {
-                modalBackdrop.classList.remove('active');
-                modalBackdrop.style.display = 'none';
-              }
               if (!yes) return;
               firebase.database().ref('/authorisedUsers').once('value').then(snap => {
                 const users = snap.val() || {};
@@ -1900,29 +2311,12 @@ document.addEventListener("DOMContentLoaded", function () {
                 }).then(() => {
                   const modal = document.getElementById('add-user-modal-backdrop');
                   if (modal && modal.parentNode) modal.parentNode.removeChild(modal);
-                  setTimeout(() => {
-                    const modalBackdrop = document.getElementById('modal-backdrop');
-                    if (modalBackdrop) {
-                      modalBackdrop.style.display = 'flex';
-                      modalBackdrop.classList.add('active');
-                      modalBackdrop.style.zIndex = 5000;
-                      document.getElementById('modal-title').innerHTML = `<div style="color: #4CAF50; font-weight: bold;">Success!</div>User "${email}" added to family "${fam}".`;
-                      document.getElementById('modal-btn-no').style.display = 'none';
-                      document.getElementById('modal-btn-yes').style.display = '';
-                      document.getElementById('modal-btn-yes').textContent = 'OK';
-                      document.getElementById('modal-btn-yes').onclick = function () {
-                        modalBackdrop.classList.remove('active');
-                        modalBackdrop.style.display = 'none';
-                      };
-                      document.getElementById('modal-btn-yes').focus();
-                    }
-                  }, 200);
+                  showModal(`<div style="color: #4CAF50; font-weight: bold;">Success!</div>User "${email}" added to family "${fam}".`);
                 }).catch(err => {
-                  errorDiv.textContent = 'Failed to add user: ' + err.message;
+                  const errorDiv = document.getElementById('add-user-error');
+                  if(errorDiv) errorDiv.textContent = 'Failed to add user: ' + err.message;
                 });
               });
-           
-
             }
           );
           return;
@@ -1937,11 +2331,6 @@ document.addEventListener("DOMContentLoaded", function () {
             `Are you sure you want to add user "${email}" to new family "${fam}"?`,
             function (yes) {
               awaitingConfirmation = false;
-              const modalBackdrop = document.getElementById('modal-backdrop');
-              if (modalBackdrop) {
-                modalBackdrop.classList.remove('active');
-                modalBackdrop.style.display = 'none';
-              }
               if (!yes) return;
               firebase.database().ref('/authorisedUsers').once('value').then(snap => {
                 const users = snap.val() || {};
@@ -1960,25 +2349,10 @@ document.addEventListener("DOMContentLoaded", function () {
                 }).then(() => {
                   const modal = document.getElementById('add-user-modal-backdrop');
                   if (modal && modal.parentNode) modal.parentNode.removeChild(modal);
-                  setTimeout(() => {
-                    const modalBackdrop = document.getElementById('modal-backdrop');
-                    if (modalBackdrop) {
-                      modalBackdrop.style.display = 'flex';
-                      modalBackdrop.classList.add('active');
-                      modalBackdrop.style.zIndex = 5000;
-                      document.getElementById('modal-title').innerHTML = `<div style="color: #4CAF50; font-weight: bold;">Success!</div>User "${email}" added to new family "${fam}".`;
-                      document.getElementById('modal-btn-no').style.display = 'none';
-                      document.getElementById('modal-btn-yes').style.display = '';
-                      document.getElementById('modal-btn-yes').textContent = 'OK';
-                      document.getElementById('modal-btn-yes').onclick = function () {
-                        modalBackdrop.classList.remove('active');
-                        modalBackdrop.style.display = 'none';
-                      };
-                      document.getElementById('modal-btn-yes').focus();
-                    }
-                  }, 200);
+                  showModal(`<div style="color: #4CAF50; font-weight: bold;">Success!</div>User "${email}" added to new family "${fam}".`);
                 }).catch(err => {
-                  errorDiv.textContent = 'Failed to add user: ' + err.message;
+                  const errorDiv = document.getElementById('add-user-error');
+                  if(errorDiv) errorDiv.textContent = 'Failed to add user: ' + err.message;
                 });
               });
             }
@@ -2001,13 +2375,13 @@ document.addEventListener("DOMContentLoaded", function () {
         tableOrder: typeof tableOrder !== 'undefined' ? tableOrder : [],
         categories
       };
-      localStorage.setItem('groceryListCache', JSON.stringify(cache));
+      localStorage.setItem('swiftListCache', JSON.stringify(cache));
     } catch (e) { /* ignore */ }
   }
 
   function loadCache() {
     try {
-      const cache = JSON.parse(localStorage.getItem('groceryListCache'));
+      const cache = JSON.parse(localStorage.getItem('swiftListCache'));
       if (cache && typeof cache === 'object') {
         groceryData = cache.groceryData || {};
         tableNames = cache.tableNames || {};
@@ -2215,28 +2589,32 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // --- Handle browser back button to exit move mode ---
   window.addEventListener('popstate', function(event) {
+    // --- Close context menu if it's open ---
+    const contextMenu = document.querySelector('.header-context-menu');
+    if (contextMenu) {
+        contextMenu.remove();
+    }
+    
     if (moveDeleteMode || moveMode || deleteMode) {
       // Exit move/delete mode when back button is pressed
       disableMoveDeleteMode();
       // Prevent default back navigation
       event.preventDefault();
     }
-  });
-
-}); // <-- End DOMContentLoaded
+});
 
 
 // --- Fix: Add stringToHeaderColor utility ---
 function stringToHeaderColor(str) {
   // Deterministic color palette for table headers
   const palettes = [
-    { bg: "#b8dbc7", fg: "#23472b" }, 
-    { bg: "#d7c3e6", fg: "#4b2956" }, 
-    { bg: "#c3d4ea", fg: "#23324b" }, 
-    { bg: "#cfd8dc", fg: "#263238" }, 
-    { bg: "#f3cccc", fg: "#8b1c1c" }, 
-    { bg: "#e2d3cb", fg: "#4e342e" }, 
-    { bg: "#c3d4ea", fg: "#232c3d" }, 
+    { bg: "#b8dbc7", fg: "#23472b", lightBg: "#f1f8f4" }, 
+    { bg: "#d7c3e6", fg: "#4b2956", lightBg: "#f8f3fb" }, 
+    { bg: "#c3d4ea", fg: "#23324b", lightBg: "#f3f6fa" }, 
+    { bg: "#cfd8dc", fg: "#263238", lightBg: "#f6f8f9" }, 
+    { bg: "#f3cccc", fg: "#8b1c1c", lightBg: "#fdf5f5" }, 
+    { bg: "#e2d3cb", fg: "#4e342e", lightBg: "#f9f6f4" }, 
+    { bg: "#c3d4ea", fg: "#232c3d", lightBg: "#f3f6fa" }, 
   ];
   // Pick palette based on hash of string
   let hash = 0;
@@ -2244,6 +2622,7 @@ function stringToHeaderColor(str) {
   const idx = Math.abs(hash) % palettes.length;
   return palettes[idx];
 }
+
 
 // --- Utility: sanitize family name for Firebase key ---
 function sanitizeFamilyId(name) {
@@ -2254,3 +2633,4 @@ function sanitizeFamilyId(name) {
     .replace(/\s+/g, '_')
     .replace(/[^a-z0-9_\-]/g, ''); // allow a-z, 0-9, _, -
 }
+});
