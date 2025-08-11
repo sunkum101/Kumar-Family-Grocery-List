@@ -1332,7 +1332,7 @@ document.addEventListener("DOMContentLoaded", function () {
         <div class="name" title="Alt+Click to edit item name" data-cat="${cat}" data-key="${key}">${item.name}</div>
         ${moveMode ? `
           <span class="item-move-handle" title="Move item">
-            <i class="fas fa-up-down-left" style="font-size:18px;color:#666;"></i>
+            <i class="fas fa-up-down-left-right" style="font-size:18px;color:#666;"></i>
           </span>
         ` : deleteMode ? `
           <button class="item-delete-btn" onclick="deleteItem('${cat}', '${key}')">
@@ -2418,46 +2418,26 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   });
 
-  // --- Show main section and try to load lists before auth check ---
-  // (No need to call showMain() here, already showing main-section by default)
-  fetchAuthorisedUsers(() => {
-    const currentUser = auth.currentUser;
-    if (currentUser) {
-      USER_EMAIL = normalizeEmail(currentUser.email);
-      USER_FAMILY = EMAIL_TO_FAMILY[USER_EMAIL] || null;
-      if (USER_FAMILY) {
-        USER_LIST_KEY = USER_FAMILY;
-        subscribeFamilyList(USER_FAMILY);
-      }
-    }
-  });
+  // --- Remove old sync indicator logic
+  // (function addSyncIndicator() { ... })();
 
-  // Add a sync indicator to the top of main-section if not present
-  (function addSyncIndicator() {
-    const mainSection = document.getElementById('main-section');
-    if (mainSection && !document.getElementById('sync-indicator')) {
-      const syncDiv = document.createElement('div');
-      syncDiv.id = 'sync-indicator';
-      syncDiv.style.display = 'none';
-      syncDiv.style.position = 'relative';
-      syncDiv.style.width = '100%';
-      syncDiv.style.textAlign = 'center';
-      syncDiv.style.zIndex = '6000';
-      syncDiv.innerHTML = `
-        <span style="display:inline-flex;align-items:center;gap:8px;font-size:1.08rem;font-weight:600;color:#1976d2;animation:sync-flash 1s linear infinite;">
-          <i class="fas fa-cloud-upload-alt" style="font-size:1.25em;"></i>
-          Syncing with cloud...
-        </span>
-        <style>@keyframes sync-flash { 0%,100%{opacity:1;} 50%{opacity:0.4;} }</style>
-      `;
-      mainSection.insertBefore(syncDiv, mainSection.firstChild);
-    }
-  })();
-
-  // Utility to show/hide sync indicator
+  // Utility to show/hide sync toast notification
   function setSyncIndicator(visible) {
-    const el = document.getElementById('sync-indicator');
-    if (el) el.style.display = visible ? '' : 'none';
+    let toast = document.getElementById('sync-toast');
+    if (!toast && visible) {
+      toast = document.createElement('div');
+      toast.id = 'sync-toast';
+      toast.className = 'sync-toast';
+      toast.innerHTML = `
+      <i class="fas fa-cloud-upload-alt"></i>
+      Syncing with cloud...
+      <div class="sync-progress-bar"></div>
+    `;
+      document.body.appendChild(toast);
+    }
+    if (toast) {
+      toast.style.display = visible ? 'flex' : 'none';
+    }
   }
 
   // --- Reset Individual Table ---
@@ -2601,36 +2581,37 @@ document.addEventListener("DOMContentLoaded", function () {
       // Prevent default back navigation
       event.preventDefault();
     }
+  });
+
+  // --- Fix: Add stringToHeaderColor utility ---
+  function stringToHeaderColor(str) {
+    // Deterministic color palette for table headers
+    const palettes = [
+      { bg: "#b8dbc7", fg: "#23472b", lightBg: "#f1f8f4" }, 
+      { bg: "#d7c3e6", fg: "#4b2956", lightBg: "#f8f3fb" }, 
+      { bg: "#c3d4ea", fg: "#23324b", lightBg: "#f3f6fa" }, 
+      { bg: "#cfd8dc", fg: "#263238", lightBg: "#f6f8f9" }, 
+      { bg: "#f3cccc", fg: "#8b1c1c", lightBg: "#fdf5f5" }, 
+      { bg: "#e2d3cb", fg: "#4e342e", lightBg: "#f9f6f4" }, 
+      { bg: "#c3d4ea", fg: "#232c3d", lightBg: "#f3f6fa" }, 
+    ];
+    // Pick palette based on hash of string
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    const idx = Math.abs(hash) % palettes.length;
+    return palettes[idx];
+  }
+
+  // --- Utility: sanitize family name for Firebase key ---
+  function sanitizeFamilyId(name) {
+    return (name || '')
+      .trim()
+      .toLowerCase()
+      .replace(/[\.\#\$\[\]]/g, '')
+      .replace(/\s+/g, '_')
+      .replace(/[^a-z0-9_\-]/g, ''); // allow a-z, 0-9, _, -
+  }
+
+  // --- END OF DOMContentLoaded ---
 });
 
-
-// --- Fix: Add stringToHeaderColor utility ---
-function stringToHeaderColor(str) {
-  // Deterministic color palette for table headers
-  const palettes = [
-    { bg: "#b8dbc7", fg: "#23472b", lightBg: "#f1f8f4" }, 
-    { bg: "#d7c3e6", fg: "#4b2956", lightBg: "#f8f3fb" }, 
-    { bg: "#c3d4ea", fg: "#23324b", lightBg: "#f3f6fa" }, 
-    { bg: "#cfd8dc", fg: "#263238", lightBg: "#f6f8f9" }, 
-    { bg: "#f3cccc", fg: "#8b1c1c", lightBg: "#fdf5f5" }, 
-    { bg: "#e2d3cb", fg: "#4e342e", lightBg: "#f9f6f4" }, 
-    { bg: "#c3d4ea", fg: "#232c3d", lightBg: "#f3f6fa" }, 
-  ];
-  // Pick palette based on hash of string
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
-  const idx = Math.abs(hash) % palettes.length;
-  return palettes[idx];
-}
-
-
-// --- Utility: sanitize family name for Firebase key ---
-function sanitizeFamilyId(name) {
-  return (name || '')
-    .trim()
-    .toLowerCase()
-    .replace(/[\.\#\$\[\]]/g, '')
-    .replace(/\s+/g, '_')
-    .replace(/[^a-z0-9_\-]/g, ''); // allow a-z, 0-9, _, -
-}
-});
