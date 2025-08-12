@@ -3,11 +3,219 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-  <title>Your Grocery List</title>
-  <link href="https://fonts.googleapis.com/css?family=Inter:400,500,700&display=swap" rel="stylesheet">
+  <title>Your SwiftList</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@700&family=Pacifico&family=Poppins:wght@400;500;700&family=Tiro+Devanagari+Hindi&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCIgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0Ij4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iY2FydEdyYWRpZW50IiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzE5NzZkMjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMTU2NWMwO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICA8L2RlZnM+CiAgPHJlY3QgeD0iOCIgeT0iMTYiIHdpZHRoPSI0OCIgaGVpZ2h0PSIzMiIgcng9IjgiIGZpbGw9InVybCgjY2FydEdyYWRpZW50KSIgc3Ryb2tlPSIjMGQ0N2ExIiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDxwYXRoIGQ9Ik08IDE2IEw0IDggTDEyIDgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzBkNDdhMSIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICA8Y2lyY2xlIGN4PSIyMCIgY3k9IjU2IiByPSI2IiBmaWxsPSIjMGQ0N2ExIi8+CiAgPGNpcmNsZSBjeD0iNDQiIGN5PSI1NiIgcj0iNiIgZmlsbD0iIzBkNDdhMSIvPgogIDxyZWN0IHg9IjE2IiB5PSIyNCIgd2lkdGg9IjMyIiBoZWlnaHQ9IjgiIHJ4PSIyIiBmaWxsPSIjZmZmIiBvcGFjaXR5PSIwLjkiLz4KICA8cmVjdCB4PSIyMCIgeT0iMzIiIHdpZHRoPSIyNCIgaGVpZ2h0PSI2IiByeD0iMiIgZmlsbD0iI2ZmZiIgb3BhY2l0eT0iMC43Ii8+CiAgPHJlY3QgeD0iMjQiIHk9IjM4IiB3aWR0aD0iMTYiIGhlaWdodD0iNCIgcng9IjEiIGZpbGw9IiNmZmYiIG9wYWNpdHk9IjAuNSIvPgo8L3N2Zz4K">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    body {
+      font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    /* --- Style for item names --- */
+    .name {
+      font-family: 'Lato', sans-serif;
+      font-weight: 700;
+    }
+
+    /* --- Style for Hindi item names (more specific selector) --- */
+    .name.hindi-text {
+      font-family: 'Tiro Devanagari Hindi', serif !important;
+      font-size: 1.1em; /* Slightly larger for better readability */
+    }
+
+    /* --- Modern branding font --- */
+    .main-title-swiftlist,
+    .brand-accent {
+      font-family: 'Pacifico', cursive;
+      font-weight: 400; /* Pacifico is a single-weight font */
+      color: #1976d2;
+    }
+
+    /* --- New Sync Toast Styles --- */
+    .sync-toast {
+      position: fixed;
+      top: 55px;
+      /* Position it below the top bar */
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: rgba(30, 40, 60, 0.9);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      z-index: 10000;
+      font-size: 0.9rem;
+      font-weight: 500;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      transition: opacity 0.3s, top 0.3s;
+      opacity: 0;
+    }
+
+    .sync-spinner {
+      width: 20px;
+      height: 20px;
+      animation: rotate 2s linear infinite;
+    }
+
+    .sync-spinner svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .sync-spinner-track,
+    .sync-spinner-head {
+      fill: none;
+      stroke-width: 3.5;
+      stroke-linecap: round;
+    }
+
+    .sync-spinner-track {
+      stroke: rgba(255, 255, 255, 0.2);
+    }
+
+    .sync-spinner-head {
+      stroke: #fff;
+      stroke-dasharray: 50, 100;
+      stroke-dashoffset: 0;
+      animation: spin 1.5s ease-in-out infinite;
+    }
+
+    @keyframes rotate {
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    @keyframes spin {
+      0% {
+        stroke-dasharray: 1, 100;
+        stroke-dashoffset: 0;
+      }
+
+      50% {
+        stroke-dasharray: 90, 100;
+        stroke-dashoffset: -35;
+      }
+
+      100% {
+        stroke-dasharray: 90, 100;
+        stroke-dashoffset: -124;
+      }
+    }
+
+    /* --- Help Modal Styles --- */
+    #help-modal-backdrop {
+      position: fixed;
+      left: 0;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 6000;
+      background: rgba(30, 40, 60, 0.18);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 15px;
+    }
+
+    .help-modal-content {
+      background: #fff;
+      border-radius: 13px;
+      box-shadow: 0 3px 14px rgba(0, 0, 0, 0.13);
+      padding: 22px;
+      max-width: 90vw;
+      width: 600px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      max-height: 85vh;
+      /* overflow-y: auto; */ /* Remove scroll from main container */
+    }
+
+    .help-modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      flex-shrink: 0; /* Prevent header from shrinking */
+    }
+
+    .help-modal-header h2 {
+      font-family: 'Poppins', sans-serif;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #1976d2;
+      margin: 0;
+    }
+
+    #help-close-btn {
+      background: transparent;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: #555;
+      padding: 0;
+      line-height: 1;
+    }
+
+    .help-modal-body {
+      overflow-y: auto; /* Add scroll to this new body container */
+      padding-right: 10px; /* Add some padding to avoid scrollbar overlap */
+    }
+
+    .help-section h3 {
+      margin-bottom: 0.5em;
+      color: #333;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 5px;
+    }
+
+    .help-section ul {
+      margin-top: 0;
+      color: #555;
+      line-height: 1.6;
+      list-style: none;
+      padding-left: 5px;
+    }
+
+    .help-section li {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 12px;
+      align-items: flex-start;
+    }
+
+    .help-label {
+      font-weight: 700;
+      color: #333;
+      flex-basis: 160px;
+      flex-shrink: 0;
+      text-align: right;
+    }
+
+    .help-desc {
+      flex-grow: 1;
+    }
+
+    .help-icon-wrap {
+      display: inline-block;
+      white-space: nowrap;
+    }
+
+    .help-icon-wrap i {
+      vertical-align: -0.1em;
+      margin: 0 2px;
+    }
+  </style>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -54,8 +262,7 @@
     </div>
     <!-- Modernized Title -->
     <h1 class="center-title modern-title">
-      <i class="fas fa-cart-shopping" style="color:#1976d2;margin-right:10px;"></i>
-      <span class="modern-title-main">Your <span class="modern-title-accent">Grocery List</span></span>
+      <!-- This will be populated by script.js -->
     </h1>
     <div class="datetime tight-datetime" id="datetime"></div>
     <div id="tables-area"></div>
@@ -67,18 +274,14 @@
   <!-- Modernized Login Section -->
   <div class="login-bg-modern" id="login-bg">
     <div class="login-card-modern" id="login-section">
-      <div class="login-logo-modern" title="Grocery List">
-        <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
-          <rect x="8" y="16" width="48" height="32" rx="8" fill="#f3f6fa" stroke="#1976d2" stroke-width="2"/>
-          <circle cx="20" cy="52" r="6" fill="#1976d2"/>
-          <circle cx="44" cy="52" r="6" fill="#1976d2"/>
-          <rect x="16" y="24" width="32" height="8" rx="2" fill="#1976d2" opacity="0.13"/>
-          <rect x="20" y="32" width="24" height="6" rx="2" fill="#1976d2" opacity="0.13"/>
-        </svg>
+      <div class="login-logo-modern" title="SwiftList">
+        <!-- This will be populated by script.js -->
       </div>
-      <div class="login-title-modern">Welcome to <span class="brand-accent">Your Grocery List</span></div>
+      <div class="login-title-modern">
+        <!-- This will be populated by script.js -->
+      </div>
       <div class="login-desc-modern">
-        Sign in with your Google account to access your family grocery list.<br>
+        Sign in with your Google account to access your family swift list.<br>
         <span class="login-subdesc">Fast, secure, and always in sync.</span>
       </div>
       <button class="google-btn-modern" id="google-signin-btn">
@@ -99,6 +302,83 @@
       </div>
     </div>
   </div>
+
+  <!-- Help Modal Backdrop -->
+  <div id="help-modal-backdrop" style="display:none;">
+    <div class="help-modal-content">
+      <div class="help-modal-header">
+        <h2>Help & Documentation</h2>
+        <button id="help-close-btn">&times;</button>
+      </div>
+      <div class="help-modal-body">
+        <div class="help-section">
+          <h3>Getting Started</h3>
+          <ul>
+            <li>
+              <span class="help-label">Create Account:</span>
+              <span class="help-desc">Sign up with your email and password or use Google Sign-In for quick access.</span>
+            </li>
+            <li>
+              <span class="help-label">Add Lists:</span>
+              <span class="help-desc">Create new lists for different categories or topics. Use the + Add New List button.</span>
+            </li>
+            <li>
+              <span class="help-label">Add Items:</span>
+              <span class="help-desc">Add items to your lists with details like quantity, notes, and due dates.</span>
+            </li>
+          </ul>
+        </div>
+        <div class="help-section">
+          <h3>Using SwiftList</h3>
+          <ul>
+            <li>
+              <span class="help-label">Sync Across Devices:</span>
+              <span class="help-desc">Your lists sync automatically across all devices. Ensure you're logged in.</span>
+            </li>
+            <li>
+              <span class="help-label">Share Lists:</span>
+              <span class="help-desc">Share your lists with family or friends. They can view or edit based on permissions.</span>
+            </li>
+            <li>
+              <span class="help-label">Voice Commands:</span>
+              <span class="help-desc">Use voice commands to add items or lists. Try saying "Add milk to my grocery list".</span>
+            </li>
+          </ul>
+        </div>
+        <div class="help-section">
+          <h3>Troubleshooting</h3>
+          <ul>
+            <li>
+              <span class="help-label">Can't Sign In:</span>
+              <span class="help-desc">Ensure your internet connection is stable. Reset your password if forgotten.</span>
+            </li>
+            <li>
+              <span class="help-label">Sync Issues:</span>
+              <span class="help-desc">Check if you're logged in on all devices. Try refreshing the app.</span>
+            </li>
+            <li>
+              <span class="help-label">Feature Requests:</span>
+              <span class="help-desc">We value your feedback! Let us know if you have any feature suggestions.</span>
+            </li>
+          </ul>
+        </div>
+        <div class="help-section">
+          <h3>Contact Support</h3>
+          <ul>
+            <li>
+              <span class="help-label">Email:</span>
+              <span class="help-desc">support@swiftlistapp.com</span>
+            </li>
+            <li>
+              <span class="help-label">Phone:</span>
+              <span class="help-desc">1-800-SWIFTLIST</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="script.js"></script>
   <!-- Add User Floating Button (only visible when logged in) -->
   <button id="add-user-btn" title="Add New User"
