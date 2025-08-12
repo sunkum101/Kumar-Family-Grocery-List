@@ -1,2879 +1,1842 @@
-// --- AUTH & DOM READY ---
-document.addEventListener("DOMContentLoaded", function () {
-  // --- Set application title and branding ---
-  const mainTitle = document.querySelector('.center-title');
-  if (mainTitle) {
-    mainTitle.innerHTML = '<i class="fas fa-clipboard-check" style="margin-right: 10px; color: #1976d2;"></i> <span class="modern-title-main">Your <span class="brand-accent">SwiftList</span></span><i id="help-icon" class="fas fa-question-circle" style="font-size: 0.6em; color: #757575; cursor: pointer; vertical-align: super; margin-left: 8px;" title="Help"></i>';
-  }
-  const loginTitle = document.querySelector('.login-title-modern');
-  if (loginTitle) {
-    loginTitle.innerHTML = 'Welcome to <span class="modern-title-main">Your <span class="brand-accent">SwiftList</span></span>';
-  }
-  const loginLogo = document.querySelector('.login-logo-modern');
-  if (loginLogo) {
-    loginLogo.innerHTML = '<i class="fas fa-clipboard-check" style="font-size: 48px; color: #1976d2;"></i>';
-  }
-
-  // --- Ensure Firebase SDK is loaded ---
-  if (typeof firebase === "undefined" || !firebase.app) {
-    alert("Firebase SDK not loaded. Please check your internet connection and script includes.");
-    return;
-  }
-
-  // --- Hide the Edit button on load ---
-  const moveDeleteBtn = document.getElementById('move-delete-toggle');
-  if (moveDeleteBtn) {
-    moveDeleteBtn.style.display = 'none';
-  }
-
-  // --- Prevent double initialization ---
-  if (!firebase.apps.length) {
-    const firebaseConfig = {
-      apiKey: "AIzaSyADHt2ZI5eCYLWs9hA16WJaL16C8REHbMI",
-      authDomain: "kumar-grocery-list.firebaseapp.com",
-      databaseURL: "https://kumar-grocery-list-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "kumar-grocery-list",
-      storageBucket: "kumar-grocery-list.appspot.com",
-      messagingSenderId: "726095302244",
-      appId: "1:726095302244:web:afacaef92680ad26151971",
-      measurementId: "G-MC9K47NDW6"
-    };
-    firebase.initializeApp(firebaseConfig);
-  }
-
-  const auth = firebase.auth();
-  const db = firebase.database();
-
-  // --- Globals for authorized users ---
-  let AUTHORISED_USERS = {}; // { userKey: {email, family} }
-  let EMAIL_TO_FAMILY = {};  // { email: family }
-  let USER_FAMILY = null;
-  let USER_EMAIL = null;
-  let USER_LIST_KEY = null; // This will be set to the user's family
-  let isLoggedIn = false; // Track login state
-  let isVoiceAdding = false; // Flag to prevent re-render during voice add
-
-  // --- Utility: Normalize email for matching ---
-  function normalizeEmail(email) {
-    return (email || '').trim().toLowerCase();
-  }
-
-  // --- Utility: Convert string to Proper Case ---
-  function toProperCase(str) {
-    if (!str) return '';
-    return str.replace(
-      /\w\S*/g,
-      function(txt) {
-        return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
-      }
-    );
-  }
-
-  // --- Fetch Authorised Users from DB ---
-  function fetchAuthorisedUsers(callback) {
-    setSyncIndicator(true); // Show sync indicator when fetching users
-    db.ref('/authorisedUsers').once('value')
-      .then(snap => {
-        const data = snap.val();
-        AUTHORISED_USERS = data || {};
-        EMAIL_TO_FAMILY = {};
-        Object.values(AUTHORISED_USERS).forEach(user => {
-          if (user && user.email && user.family) {
-            EMAIL_TO_FAMILY[normalizeEmail(user.email)] = user.family;
-          }
-        });
-        setSyncIndicator(false); // Hide after users loaded
-        if (typeof callback === "function") callback();
-      })
-      .catch(error => {
-        setSyncIndicator(false); // Hide on error
-        handleFirebaseError(error);
-      });
-  }
-
-  // --- Show Main Section (before auth check) ---
-  function showMain() {
-    isLoggedIn = true;
-    document.getElementById('login-bg').style.display = 'none';
-    document.getElementById('main-section').style.display = '';
-    setLogoutButtonVisible(true);
-    setAddUserButtonVisible(true);
-  }
-
-  // --- Show Login Section ---
-  function showLogin() {
-    isLoggedIn = false;
-    document.getElementById('main-section').style.display = 'none';
-    document.getElementById('login-bg').style.display = '';
-    setLogoutButtonVisible(false);
-    showLoggedInEmail('');
-    setAddUserButtonVisible(false);
-  }
-
-  // --- Set Logout Button Visibility ---
-  function setLogoutButtonVisible(visible) {
-    const logoutBtn = document.getElementById('logout-btn-top');
-    const collapseBtn = document.getElementById('collapse-all-btn');
-    if (logoutBtn) {
-      logoutBtn.style.display = visible ? '' : 'none';
-    }
-    if (collapseBtn) {
-      collapseBtn.style.display = visible ? '' : 'none';
-    }
-  }
-
-  // --- Show Logged In Email ---
-  function showLoggedInEmail(email) {
-    const emailLabel = document.getElementById('user-email-label');
-    if (emailLabel) {
-      emailLabel.textContent = email || '';
-      emailLabel.style.display = email ? '' : 'none';
-    }
-  }
-
-  // --- Subscribe to Family Shopping List ---
-  let shoppingListRef = null;
-  function subscribeFamilyList(family) {
-    setSyncIndicator(true);
-    if (shoppingListRef) shoppingListRef.off();
-    shoppingListRef = db.ref(`/shoppingListsPerFamily/${family}`);
-    shoppingListRef.on('value', snap => {
-      // --- If a voice add is in progress, skip this update to prevent duplicates ---
-      if (isVoiceAdding) {
-        return;
-      }
-      const data = snap.val() || {};
-      groceryData = {};
-      tableNames = {};
-      categories = [];
-      tempOrders = {}; // Clear and reload temp orders on each sync
-
-      // --- Collect all unique table keys from groceryLists, tableNames, and tableOrder ---
-      const rawGroceryLists = data.groceryLists || {};
-      const rawTableNames = data.tableNames || {};
-      const rawTableOrder = Array.isArray(data.tableOrder) ? data.tableOrder : [];
-      const allKeysSet = new Set([
-        ...Object.keys(rawGroceryLists),
-        ...Object.keys(rawTableNames),
-        ...rawTableOrder
-      ]);
-      const allKeys = Array.from(allKeysSet);
-
-      // --- Always display all tables present in any of the three DB locations ---
-      allKeys.forEach(cat => {
-        if (rawGroceryLists[cat]) groceryData[cat] = { ...rawGroceryLists[cat] };
-        if (rawTableNames[cat]) tableNames[cat] = rawTableNames[cat];
-      });
-      categories = allKeys;
-
-      // --- Load temporary orders from DB ---
-      Object.keys(data).forEach(key => {
-        if (key.endsWith('_temp_items_orders_check_zeros_btn')) {
-          const cat = key.replace('_temp_items_orders_check_zeros_btn', '');
-          if (data[key] && Array.isArray(data[key])) {
-            tempOrders[cat] = data[key];
-          }
-        }
-      });
-
-      // --- Table order: use DB order, but append any missing keys at the end ---
-      let order = Array.isArray(rawTableOrder) ? [...rawTableOrder] : [];
-      allKeys.forEach(cat => {
-        if (!order.includes(cat)) order.push(cat);
-      });
-      tableOrder = order;
-
-      renderAllTables();
-      saveCache();
-      setSyncIndicator(false);
-    }, function(error) {
-      setSyncIndicator(false);
-      if (isLoggedIn) handleFirebaseError(error);
-    });
-  }
-
-  // --- Google Sign-In Logic ---
-  let signInInProgress = false;
-  function googleSignIn() {
-    if (signInInProgress) return;
-    signInInProgress = true;
-    const provider = new firebase.auth.GoogleAuthProvider();
-    // --- Always prompt for account selection ---
-    provider.setCustomParameters({ prompt: 'select_account' });
-    auth.signInWithPopup(provider)
-      .then((result) => {
-        signInInProgress = false;
-        const user = result.user;
-        handleUserLogin(user);
-      })
-      .catch((error) => {
-        signInInProgress = false;
-        if (error.code !== "auth/cancelled-popup-request") {
-          showModal(`Failed to sign in: ${error.message}`, () => {});
-        }
-      });
-  }
-  document.getElementById('google-signin-btn').onclick = googleSignIn;
-
-   // --- Collapse All Tables Button ---
-  document.getElementById('collapse-all-btn')?.addEventListener('click', function () {
-    // Always get the latest list of containers from the DOM
-    document.querySelectorAll('.container').forEach(container => {
-      const cat = container.id.replace('-container', '');
-      localStorage.setItem('col-' + cat, 'true');
-      setCollapsed(cat, true);
-    });
-  });
-
-  
-  // --- Handle User Login ---
-  function handleUserLogin(user = null) {
-    if (user) {
-      USER_EMAIL = normalizeEmail(user.email);
-      USER_FAMILY = EMAIL_TO_FAMILY[USER_EMAIL] || null;
-      if (!USER_FAMILY) {
-        showModal('Access denied. Please use an authorized Google account. If you are a new user, please contact Sunil to get your Google account set up.', () => {});
-        showLogin(); // <-- Immediately show login screen
-        auth.signOut();
-        return;
-      }
-      USER_LIST_KEY = USER_FAMILY;
-
-      // --- Check if family shopping list exists, if not, copy template ---
-      db.ref(`/shoppingListsPerFamily/${USER_FAMILY}`).once('value').then(snap => {
-        if (!snap.exists()) {
-          // Copy template for new family from publicTemplates
-          const TEMPLATE_PATH = '/publicTemplates/shoppingListTemplate';
-          db.ref(TEMPLATE_PATH).once('value').then(templateSnap => {
-            const templateData = templateSnap.val();
-            if (templateData) {
-              // --- Optionally update tableNames to reflect the new family name ---
-              const newTableNames = { ...(templateData.tableNames || {}) };
-              // Example: If you want to add the family name as a prefix to each table
-              Object.keys(newTableNames).forEach(key => {
-                // You can customize this logic as needed
-                // Example: newTableNames[key] = `${USER_FAMILY} - ${newTableNames[key]}`;
-                // Or just leave as is if you don't want to change
-              });
-              const newData = {
-                ...templateData,
-                tableNames: newTableNames
-              };
-              db.ref(`/shoppingListsPerFamily/${USER_FAMILY}`).set(newData)
-                .then(() => {
-                  showMain();
-                  showLoggedInEmail(user.email);
-                  subscribeFamilyList(USER_FAMILY);
-                })
-                .catch((err) => {
-                  showModal('Error creating your family shopping list: ' + err.message, () => {});
-                });
-            } else {
-              // If template missing, just create an empty structure
-              db.ref(`/shoppingListsPerFamily/${USER_FAMILY}`).set({
-                groceryLists: {},
-                tableNames: {},
-                tableOrder: []
-              }).then(() => {
-                showMain();
-                showLoggedInEmail(user.email);
-                subscribeFamilyList(USER_FAMILY);
-              });
-            }
-          });
-        } else {
-          // Family already exists, proceed as normal
-          showMain();
-          showLoggedInEmail(user.email);
-          subscribeFamilyList(USER_FAMILY);
-        }
-      });
-    } else {
-      showLogin();
-    }
-  }
-
-  // --- Auth State Change ---
-  auth.onAuthStateChanged(user => {
-    fetchAuthorisedUsers(() => {
-      if (user) {
-        showMain();
-        showLoggedInEmail(user.email);
-        handleUserLogin(user);
-      } else {
-        showLogin(); // Only show login if not authenticated
-      }
-    });
-  });
-
-  // --- Show main section and try to load lists before auth check ---
-  // (No need to call showMain() here, already showing main-section by default)
-  fetchAuthorisedUsers(() => {
-    const currentUser = auth.currentUser;
-    if (currentUser) {
-      USER_EMAIL = normalizeEmail(currentUser.email);
-      USER_FAMILY = EMAIL_TO_FAMILY[USER_EMAIL] || null;
-      if (USER_FAMILY) {
-        USER_LIST_KEY = USER_FAMILY;
-        subscribeFamilyList(USER_FAMILY);
-      }
-    }
-  });
-
-  // --- Logout ---
-  document.getElementById('logout-btn-top').onclick = function () {
-    // Unsubscribe from DB before logging out to avoid permission_denied errors
-    if (shoppingListRef) {
-      shoppingListRef.off();
-      shoppingListRef = null;
-    }
-    auth.signOut().then(() => {
-      // Wait for onAuthStateChanged to handle UI update
-    }).catch((error) => {
-      console.warn("Logout warning:", error);
-    });
-  };
-
-  // Always hide modal on load
-  document.getElementById('modal-backdrop').style.display = 'none';
-
-  // --- Modal Helpers ---
-  function showModal(title, callback) {
-    // Remove any existing modals
-    const existingModals = document.querySelectorAll('[id^="modal-backdrop-"]');
-    existingModals.forEach(modal => modal.remove());
-
-    // Create new modal with unique ID
-    const modalId = 'modal-backdrop-' + Date.now();
-    const backdrop = document.createElement('div');
-    backdrop.id = modalId;
-    backdrop.style.display = 'flex';
-    backdrop.style.zIndex = '5000';
-    backdrop.style.position = 'fixed';
-    backdrop.style.left = '0';
-    backdrop.style.top = '0';
-    backdrop.style.right = '0';
-    backdrop.style.bottom = '0';
-    backdrop.style.background = 'rgba(30,40,60,0.18)';
-    backdrop.style.alignItems = 'center';
-    backdrop.style.justifyContent = 'center';
-
-    // Create modal content container
-    const modalContent = document.createElement('div');
-    modalContent.style.background = 'white';
-    modalContent.style.borderRadius = '13px';
-    modalContent.style.boxShadow = '0 4px 16px rgba(30,40,60,0.18)';
-    modalContent.style.padding = '24px 16px 18px 16px';
-    modalContent.style.width = '90%';
-    modalContent.style.maxWidth = '380px';
-    modalContent.style.textAlign = 'center';
-
-    // Create title element
-    const titleEl = document.createElement('div');
-    titleEl.style.fontSize = '1.13rem';
-    titleEl.style.marginBottom = '22px';
-    titleEl.style.fontWeight = '600';
-    titleEl.innerHTML = title;
-    modalContent.appendChild(titleEl);
-
-    backdrop.appendChild(modalContent);
-    document.body.appendChild(backdrop);
-    backdrop.classList.add('active');
-
-    // --- Confirmation modals: show both OK and Cancel for "Are you sure" or "Reset all" prompts ---
-    if (
-      typeof title === "string" &&
-      (
-        title.toLowerCase().includes("are you sure") ||
-        title.toLowerCase().includes("reset all") ||
-        title.toLowerCase().includes("delete this item") ||
-        title.toLowerCase().includes("delete table")
-      )
-    ) {
-      const btnContainer = document.createElement('div');
-      btnContainer.style.display = 'flex';
-      btnContainer.style.gap = '14px';
-      btnContainer.style.justifyContent = 'center';
-      btnContainer.style.marginTop = '18px';
-
-      // Styled Cancel button
-      const btnNo = document.createElement('button');
-      btnNo.textContent = 'Cancel';
-      btnNo.style.padding = '12px 0';
-      btnNo.style.borderRadius = '8px';
-      btnNo.style.fontWeight = '700';
-      btnNo.style.fontSize = '1.07rem';
-      btnNo.style.border = 'none';
-      btnNo.style.background = '#f3f6fa';
-      btnNo.style.color = '#222';
-      btnNo.style.cursor = 'pointer';
-      btnNo.style.flex = '1';
-      btnNo.style.boxShadow = '0 1px 4px rgba(60,80,130,0.07)';
-      btnNo.style.transition = 'background 0.14s';
-
-      // Styled OK button (bold, green, like success modal)
-      const btnYes = document.createElement('button');
-      btnYes.textContent = 'OK';
-      btnYes.style.padding = '12px 0';
-      btnYes.style.borderRadius = '8px';
-      btnYes.style.fontWeight = '700';
-      btnYes.style.fontSize = '1.07rem';
-      btnYes.style.border = 'none';
-      btnYes.style.background = 'linear-gradient(90deg,#388e3c 60%, #5dd05d 100%)';
-      btnYes.style.color = '#fff';
-      btnYes.style.cursor = 'pointer';
-      btnYes.style.flex = '1';
-      btnYes.style.boxShadow = '0 1px 4px rgba(34,197,94,0.13)';
-      btnYes.style.transition = 'background 0.14s';
-
-      btnContainer.appendChild(btnNo);
-      btnContainer.appendChild(btnYes);
-      modalContent.appendChild(btnContainer);
-
-      function cleanup() {
-        backdrop.classList.remove('active');
-        backdrop.style.display = 'none';
-        backdrop.remove();
-      }
-
-      btnYes.onclick = () => {
-        cleanup();
-        if (callback) callback(true);
-      };
-
-      btnNo.onclick = () => {
-        cleanup();
-        if (callback) callback(false);
-      };
-
-      btnYes.focus();
-      return;
-    }
-
-    // For success messages (no buttons needed)
-    if (
-      typeof title === "string" &&
-      title.toLowerCase().includes("success!")
-    ) {
-      // Auto-close after 2 seconds
-      setTimeout(() => {
-        backdrop.classList.remove('active');
-        backdrop.style.display = 'none';
-        backdrop.remove();
-        if (callback) callback(true);
-      }, 2000);
-      return;
-    }
-
-    // For info-only modals, just show OK button
-    if (
-      typeof title === "string" &&
-      (
-        title.toLowerCase().includes("already exists") ||
-        title.toLowerCase().includes("duplicate") ||
-        title.toLowerCase().includes("added to family") ||
-        title.toLowerCase().includes("failed to add user")
-      )
-    ) {
-      const btnContainer = document.createElement('div');
-      btnContainer.style.display = 'flex';
-      btnContainer.style.justifyContent = 'center';
-      btnContainer.style.marginTop = '20px';
-
-      const btnYes = document.createElement('button');
-      btnYes.textContent = 'OK';
-      btnYes.style.padding = '8px 20px';
-      btnYes.style.borderRadius = '8px';
-      btnYes.style.fontWeight = '600';
-      btnYes.style.border = 'none';
-      btnYes.style.background = '#f3f6fa';
-      btnYes.style.color = '#222';
-      btnYes.style.cursor = 'pointer';
-
-      btnContainer.appendChild(btnYes);
-      modalContent.appendChild(btnContainer);
-
-      function cleanup() {
-        backdrop.classList.remove('active');
-        backdrop.style.display = 'none';
-        backdrop.remove();
-      }
-
-      btnYes.onclick = () => {
-        cleanup();
-        if (callback) callback(true);
-      };
-
-      btnYes.focus();
-      return;
-    }
-  }
-
-  // --- Custom Input Modal for Adding Items ---
-  function showInputModal(title, callback) {
-    // Create modal elements if not present
-    let backdrop = document.getElementById('input-modal-backdrop');
-    if (!backdrop) {
-      backdrop = document.createElement('div');
-      backdrop.className = 'input-modal-backdrop';
-      backdrop.id = 'input-modal-backdrop';
-      backdrop.innerHTML = `
-        <div class="input-modal-dialog">
-          <div class="input-modal-title" id="input-modal-title"></div>
-          <input type="text" id="input-modal-input" class="input-modal-input" autocomplete="off" />
-          <div class="input-modal-btns">
-            <button class="input-modal-btn input-modal-btn-cancel" id="input-modal-btn-cancel">Cancel</button>
-            <button class="input-modal-btn input-modal-btn-ok" id="input-modal-btn-ok">OK</button>
-          </div>
-        </div>
-      `;
-      document.body.appendChild(backdrop);
-    }
-    backdrop.style.display = 'flex';
-    backdrop.classList.add('active');
-    document.getElementById('input-modal-title').textContent = title;
-    const input = document.getElementById('input-modal-input');
-    input.value = '';
-    input.focus();
-    input.select();
-
-    function cleanup() {
-      backdrop.classList.remove('active');
-      backdrop.style.display = 'none';
-      document.getElementById('input-modal-btn-cancel').onclick = null;
-      document.getElementById('input-modal-btn-ok').onclick = null;
-      input.onkeydown = null;
-    }
-
-    document.getElementById('input-modal-btn-cancel').onclick = () => {
-      cleanup();
-      callback(null);
-    };
-    document.getElementById('input-modal-btn-ok').onclick = () => {
-      const val = input.value.trim();
-      if (!val) return input.focus();
-      cleanup();
-      callback(val);
-    };
-    input.onkeydown = function (e) {
-      if (e.key === 'Enter') document.getElementById('input-modal-btn-ok').click();
-      if (e.key === 'Escape') document.getElementById('input-modal-btn-cancel').click();
-    };
-  }
-
-  // --- AddItem function: custom modal, instant UI, then DB ---
-  function addItem(cat) {
-    if (!isLoggedIn) return;
-    showInputModal('Add new item:', function(name) {
-      if (!name) return;
-      const trimmedName = toProperCase(name.trim().replace(/\s+/g, ' '));
-      if (!trimmedName) return;
-
-      // 1. Get current items
-      const items = groceryData[cat] || {};
-      const existingKeys = Object.keys(items)
-        .filter(key => key !== 'order' && items[key] && typeof items[key] === 'object' && typeof items[key].name === 'string');
-      const existingNames = existingKeys
-        .map(key => items[key].name.trim().replace(/\s+/g, ' ').toLowerCase());
-      if (existingNames.includes(trimmedName.toLowerCase())) {
-        showModal(`Item "${trimmedName}" already exists in this table.`, () => {});
-        return;
-      }
-      let maxNum = 0;
-      existingKeys.forEach(key => {
-        const match = key.match(/-?item(\d+)/);
-        if (match) {
-          const num = parseInt(match[1], 10);
-          if (num > maxNum) maxNum = num;
-        }
-      });
-      const nextKey = existingKeys.some(k => k.startsWith('-')) ? `-item${maxNum + 1}` : `item${maxNum + 1}`;
-      const item = { name: trimmedName, count: 0, checked: false };
-
-      // 2. Add to local data and UI instantly
-      if (!groceryData[cat]) groceryData[cat] = {};
-      groceryData[cat][nextKey] = item;
-      if (!Array.isArray(groceryData[cat].order)) groceryData[cat].order = [];
-      groceryData[cat].order.push(nextKey);
-      renderList(cat);
-      saveCache(); // Save after local update
-      highlightAndScrollToItem(cat, nextKey);
-
-      // 3. Add to DB in background (write to shoppingListsPerFamily, not userLists)
-      db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${cat}/${nextKey}`).set(item);
-      db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${cat}/order`).set(groceryData[cat].order);
-    });
-  }
-  window.addItem = addItem;
-
-  // --- Globals ---
-  let moveDeleteMode = false;
-  let moveMode = false; // New: separate move mode
-  let deleteMode = false; // New: separate delete mode
-  let originalKeyOrder = {};
-  let groceryData = {};
-  let tableNames = {};
-  let categories = [];
-  let updateCounterDebounce = {};
-  let tempOrders = {}; // { cat: [key, ...] }
-
-  // --- Fix: Add these globals for deleted tables/items ---
-  let pendingDeletedTables = new Set();
-  let pendingDeletedItems = {}; // { cat: Set([key, ...]) }
-
-  // --- Utility: Get order for rendering (temp if exists, else original) ---
-  function getRenderOrder(cat, items) {
-    if (tempOrders[cat] && tempOrders[cat].length) {
-      // Only include keys that still exist in items
-      return tempOrders[cat].filter(k => items[k]);
-    }
-    // Fallback to original order
-    let keys = Array.isArray(items.order) ? [...items.order] : [];
-    Object.keys(items).forEach(k => {
-      if (
-        k !== 'order' &&
-        !keys.includes(k) &&
-        items[k] &&
-        typeof items[k] === 'object' &&
-        typeof items[k].name === 'string'
-      ) {
-        keys.push(k);
-      }
-    });
-    return keys;
-  }
-
-  // --- Utility: Save temp order for a table ---
-  function saveTempOrder(cat, orderArr) {
-    if (!USER_LIST_KEY) return;
-    const tempKey = `${cat}_temp_items_orders_check_zeros_btn`;
-    tempOrders[cat] = orderArr;
-    firebase.database().ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/${tempKey}`).set(orderArr);
-  }
-
-  // --- Utility: Clear all temp orders for this family ---
-  function clearAllTempOrders() {
-    if (!USER_LIST_KEY) return;
-    const updates = {};
-    categories.forEach(cat => {
-      const tempKey = `${cat}_temp_items_orders_check_zeros_btn`;
-      updates[tempKey] = null;
-      tempOrders[cat] = [];
-    });
-    firebase.database().ref(`/shoppingListsPerFamily/${USER_LIST_KEY}`).update(updates);
-  }
-
-  // --- Render Grocery Tables ---
-  function renderAllTables() {
-    const area = document.getElementById('tables-area');
-    if (area.sortableInstance) {
-      area.sortableInstance.destroy();
-      area.sortableInstance = null;
-    }
-    while (area.firstChild) {
-      area.removeChild(area.firstChild);
-    }
-
-    const order = Array.isArray(tableOrder) && tableOrder.length ? tableOrder : categories;
-    order.forEach((cat, idx) => {
-      // --- Skip pending deleted tables ---
-      if (pendingDeletedTables.has(cat)) return;
-
-      const container = document.createElement('div');
-      container.className = 'container';
-      container.id = `${cat}-container`;
-
-      // Use only tableNames from DB, fallback to key if missing
-      const header = document.createElement('div');
-      header.className = 'header';
-      // Use soft palette for background and font color
-      const headerName = tableNames[cat] || cat;
-      const headerColors = stringToHeaderColor(headerName);
-      header.style.background = headerColors.bg;
-      header.style.color = headerColors.fg;
-      // Optionally, add a class for future CSS overrides
-      header.classList.add(`${cat.replace(/[^a-z0-9_]/gi, '').toLowerCase()}-header`);
-
-      // Calculate count for header
-      const items = groceryData[cat] || {};
-      const count = Object.values(items)
-        .filter(item => item && typeof item === "object" && item.count > 0 && !item.checked)
-        .length;
-
-      header.innerHTML = `
-        <span class="header-count" id="${cat}-count">${count}</span>
-        <span class="header-title" data-cat="${cat}">${headerName}</span>
-        ${
-          moveMode
-            ? `
-          <span class="table-move-handle" title="Move table">
-            <i class="fas fa-up-down-left-right" style="font-size:22px;color:#666;"></i>
-          </span>
-        `
-            : deleteMode
-            ? `
-          <button class="table-delete-btn" onclick="deleteTable('${cat}')">
-            <span class="table-delete-svg-wrap">
-              <i class="fas fa-trash" style="font-size:18px;color:#e53935;" title="Delete table"></i>
-            </span>
-          </button>
-        `
-            : ''
-        }
-        <div class="header-actions">
-            <button class="voice-add-btn" data-cat="${cat}" title="Long-press to add item by voice">
-                <span class="icon-stack">
-                  <i class="fas fa-microphone-alt"></i>
-                  <i class="fas fa-plus"></i>
-                </span>
-            </button>
-            <button class="header-burger-menu" data-cat="${cat}" title="More options">
-              <i class="fas fa-ellipsis-v"></i>
-            </button>
-        </div>
-        <span class="collapse-arrow">&#9654;</span>
-      `;
-      header.addEventListener('click', function (e) {
-        // This listener should ONLY trigger when the header background is clicked,
-        // not its buttons or other child elements.
-        if (e.target !== header) {
-          return;
-        }
-        toggleCollapse(cat);
-      });
-
-      // --- Add a dedicated click listener for the collapse arrow ---
-      const collapseArrow = header.querySelector('.collapse-arrow');
-      if (collapseArrow) {
-        collapseArrow.addEventListener('click', function(e) {
-          e.stopPropagation(); // Prevent the header's click listener from firing
-          toggleCollapse(cat);
-        });
-      }
-
-      // --- Add a dedicated click listener for the header title ---
-      const headerTitle = header.querySelector('.header-title');
-      if (headerTitle) {
-        headerTitle.addEventListener('click', function(e) {
-          // Do not toggle if a dblclick is in progress for editing
-          if (e.detail > 1) return;
-          e.stopPropagation();
-          toggleCollapse(cat);
-        });
-      }
-
-      // --- Add burger menu click handler ---
-      const burgerMenu = header.querySelector('.header-burger-menu');
-      if (burgerMenu) {
-        // --- Add context menu for long press/right click on burger menu only ---
-        let longPressTimer = null;
-        
-        burgerMenu.addEventListener('mousedown', function(e) {
-          if (e.button !== 0) return; // Only left mouse button
-          longPressTimer = setTimeout(() => {
-            showHeaderContextMenu(cat, header, e.clientX, e.clientY);
-          }, 1000); // 1 second long press
-        });
-        
-        burgerMenu.addEventListener('mouseup', function() {
-          clearTimeout(longPressTimer);
-        });
-        
-        burgerMenu.addEventListener('mouseleave', function() {
-          clearTimeout(longPressTimer);
-        });
-
-        // --- Add right-click context menu on burger menu ---
-        burgerMenu.addEventListener('contextmenu', function(e) {
-          e.preventDefault();
-          showHeaderContextMenu(cat, header, e.clientX, e.clientY);
-        });
-
-        // --- Touch events for mobile long press on burger menu ---
-        burgerMenu.addEventListener('touchstart', function(e) {
-          longPressTimer = setTimeout(() => {
-            const touch = e.touches[0];
-            showHeaderContextMenu(cat, header, touch.clientX, touch.clientY);
-          }, 1000);
-        });
-        
-        burgerMenu.addEventListener('touchend', function() {
-          clearTimeout(longPressTimer);
-        });
-        
-        burgerMenu.addEventListener('touchmove', function() {
-          clearTimeout(longPressTimer);
-        });
-      }
-
-      // --- VOICE BUTTON: Add direct listeners for long-press (mimics burger menu logic) ---
-      const voiceBtn = header.querySelector('.voice-add-btn');
-      if (voiceBtn) {
-        let voiceLongPressTimer = null;
-
-        const startPress = (e) => {
-          // DO NOT preventDefault. The working burger menu does not, and it was breaking this.
-          e.stopPropagation(); // Only stop propagation to prevent header collapse.
-          
-          voiceBtn.classList.add('pressing');
-          
-          voiceLongPressTimer = setTimeout(() => {
-            startVoiceAddItem(cat);
-            if (voiceBtn) voiceBtn.classList.remove('pressing');
-            voiceLongPressTimer = null;
-          }, 500); // 0.5 second press
-        };
-
-        const cancelPress = (e) => {
-          if (voiceLongPressTimer) {
-            clearTimeout(voiceLongPressTimer);
-            voiceLongPressTimer = null;
-          }
-          if (voiceBtn) voiceBtn.classList.remove('pressing');
-        };
-
-        // Mouse events
-        voiceBtn.addEventListener('mousedown', startPress);
-        voiceBtn.addEventListener('mouseup', cancelPress);
-        voiceBtn.addEventListener('mouseleave', cancelPress);
-
-        // Touch events - simplified to match the working burger menu
-        voiceBtn.addEventListener('touchstart', startPress); // Removed { passive: false }
-        voiceBtn.addEventListener('touchend', cancelPress);
-        voiceBtn.addEventListener('touchmove', cancelPress); // Cancel on any finger movement
-        voiceBtn.addEventListener('touchcancel', cancelPress);
-
-        // Prevent click from bubbling to header and causing collapse
-        voiceBtn.addEventListener('click', (e) => e.stopPropagation());
-      }
-
-
-      container.appendChild(header);
-
-      const ul = document.createElement('ul');
-      ul.id = cat;
-      container.appendChild(ul);
-
-      const addBtn = document.createElement('button');
-      addBtn.className = 'add-table-btn';
-      addBtn.textContent = '＋ Add Item';
-      addBtn.onclick = () => addItem(cat);
-      container.appendChild(addBtn);
-      area.appendChild(container);
-
-      // No need to set addBtn.style.display here, CSS will handle it
-      const isCollapsed = localStorage.getItem('col-' + cat) === 'true';
-      if (isCollapsed) {
-        setCollapsed(cat, true);
-      } else {
-        setCollapsed(cat, false);
-      }
-
-      renderList(cat);
-      updateHeaderCount(cat);
-    });
-
-    // --- Editable Table Name: Double-click to edit ---
-    area.querySelectorAll('.header-title').forEach(span => {
-      span.addEventListener('dblclick', function (e) {
-        e.stopPropagation();
-        e.preventDefault();
-        const cat = this.getAttribute('data-cat');
-        const oldName = tableNames[cat] || cat;
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.value = oldName;
-        input.className = 'edit-table-input';
-        this.replaceWith(input);
-        input.focus();
-        input.select();
-
-        function finishEdit() {
-          let newName = input.value.trim();
-          if (!newName) newName = oldName;
-          tableNames[cat] = newName;
-          renderAllTables();
-          // Write to shoppingListsPerFamily, not userLists
-          db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/tableNames/${cat}`).set(newName);
-        }
-        input.onblur = finishEdit;
-        input.onkeydown = function (ev) {
-          if (ev.key === 'Enter') { input.blur(); }
-          if (ev.key === 'Escape') { input.value = oldName; input.blur(); }
-        };
-      });
-    });
-
-    if (moveDeleteMode) {
-      if (!area.sortableInstance) {
-        area.sortableInstance = Sortable.create(area, {
-          animation: 180,
-          handle: '.table-move-handle',
-          draggable: '.container',
-          ghostClass: 'dragging',
-          onEnd: function () {
-            const newOrder = [];
-            area.querySelectorAll('.container').forEach(div => {
-              if (div.id) newOrder.push(div.id.replace('-container', ''));
-            });
-            db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/tableOrder`).set(newOrder);
-            tableOrder = newOrder;
-            renderAllTables();
-          }
-        });
-      }
-    } else {
-      if (area.sortableInstance) {
-        area.sortableInstance.destroy();
-        area.sortableInstance = null;
-      }
-    }
-  }
-
-  // --- DELEGATED EVENT LISTENER FOR VOICE BUTTON LONG-PRESS ---
-  // This is more stable than re-attaching listeners on every render.
-  /* (function setupVoiceButtonListener() {
-    const area = document.getElementById('tables-area');
-    let longPressTimer = null;
-    let pressTarget = null;
-
-    const handlePressStart = (e) => {
-      const btn = e.target.closest('.voice-add-btn');
-      if (!btn) return;
-
-      // Prevent default browser actions (scrolling, context menu) which is CRITICAL for mobile.
-      e.preventDefault(); 
-      e.stopPropagation();
-
-      pressTarget = btn;
-      const cat = btn.dataset.cat;
-      if (!cat) return;
-
-      btn.classList.add('pressing');
-
-      // Clear any existing timer
-      clearTimeout(longPressTimer);
-
-      longPressTimer = setTimeout(() => {
-        startVoiceAddItem(cat);
-        // Once action is fired, we can clear the target
-        if (pressTarget) {
-          pressTarget.classList.remove('pressing');
-          pressTarget = null;
-        }
-        longPressTimer = null; // Mark timer as fired
-      }, 500); // 0.5-second long press
-    };
-
-    const handlePressEnd = (e) => {
-      // If the timer is still running, cancel it.
-      if (longPressTimer) {
-        clearTimeout(longPressTimer);
-        longPressTimer = null;
-      }
-      // Always remove the visual feedback
-      if (pressTarget) {
-        pressTarget.classList.remove('pressing');
-        pressTarget = null;
-      }
-    };
-
-    // This listener stops the "click" that fires after touchend from bubbling to the header.
-    const stopClickPropagation = (e) => {
-        const btn = e.target.closest('.voice-add-btn');
-        if (btn) {
-            e.stopPropagation();
-        }
-    };
-
-    // MOUSE EVENTS
-    area.addEventListener('mousedown', handlePressStart);
-    area.addEventListener('mouseup', handlePressEnd);
-    area.addEventListener('mouseleave', handlePressEnd, true); // Use capture for mouseleave
-
-    // TOUCH EVENTS
-    // { passive: false } is required for e.preventDefault() to work in touch events.
-    area.addEventListener('touchstart', handlePressStart, { passive: false });
-    area.addEventListener('touchend', handlePressEnd);
-    area.addEventListener('touchcancel', handlePressEnd); // Handle cases where the touch is cancelled by the system
-    area.addEventListener('touchmove', handlePressEnd); // If finger moves, cancel the long press
-
-    // CLICK EVENT (to prevent header collapse)
-    area.addEventListener('click', stopClickPropagation, true); // Use capture to stop it early
-
-  })(); */
-
-
-  // --- Show custom context menu for table header ---
-  function showHeaderContextMenu(cat, headerEl, x, y, showUpward = false) {
-    // Remove any existing menu
-    document.querySelectorAll('.header-context-menu').forEach(menu => menu.remove());
-
-    const menu = document.createElement('div');
-    menu.className = 'header-context-menu';
-    menu.style.position = 'fixed';
-    menu.style.left = x + 'px';
-    menu.style.zIndex = 6001;
-    
-    // --- FIX: Set background to a very light shade of the header color ---
-    const headerName = tableNames[cat] || cat;
-    const headerColors = stringToHeaderColor(headerName);
-    menu.style.background = headerColors.lightBg || '#fff'; // Use lightBg from palette
-
-    menu.style.borderRadius = '8px';
-    menu.style.boxShadow = '0 2px 12px rgba(30,40,60,0.18)';
-    menu.style.padding = '8px 0';
-    menu.style.minWidth = '180px';
-    menu.style.fontSize = '1.05rem';
-    menu.style.border = '1px solid #ddd';
-
-    // Add upward arrow indicator if showing upward
-    if (showUpward) {
-      menu.classList.add('upward');
-      menu.style.bottom = (window.innerHeight - y) + 'px';
-      
-      // Add downward arrow at bottom of menu
-      const arrow = document.createElement('div');
-      arrow.className = 'context-menu-arrow-down';
-      arrow.innerHTML = '▼';
-      arrow.style.position = 'absolute';
-      arrow.style.bottom = '-8px';
-      arrow.style.left = '50%';
-      arrow.style.transform = 'translateX(-50%)';
-      arrow.style.color = '#fff';
-      arrow.style.fontSize = '12px';
-      arrow.style.textShadow = '0 1px 2px rgba(0,0,0,0.3)';
-      menu.appendChild(arrow);
-    } else {
-      menu.style.top = y + 'px';
-      
-      // Add upward arrow at top of menu for normal positioning
-      const arrow = document.createElement('div');
-      arrow.className = 'context-menu-arrow-up';
-      arrow.innerHTML = '▲';
-      arrow.style.position = 'absolute';
-      arrow.style.top = '-8px';
-      arrow.style.left = '50%';
-      arrow.style.transform = 'translateX(-50%)';
-      arrow.style.color = '#fff';
-      arrow.style.fontSize = '12px';
-      arrow.style.textShadow = '0 1px 2px rgba(0,0,0,0.3)';
-      menu.appendChild(arrow);
-    }
-
-    // Add Highlight items to buy option FIRST
-    const markZeros = document.createElement('div');
-    markZeros.innerHTML = '<i class="fas fa-check" style="margin-right:8px;color:#1976d2;"></i> Highlight items to buy';
-    markZeros.style.padding = '10px 18px';
-    markZeros.style.cursor = 'pointer';
-    markZeros.style.fontWeight = '600';
-    markZeros.style.color = '#1976d2';
-    markZeros.onmouseenter = () => markZeros.style.background = '#e3f2fd';
-    markZeros.onmouseleave = () => markZeros.style.background = '';
-    markZeros.onclick = function() {
-      menu.remove();
-      markZerosInTable(cat);
-    };
-    menu.appendChild(markZeros);
-
-    // Add divider
-    const divider = document.createElement('div');
-    divider.style.height = '1px';
-    divider.style.background = '#eee';
-    divider.style.margin = '8px 0';
-    menu.appendChild(divider);
-
-    // Add Move Items option
-    const moveItems = document.createElement('div');
-    moveItems.innerHTML = '<i class="fas fa-up-down-left-right" style="margin-right:8px;color:#1976d2;"></i> Move Items/List';
-    moveItems.style.padding = '10px 18px';
-    moveItems.style.cursor = 'pointer';
-    moveItems.style.fontWeight = '600';
-    moveItems.style.color = '#1976d2';
-    moveItems.onmouseenter = () => moveItems.style.background = '#e3f2fd';
-    moveItems.onmouseleave = () => moveItems.style.background = '';
-    moveItems.onclick = function() {
-      menu.remove();
-      enableMoveMode();
-    };
-    menu.appendChild(moveItems);
-
-    // Add Delete Items option
-    const deleteItems = document.createElement('div');
-    deleteItems.innerHTML = '<i class="fas fa-trash" style="margin-right:8px;color:#1976d2;"></i> Delete Items/List';
-    deleteItems.style.padding = '10px 18px';
-    deleteItems.style.cursor = 'pointer';
-    deleteItems.style.fontWeight = '600';
-    deleteItems.style.color = '#1976d2';
-    deleteItems.onmouseenter = () => deleteItems.style.background = '#e3f2fd';
-    deleteItems.onmouseleave = () => deleteItems.style.background = '';
-    deleteItems.onclick = function() {
-      menu.remove();
-      enableDeleteMode();
-    };
-    menu.appendChild(deleteItems);
-
-    // Add Reset Items option
-    const resetItems = document.createElement('div');
-    resetItems.innerHTML = '<i class="fas fa-rotate-left" style="margin-right:8px;color:#1976d2;"></i> Reset List';
-    resetItems.style.padding = '10px 18px';
-    resetItems.style.cursor = 'pointer';
-    resetItems.style.fontWeight = '600';
-    resetItems.style.color = '#1976d2';
-    resetItems.onmouseenter = () => resetItems.style.background = '#e3f2fd';
-    resetItems.onmouseleave = () => resetItems.style.background = '';
-    resetItems.onclick = function() {
-      menu.remove();
-      resetTable(cat); // <-- FIX: Call resetTable(cat) instead of resetAllItems()
-    };
-    menu.appendChild(resetItems);
-
-    document.body.appendChild(menu);
-
-    // --- Push state for back button dismissal ---
-    history.pushState({ contextMenu: true }, 'Context Menu');
-
-    // --- Auto-adjust menu position to avoid overflow ---
-    setTimeout(() => {
-      const rect = menu.getBoundingClientRect();
-      let newLeft = x;
-      const padding = 8;
-      if (rect.right > window.innerWidth) {
-        newLeft = Math.max(window.innerWidth - rect.width - padding, 0);
-        menu.style.left = newLeft + 'px';
-      }
-      if (rect.left < 0) {
-        newLeft = padding;
-        menu.style.left = newLeft + 'px';
-      }
-    }, 0);
-
-    // Remove menu on click elsewhere
-    setTimeout(() => {
-      document.addEventListener('mousedown', function handler(ev) {
-        if (!menu.contains(ev.target)) {
-          menu.remove();
-          // If the history state is ours, go back to remove it
-          if (history.state && history.state.contextMenu) {
-            history.back();
-          }
-          document.removeEventListener('mousedown', handler);
-        }
-      });
-    }, 0);
-  }
-
-  // --- Mark Zeros in a single table ---
-  function markZerosInTable(cat) {
-    if (!isLoggedIn) return;
-    const items = groceryData[cat] || {};
-    const updates = {};
-    let changed = false;
-    
-    // First, mark all items with count 0 as checked
-    for (const key in items) {
-      if (key !== "order") {
-        const item = items[key];
-        if (item && (item.count || 0) === 0 && !item.checked) {
-          groceryData[cat][key].checked = true;
-          updates[`${key}/checked`] = true;
-          changed = true;
-        }
-      }
-    }
-    
-    // Move ALL checked items to bottom (both newly checked and manually checked)
-    const keys = Object.keys(items).filter(k => k !== 'order' && items[k] && typeof items[k].name === 'string');
-    const toBuy = []; // Items with count > 0 and not checked
-    const checked = []; // All checked items (regardless of count)
-    
-    for (let j = 0; j < keys.length; j++) {
-      const key = keys[j];
-      const item = items[key];
-      if (!item) continue;
-      
-      if (item.checked) {
-        checked.push(key); // All checked items go to bottom
-      } else if ((item.count || 0) > 0) {
-        toBuy.push(key); // Unchecked items with count > 0 stay at top
-      } else {
-        // Unchecked items with count 0 - these were just marked as checked above
-        checked.push(key);
-      }
-    }
-    
-    const newOrder = toBuy.concat(checked);
-    saveTempOrder(cat, newOrder);
-
-    renderList(cat);
-
-    // Batch update DB for checked items
-    if (changed) {
-      setTimeout(() => {
-        db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${cat}`).update(updates);
-      }, 0);
-    }
-  }
-
-  // --- Add New Table ---
-  document.getElementById('add-table-btn-main').onclick = function () {
-    if (!isLoggedIn) return;
-    // Use custom modal for new table name
-    showInputModal('New List Name:', function(listName) {
-      if (!listName) return;
-      const trimmedListName = listName.trim().replace(/\s+/g, ' ');
-      if (!trimmedListName) return;
-      const catKey = trimmedListName.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
-
-      // Add new table to DB (shoppingListsPerFamily)
-      db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${catKey}`).set({ order: [] });
-      db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/tableNames/${catKey}`).set(trimmedListName);
-      db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/tableOrder`).once('value')
-        .then(snap => {
-          let order = snap.val() || [];
-          if (!order.includes(catKey)) {
-            order.push(catKey);
-            db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/tableOrder`).set(order);
-          }
-        });
-
-      localStorage.setItem('col-' + catKey, 'false');
-
-      // Prompt for first item
-      showInputModal('First item name:', function(itemName) {
-        if (!itemName) return;
-        const trimmedItemName = toProperCase(itemName.trim().replace(/\s+/g, ' '));
-        if (!trimmedItemName) return;
-        const nextKey = `item1`;
-        const item = { name: trimmedItemName, count: 0, checked: false };
-        db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${catKey}/${nextKey}`).set(item);
-        db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${catKey}/order`).set([nextKey]);
-      });
-    });
-  };
-
-  // --- Collapse/Expand Tables ---
-  function toggleCollapse(cat) {
-    const container = document.getElementById(`${cat}-container`);
-    const ul = document.getElementById(cat);
-    let arrow = container ? container.querySelector('.collapse-arrow') : null;
-    if (!arrow) arrow = document.getElementById(`${cat}-arrow`);
-    // No need to set addBtn.style.display here, CSS will handle it
-    if (!container || !ul || !arrow) return;
-    const collapsed = container.classList.toggle('collapsed');
-    if (collapsed) {
-      ul.style.display = 'none';
-      arrow.classList.add('collapsed');
-      localStorage.setItem('col-' + cat, 'true');
-    } else {
-      ul.style.display = '';
-      arrow.classList.remove('collapsed');
-      localStorage.setItem('col-' + cat, 'false');
-    }
-  }
-
-  function setCollapsed(cat, collapsed) {
-    const container = document.getElementById(`${cat}-container`);
-    const ul = document.getElementById(cat);
-    const arrow = container ? container.querySelector('.collapse-arrow') : null;
-    if (!container || !ul || !arrow) return;
-    if (collapsed) {
-      container.classList.add('collapsed');
-      ul.style.display = 'none';
-      arrow.classList.add('collapsed');
-    } else {
-      container.classList.remove('collapsed');
-      ul.style.display = '';
-      arrow.classList.remove('collapsed');
-    }
-  }
-
-  // --- Render List (override displayOrder logic) ---
-  function renderList(cat) {
-    if (pendingDeletedTables.has(cat)) return;
-    const ul = document.getElementById(cat);
-    if (!ul) return;
-    ul.innerHTML = '';
-    const items = groceryData[cat] || {};
-    let keys = getRenderOrder(cat, items);
-
-    // --- Filter out pending deleted items ---
-    const pendingSet = pendingDeletedItems[cat] || new Set();
-    const validKeys = keys.filter(k => items[k] && typeof items[k].name === 'string' && !pendingSet.has(k));
-    if (
-      Array.isArray(items.order) &&
-      (items.order.length !== validKeys.length ||
-        items.order.some(k => !validKeys.includes(k)) ||
-        validKeys.some(k => !items.order.includes(k)))
-    ) {
-      groceryData[cat].order = validKeys;
-      db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${cat}/order`).set(validKeys);
-    }
-    let displayOrder = keys.filter(k => !pendingSet.has(k));
-    displayOrder.forEach(key => {
-      const item = items[key];
-      if (!item || typeof item !== 'object' || typeof item.name !== 'string') return;
-
-      const li = document.createElement('li');
-      li.dataset.key = key;
-      // Remove all inline style assignments for appearance
-      // Use CSS classes for checked, to-buy, zero-count
-      li.className = '';
-      if (item.checked) {
-        li.classList.add('checked');
-      } else if (item.count > 0) {
-        li.classList.add('to-buy');
-      } else {
-        li.classList.add('zero-count');
-      }
-
-      li.innerHTML = `
-        <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleChecked('${cat}', '${key}', this.checked)">
-        <div class="name" title="Alt+Click to edit item name" data-cat="${cat}" data-key="${key}">${item.name}</div>
-        ${moveMode ? `
-          <span class="item-move-handle" title="Move item">
-            <i class="fas fa-up-down-left-right" style="font-size:18px;color:#666;"></i>
-          </span>
-        ` : deleteMode ? `
-          <button class="item-delete-btn" onclick="deleteItem('${cat}', '${key}')">
-            <span class="item-delete-svg-wrap">
-              <i class="fas fa-trash" style="font-size:18px;color:#e53935;" title="Delete item"></i>
-            </span>
-          </button>
-        ` : `
-          <div class="counter">
-            <button onclick="updateCount('${cat}', '${key}', -1)">-</button>
-            <span class="count">${item.count || 0}</span>
-            <button onclick="updateCount('${cat}', '${key}', 1)">+</button>
-          </div>
-        `}
-      `;
-      ul.appendChild(li);
-
-      // --- Detect Hindi (Devanagari) and set lang/class for font ---
-      const nameDiv = li.querySelector('.name');
-      if (nameDiv) {
-        if (/[\u0900-\u097F]/.test(item.name)) {
-          nameDiv.setAttribute('lang', 'hi');
-          nameDiv.classList.add('hindi-text');
-        } else {
-          nameDiv.removeAttribute('lang');
-          nameDiv.classList.remove('hindi-text');
-        }
-      }
-    });
-
-    // --- Editable Item Name: Double-click to edit ---
-    ul.querySelectorAll('.name').forEach(div => {
-      div.addEventListener('dblclick', function (e) {
-        e.stopPropagation();
-        e.preventDefault();
-        const cat = this.getAttribute('data-cat');
-        const key = this.getAttribute('data-key');
-        const oldName = groceryData[cat][key].name;
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.value = oldName;
-        input.className = 'edit-item-input';
-        // Remove all inline style assignments; use CSS only
-        this.replaceWith(input);
-        input.focus();
-        input.select();
-
-        function finishEdit() {
-          let newName = input.value.trim();
-          if (!newName) newName = oldName;
-          groceryData[cat][key].name = newName;
-          renderList(cat);
-          db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${cat}/${key}/name`).set(newName);
-          // --- After editing, update Hindi font if needed ---
-          setTimeout(() => {
-            const ul = document.getElementById(cat);
-            if (ul) {
-              ul.querySelectorAll('.name').forEach(nameDiv => {
-                if (/[\u0900-\u097F]/.test(nameDiv.textContent)) {
-                  nameDiv.setAttribute('lang', 'hi');
-                  nameDiv.classList.add('hindi-text');
-                } else {
-                  nameDiv.removeAttribute('lang');
-                  nameDiv.classList.remove('hindi-text');
-                }
-              });
-            }
-          }, 0);
-        }
-        input.onblur = finishEdit;
-        input.onkeydown = function (ev) {
-          if (ev.key === 'Enter') { input.blur(); }
-          if (ev.key === 'Escape') { input.value = oldName; input.blur(); }
-        };
-      });
-    });
-
-  // --- Fix: Always destroy and re-create Sortable instance on every render ---
-  if (ul.sortableInstance) {
-    ul.sortableInstance.destroy();
-    ul.sortableInstance = null;
-  }
-  if (moveMode) {
-    ul.sortableInstance = Sortable.create(ul, {
-      animation: 200,
-      handle: '.item-move-handle',
-      draggable: 'li',
-      ghostClass: 'dragging',
-      chosenClass: 'item-moving',
-      onStart() {
-        ul.querySelectorAll('.item-squeeze').forEach(el => el.classList.remove('item-squeeze'));
-      },
-      onEnd() {
-        ul.querySelectorAll('.item-squeeze').forEach(el => el.classList.remove('item-squeeze'));
-        const newOrder = Array.from(ul.querySelectorAll('li'))
-          .map(li => li.dataset.key)
-          .filter(Boolean);
-        groceryData[cat].order = newOrder;
-        db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${cat}/order`)
-          .set(newOrder)
-          .then(() => renderList(cat));
-      },
-      onChange(evt) {
-        ul.querySelectorAll('.item-squeeze').forEach(el => el.classList.remove('item-squeeze'));
-        const movedTo = ul.querySelectorAll('li')[evt.newIndex];
-        movedTo?.classList.add('item-squeeze');
-      }
-    });
-  }
-  updateHeaderCount(cat);
-  }
-
-  // --- Toggle Checked ---
-  function toggleChecked(cat, key, checked) {
-    const item = groceryData[cat]?.[key];
-    if (!item) return;
-
-    // Update local data and UI instantly
-    groceryData[cat][key].checked = checked;
-
-    // --- Clear the sort flag if user manually checks/unchecks ---
-    if (window._checkZerosSortFlags && window._checkZerosSortFlags[cat]) {
-      delete window._checkZerosSortFlags[cat];
-    }
-
-    renderList(cat);
-
-    // Update database in background
-    setTimeout(() => {
-      db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${cat}/${key}`).update({ checked });
-    }, 0);
-
-    updateHeaderCount(cat);
-  }
-  window.toggleChecked = toggleChecked;
-
-  // --- Update Count ---
-  // Make updateCount globally accessible for inline onclick
-  function updateCount(cat, key, delta) {
-    const item = groceryData[cat]?.[key];
-    if (!item || item.checked) return;
-
-    let current = (item && typeof item.count === "number") ? item.count : 0;
-    let newCount = current + delta;
-    if (newCount < 0) newCount = 0;
-
-    // Update local data instantly
-    groceryData[cat][key].count = newCount;
-
-    // --- Clear the sort flag if user manually changes a count ---
-    if (window._checkZerosSortFlags && window._checkZerosSortFlags[cat]) {
-      delete window._checkZerosSortFlags[cat];
-    }
-
-    renderList(cat);
-
-    // --- Batch update all counters in this table after a short delay ---
-    if (updateCounterDebounce[cat]) clearTimeout(updateCounterDebounce[cat]);
-    updateCounterDebounce[cat] = setTimeout(() => {
-      const updates = {};
-      Object.keys(groceryData[cat] || {}).forEach(k => {
-        if (k !== "order" && groceryData[cat][k] && typeof groceryData[cat][k].count === "number") {
-          updates[`${k}/count`] = groceryData[cat][k].count;
-        }
-      });
-      if (Object.keys(updates).length > 0) {
-        db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${cat}`).update(updates);
-      }
-      delete updateCounterDebounce[cat];
-    }, 400);
-
-    // No need to call updateHeaderCount(cat) here, as renderList already does it
-  }
-  window.updateCount = updateCount;
-
-  // --- Delete Item ---
-  function deleteItem(cat, key) {
-    const itemName = groceryData[cat]?.[key]?.name || '';
-    
-    // --- Mark as pending deleted ---
-    if (!pendingDeletedItems[cat]) pendingDeletedItems[cat] = new Set();
-    pendingDeletedItems[cat].add(key);
-
-    const backupItem = groceryData[cat][key];
-    const backupOrder = Array.isArray(groceryData[cat].order) ? [...groceryData[cat].order] : [];
-
-    // Remove from local data
-    delete groceryData[cat][key];
-    if (Array.isArray(groceryData[cat].order)) {
-      groceryData[cat].order = groceryData[cat].order.filter(k => k !== key);
-    }
-    renderList(cat);
-
-    // --- Create undo toast after re-render so it is not wiped out ---
-    const undoToast = document.createElement('div');
-    undoToast.className = 'undo-toast';
-    undoToast.innerHTML = `
-      <span class="undo-message">Item "${backupItem.name}" deleted.</span>
-      <button class="undo-btn" type="button" tabindex="0">UNDO</button>
-    `;
-    document.body.appendChild(undoToast);
-
-    let undone = false;
-    let undoTimeout;
-
-    function handleUndo(e) {
-      if (undone) return;
-      undone = true;
-      clearTimeout(undoTimeout);
-      // --- Remove from pending deletes ---
-      pendingDeletedItems[cat].delete(key);
-      // Restore in local data and UI
-      groceryData[cat][key] = backupItem;
-      groceryData[cat].order = backupOrder;
-      renderList(cat);
-      if (undoToast.parentNode) document.body.removeChild(undoToast);
-    }
-
-    const undoBtn = undoToast.querySelector('.undo-btn');
-    if (undoBtn) {
-      undoBtn.addEventListener('click', handleUndo, { passive: false });
-      undoBtn.addEventListener('touchend', function(e) {
-        e.preventDefault();
-        handleUndo();
-      }, { passive: false });
-      undoBtn.focus(); // Ensure button is focused for accessibility
-    }
-
-    undoTimeout = setTimeout(() => {
-      if (!undone) {
-        db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${cat}/${key}`).remove();
-        // Remove from order array in DB
-        db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${cat}/order`).once('value').then(snap => {
-          let order = snap.val() || [];
-          order = order.filter(k => k !== key);
-          db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${cat}/order`).set(order);
-        });
-        if (undoToast.parentNode) document.body.removeChild(undoToast);
-        // --- Remove from pending deletes after DB update ---
-        if (pendingDeletedItems[cat]) pendingDeletedItems[cat].delete(key);
-      }
-    }, 8000);
-  }
-  window.deleteItem = deleteItem;
-
-  // --- Delete Table ---
-  function deleteTable(cat) {
-    // Get table name and item count for confirmation
-    const displayName = tableNames[cat] || cat;
-    const itemsObj = groceryData[cat] || {};
-    const itemKeys = Object.keys(itemsObj).filter(k => k !== "order" && itemsObj[k] && typeof itemsObj[k].name === "string");
-    const itemCount = itemKeys.length;
-
-    // Ask for confirmation before deleting, show table name and item count (no <b> tags)
-    showModal(
-      `Delete table "${displayName}" with ${itemCount} item${itemCount === 1 ? '' : 's'}?`,
-      function(yes) {
-        if (!yes) return;
-
-        // --- Mark as pending deleted ---
-        pendingDeletedTables.add(cat);
-
-        const backupTable = {
-          groceryLists: groceryData[cat],
-          tableName: tableNames[cat],
-          tableOrder: Array.isArray(tableOrder) ? [...tableOrder] : []
-        };
-
-        // Remove from local data
-        delete groceryData[cat];
-        tableOrder = tableOrder.filter(k => k !== cat);
-        renderAllTables();
-
-        // --- Create undo toast after re-render so it is not wiped out ---
-        const undoToast = document.createElement('div');
-        undoToast.className = 'undo-toast';
-        undoToast.innerHTML = `
-          <span class="undo-message">Table "${displayName}" deleted.</span>
-          <button class="undo-btn">UNDO</button>
-        `;
-        document.body.appendChild(undoToast);
-
-        let undone = false;
-        let undoTimeout;
-
-        function handleUndo(e) {
-          if (undone) return;
-          undone = true;
-          clearTimeout(undoTimeout);
-          // --- Remove from pending deletes ---
-          pendingDeletedTables.delete(cat);
-          // Restore in local data and UI
-          groceryData[cat] = backupTable.groceryLists;
-          tableNames[cat] = backupTable.tableName;
-          tableOrder = backupTable.tableOrder;
-          db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${cat}`).set(backupTable.groceryLists);
-          db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/tableNames/${cat}`).set(backupTable.tableName);
-          db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/tableOrder`).set(backupTable.tableOrder);
-          renderAllTables();
-          if (undoToast.parentNode) document.body.removeChild(undoToast);
-        }
-
-        const undoBtn = undoToast.querySelector('.undo-btn');
-        if (undoBtn) {
-          undoBtn.onclick = () => {
-            if (undone) return;
-            undone = true;
-            clearTimeout(undoTimeout);
-            db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${cat}`).set(backupTable.groceryLists);
-            db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/tableNames/${cat}`).set(backupTable.tableName);
-            db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/tableOrder`).set(backupTable.tableOrder);
-            renderAllTables();
-            if (undoToast.parentNode) document.body.removeChild(undoToast);
-          };
-          undoBtn.focus();
-        }
-
-        // --- After 8s, remove from DB: groceryLists, tableNames, tableOrder ---
-        undoTimeout = setTimeout(() => {
-          if (!undone) {
-            db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${cat}`).remove();
-            db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/tableNames/${cat}`).remove();
-            db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/tableOrder`).once('value').then(snap => {
-              let order = snap.val() || [];
-              order = order.filter(k => k !== cat);
-              db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/tableOrder`).set(order);
-            });
-            if (undoToast.parentNode) document.body.removeChild(undoToast);
-            pendingDeletedTables.delete(cat);
-          }
-        }, 8000);
-      }
-    );
-  }
-  window.deleteTable = deleteTable;
-
-  // --- Voice Add Item ---
-  function startVoiceAddItem(cat) {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      showModal("Sorry, your browser doesn't support voice recognition.", () => {});
-      return;
-    }
-
-    const recognition = new SpeechRecognition();
-    recognition.lang = 'en-IN'; // <-- Set to English (India)
-    recognition.interimResults = true;
-    recognition.maxAlternatives = 1;
-
-    const listName = tableNames[cat] || cat;
-    const headerColors = stringToHeaderColor(listName);
-    
-    // Remove any existing notification
-    const existingNotification = document.querySelector('.voice-notification-backdrop');
-    if (existingNotification) existingNotification.remove();
-
-    const backdrop = document.createElement('div');
-    backdrop.className = 'voice-notification-backdrop';
-    backdrop.innerHTML = `
-        <div class="voice-notification">
-            <div class="voice-icon-wrapper">
-                <i class="fas fa-microphone-alt"></i>
-            </div>
-            <div class="voice-text-wrapper">
-                <span class="voice-title">Speak now...</span>
-                <div class="voice-interim-results" id="voice-interim-results"></div>
-                <span class="voice-subtitle">Adding item to:</span>
-                <span class="voice-list-name" style="background-color: ${headerColors.bg}; color: ${headerColors.fg};">${listName}</span>
-            </div>
-            <button id="voice-cancel-btn" class="voice-cancel-btn">Cancel</button>
-        </div>
-    `;
-    document.body.appendChild(backdrop);
-
-    // --- History API for back button dismissal ---
-    const voicePromptState = { voicePromptActive: true };
-    history.pushState(voicePromptState, 'Voice Input');
-
-    let cleanedUp = false;
-    const cleanup = (isPopState) => {
-      if (cleanedUp) return;
-      cleanedUp = true;
-      recognition.stop();
-      if (backdrop.parentNode) {
-        backdrop.parentNode.removeChild(backdrop);
-      }
-      window.removeEventListener('popstate', handlePopState);
-
-      // If cleanup was triggered by something other than the back button,
-      // we need to go back in history to remove the state we pushed.
-      if (!isPopState && history.state && history.state.voicePromptActive) {
-        history.back();
-      }
-    };
-
-    const handlePopState = (event) => {
-        cleanup(true); // Pass true to indicate it was triggered by popstate
-    };
-    window.addEventListener('popstate', handlePopState);
-
-
-    let final_transcript = '';
-    let final_transcript_timer = null;
-
-    document.getElementById('voice-cancel-btn').onclick = () => cleanup(false);
-
-    recognition.onresult = function(event) {
-      // Clear any pending timer if new results are coming in.
-      clearTimeout(final_transcript_timer);
-
-      let interim_transcript = '';
-      for (let i = event.resultIndex; i < event.results.length; ++i) {
-        if (event.results[i].isFinal) {
-          final_transcript += event.results[i][0].transcript;
-        } else {
-          interim_transcript += event.results[i][0].transcript;
-        }
-      }
-
-      const interimEl = document.getElementById('voice-interim-results');
-      if (interimEl) {
-        interimEl.textContent = final_transcript || interim_transcript;
-      }
-
-      // If we have a final transcript, set a timer to process it.
-      // This gives a 1-second pause after the user finishes speaking.
-      if (final_transcript) {
-        if (interimEl) {
-          interimEl.style.color = '#388e3c'; // Green for success
-        }
-        final_transcript_timer = setTimeout(() => {
-          processVoiceResult(cat, final_transcript);
-          cleanup(false); // Close the modal after processing
-        }, 1000); // 1-second delay
-      }
-    };
-
-    recognition.onspeechend = function() {
-      // Do not cleanup here, onresult with its timer is now responsible.
-    };
-
-    recognition.onerror = function(event) {
-      // The 'onend' event will fire after an error, so cleanup will happen there.
-      // We only need to show the modal message here.
-      if (event.error === 'not-allowed') {
-        // Check if on insecure origin that is not localhost
-        if (window.location.protocol === 'http:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-            showModal("<b>Microphone access denied.</b><br><br>For development on a private network, you must enable a browser flag. On Chrome, go to:<br><b>chrome://flags/#unsafely-treat-insecure-origin-as-secure</b><br><br>Add your site's address (e.g., http://192.168.1.140:5500) to the list, enable it, and relaunch.", () => {});
-        } else {
-            showModal("<b>Microphone access denied.</b><br><br>To use voice input, please grant microphone permission for this site. Note: Most browsers require a secure (HTTPS) connection.", () => {});
-        }
-      } else if (event.error !== 'no-speech' && event.error !== 'aborted') {
-        showModal(`Voice recognition error: ${event.error}`, () => {});
-      }
-    };
-    
-    recognition.onend = function() {
-      // Only cleanup if a final result was NOT being processed.
-      // This handles cases where the user cancels or there's an error.
-      if (!final_transcript) {
-        cleanup(false);
-      }
-    };
-
-    recognition.start();
-  }
-  window.startVoiceAddItem = startVoiceAddItem;
-
-  function highlightAndScrollToItem(cat, itemKey) {
-    setTimeout(() => {
-      const li = document.querySelector(`#${cat} li[data-key='${itemKey}']`);
-      if (li) {
-        // Expand table if collapsed
-        const container = document.getElementById(`${cat}-container`);
-        if (container && container.classList.contains('collapsed')) {
-          toggleCollapse(cat);
-        }
-        
-        li.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-        // Add a class to trigger the animation. This is more robust than inline styles.
-        li.classList.add('item-blink');
-        
-        // After the animation duration (2 seconds), remove the class
-        // to allow the original CSS classes to take effect again.
-        setTimeout(() => {
-          li.classList.remove('item-blink');
-        }, 2000);
-      }
-    }, 150); // Increased delay slightly to ensure the element is ready.
-  }
-
-  function processVoiceResult(cat, itemName) {
-    if (!itemName) return;
-    const trimmedName = toProperCase(itemName.trim().replace(/\s+/g, ' '));
-    if (!trimmedName) return;
-
-    const items = groceryData[cat] || {};
-    const existingKeys = Object.keys(items).filter(key => key !== 'order' && items[key] && typeof items[key] === 'object' && typeof items[key].name === 'string');
-    
-    const searchName = trimmedName.toLowerCase();
-    const existingItemKey = existingKeys.find(key => items[key].name.trim().toLowerCase() === searchName);
-
-    let targetKey;
-
-    // --- Set a flag to prevent the 'on' listener from re-rendering and creating duplicates ---
-    isVoiceAdding = true;
-
-    if (existingItemKey) {
-      // Item exists, increment count
-      targetKey = existingItemKey;
-      const currentCount = items[targetKey].count || 0;
-      groceryData[cat][targetKey].count = currentCount + 1;
-      groceryData[cat][targetKey].checked = false; // Uncheck if it was checked
-      db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${cat}/${targetKey}`).update({
-        count: currentCount + 1,
-        checked: false
-      });
-    } else {
-      // Item does not exist, add it with count 1
-      let maxNum = 0;
-      existingKeys.forEach(key => {
-        const match = key.match(/-?item(\d+)/);
-        if (match) {
-          const num = parseInt(match[1], 10);
-          if (num > maxNum) maxNum = num;
-        }
-      });
-      targetKey = `item${maxNum + 1}`;
-      const newItem = { name: trimmedName, count: 1, checked: false };
-
-      if (!groceryData[cat]) groceryData[cat] = {};
-      groceryData[cat][targetKey] = newItem;
-      if (!Array.isArray(groceryData[cat].order)) groceryData[cat].order = [];
-                groceryData[cat].order.push(targetKey);
-      
-      // --- FIX: If a temporary order is active, add the new item to it ---
-      if (tempOrders[cat] && tempOrders[cat].length > 0) {
-        // Add the new item to the beginning of the temporary order
-        tempOrders[cat].unshift(targetKey);
-        // Save the updated temporary order to Firebase
-        saveTempOrder(cat, tempOrders[cat]);
-      }
-      
-      db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${cat}/${targetKey}`).set(newItem);
-      db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${cat}/order`).set(groceryData[cat].order);
-    }
-
-    // Re-render and then scroll and blink
-    renderList(cat);
-    saveCache();
-    highlightAndScrollToItem(cat, targetKey);
-
-    // --- Clear the flag after a short delay to allow the next real sync to proceed ---
-    setTimeout(() => {
-      isVoiceAdding = false;
-    }, 1500); // 1.5 seconds should be enough for DB to sync
-  }
-
-  // --- Move/Delete/Reset Toggle Button ---
-  /* This button is being removed. The functionality is available in the table header context menu.
-  document.getElementById('move-delete-toggle').onclick = function (e) {
-    // This button is now only for entering/exiting move/delete item mode.
-    // The specific mode (move vs delete) is handled by the context menu.
-    // We just need to toggle a general "editing" state.
-    
-    const wasInMoveDeleteMode = moveMode || deleteMode;
-
-    if (wasInMoveDeleteMode) {
-      // If we were in any edit mode, exit all of them.
-      disableMoveDeleteMode();
-    } else {
-      // If we were not in an edit mode, enter the default one (e.g., move items).
-      // The user can switch to delete via the context menu.
-      enableMoveMode();
-    }
-  };
- */
-
-  document.getElementById('reset-all').onclick = function () {
-    showModal("Reset all counters to 0 and uncheck all items in all tables?", function (yes) {
-      if (!yes) return;
-
-      // Change button icon to a spinning refresh to indicate action
-      const resetBtn = document.getElementById('reset-all');
-      resetBtn.innerHTML = '<i class="fas fa-rotate fa-spin"></i> <span style="margin-left: 6px;">Reset All</span>';
-
-      // 1. Update all local data instantly (only count and checked, do NOT touch order or remove items)
-      for (let i = 0; i < categories.length; i++) {
-        const cat = categories[i];
-        const items = groceryData[cat] || {};
-        for (const key in items) {
-          if (key !== "order") {
-            if (typeof groceryData[cat][key].count === 'number') groceryData[cat][key].count = 0;
-            groceryData[cat][key].checked = false;
-          }
-        }
-        tempOrders[cat] = [];
-      }
-
-      // --- Instantly update UI ---
-           renderAllTables();
-
-      // 2. Update DB in the background (only count and checked, do NOT touch order or remove items)
-      setTimeout(() => {
-        for (let i = 0; i < categories.length; i++) {
-          const cat = categories[i];
-          const items = groceryData[cat] || {};
-          const updates = {};
-          for (const key in items) {
-            if (key !== "order") {
-              updates[`${key}/count`] = 0;
-              updates[`${key}/checked`] = false;
-            }
-          }
-          if (Object.keys(updates).length > 0) {
-            db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${cat}`).update(updates);
-          }
-        }
-        // --- Clear all temp order tables in DB ---
-        clearAllTempOrders();
-        setTimeout(() => {
-   resetBtn.innerHTML = '<i class="fas fa-rotate-left"></i> <span style="margin-left: 6px;">Reset All</span>';
-          // No need to call renderAllTables() again, already done above
-        }, 500);
-      }, 0);
-    });
-  };
-
-  // --- Update Header Count ---
-  function updateHeaderCount(cat) {
-    const items = groceryData[cat] || {};
-    // Only count items with count > 0 and not checked
-    const count = Object.values(items)
-      .filter(item => item && typeof item === "object" && item.count > 0 && !item.checked)
-      .length;
-    const el = document.getElementById(`${cat}-count`);
-    if (!el) return;
-    el.textContent = count; // Update the count in the header
-    el.className = 'header-count'; // Ensure proper styling
-  }
-
-  // --- Inject custom CSS for moving/squeeze effects if not present ---
-  (function injectMoveSqueezeCSS() {
-    if (!document.getElementById('move-squeeze-css')) {
-      const style = document.createElement('style');
-      style.id = 'move-squeeze-css';
-      style.innerHTML = `
-        /* Highlight the item being moved: solid light blue fill, no border, smooth transition */
-        .item-moving {
-          background: #e3f2fd !important;
-          color: #01579b !important;
-          border: none !important;
-          box-shadow: 0 2px 12px 0 #90caf9;
-          z-index: 10;
-          transition: background 0.28s cubic-bezier(.68,-0.55,.27,1.55), color 0.18s, box-shadow 0.28s;
-        }
-        /* Squeeze effect for drop location: slightly different blue, dashed border */
-        .item-squeeze {
-          margin-top: 0.7em !important;
-          margin-bottom: 0.7em !important;
-          background: #bbdefb !important;
-          border: 2.5px dashed #0288d1 !important;
-          box-shadow: 0 0 8px 1px #4fc3f7;
-          transition: margin 0.22s cubic-bezier(.68,-0.55,.27,1.55), background 0.18s, border 0.18s, box-shadow 0.18s;
-        }
-        ul li {
-          transition: margin 0.22s cubic-bezier(.68,-0.55,.27,1.55), background 0.28s cubic-bezier(.68,-0.55,.27,1.55), border 0.18s, box-shadow 0.18s;
-        }
-      `;
-      document.head.appendChild(style);
-    }
-  })();
-
-  // --- Error Handling ---
-  function handleFirebaseError(error) {
-    if (!isLoggedIn) return; // Prevent popups after logout
-    console.error("Firebase error:", error);
-    const errorMsg = error && error.message ? error.message : "Unknown error occurred.";
-    showModal(`Error: ${errorMsg}`, null); // Display error in a modal
-  }
-
-  // --- Add User Floating Button Logic ---
-
-  // Show/hide button based on login state
-  function setAddUserButtonVisible(visible) {
-    const btn = document.getElementById('add-user-btn');
-    // Only show for sunil.kumar101@gmail.com
-    const isSunil = USER_EMAIL === "sunil.kumar101@gmail.com";
-    if (btn) btn.style.display = (visible && isSunil) ? 'flex' : 'none';
-  }
-
-  // Update showMain/showLogin to toggle button
-  function showMain() {
-    isLoggedIn = true;
-    document.getElementById('login-bg').style.display = 'none';
-    document.getElementById('main-section').style.display = '';
-    setLogoutButtonVisible(true);
-    setAddUserButtonVisible(true);
-  }
-  function showLogin() {
-    isLoggedIn = false;
-    document.getElementById('main-section').style.display = 'none';
-    document.getElementById('login-bg').style.display = '';
-    setLogoutButtonVisible(false);
-    showLoggedInEmail('');
-    setAddUserButtonVisible(false);
-  }
-
-  // Add User Modal
-  function showAddUserModal(callback, prevData) {
-    // Create modal if not present
-    let backdrop = document.getElementById('add-user-modal-backdrop');
-    if (!backdrop) {
-      backdrop = document.createElement('div');
-      backdrop.id = 'add-user-modal-backdrop';
-      backdrop.style = 'position:fixed;left:0;top:0;right:0;bottom:0;z-index:3000;background:rgba(30,40,60,0.18);display:flex;align-items:center;justify-content:center;';
-      backdrop.innerHTML = `
-        <div style="background:#fff;border-radius:13px;box-shadow:0 3px 14px rgba(0,0,0,0.13);padding:22px 20px 16px 20px;min-width:240px;max-width:90vw;width:340px;display:flex;flex-direction:column;gap:13px;">
-          <div style="font-size:1.13rem;font-weight:700;margin-bottom:2px;text-align:center;">Add New User</div>
-          <input id="add-user-email" type="email" placeholder="Email address" style="font-size:1.01rem;padding:7px 8px;border-radius:7px;border:1.2px solid #c7d1e6;background:#f7fafd;outline:none;width:100%;box-sizing:border-box;" autocomplete="off"/>
-          <input id="add-user-family" type="text" placeholder="Family name" style="font-size:1.01rem;padding:7px 8px;border-radius:7px;border:1.2px solid #c7d1e6;background:#f7fafd;outline:none;width:100%;box-sizing:border-box;" autocomplete="off"/>
-          <div id="add-user-error" style="color:#e53935;font-size:0.98rem;min-height:1.2em;text-align:center;"></div>
-          <div style="display:flex;gap:10px;justify-content:center;margin-top:2px;">
-            <button id="add-user-cancel" style="flex:1 1 0;padding:7px 0;border-radius:8px;font-weight:600;border:none;background:#f3f6fa;color:#222;">Cancel</button>
-            <button id="add-user-ok" style="flex:1 1 0;padding:7px 0;border-radius:8px;font-weight:600;border:none;background:linear-gradient(90deg,#388e3c 60%, #5dd05d 100%);color:#fff;">Add</button>
-          </div>
-        </div>
-      `;
-      document.body.appendChild(backdrop);
-    } else {
-      backdrop.style.display = 'flex';
-    }
-    backdrop.classList.add('active');
-    document.getElementById('add-user-email').value = prevData && prevData.email ? prevData.email : '';
-    document.getElementById('add-user-family').value = prevData && prevData.family ? prevData.family : '';
-    document.getElementById('add-user-error').textContent = '';
-    document.getElementById('add-user-email').focus();
-
-    function cleanup() {
-      backdrop.classList.remove('active');
-      backdrop.style.display = 'none';
-      document.getElementById('add-user-cancel').onclick = null;
-      document.getElementById('add-user-ok').onclick = null;
-      document.getElementById('add-user-email').onkeydown = null;
-      document.getElementById('add-user-family').onkeydown = null;
-    }
-
-    document.getElementById('add-user-cancel').onclick = () => {
-      cleanup();
-      if (callback) callback(null);
-    };
-
-    function tryAddUser() {
-      const email = document.getElementById('add-user-email').value.trim();
-      const family = document.getElementById('add-user-family').value.trim();
-      const errorDiv = document.getElementById('add-user-error');
-      // Email validation
-      if (!email) {
-        errorDiv.textContent = 'Please enter an email address.';
-        document.getElementById('add-user-email').focus();
-        return;
-      }
-      // Simple email regex
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        errorDiv.textContent = 'Please enter a valid email address.';
-        document.getElementById('add-user-email').focus();
-        return;
-      }
-      if (!family) {
-        errorDiv.textContent = 'Please enter a family name.';
-        document.getElementById('add-user-family').focus();
-        return;
-      }
-      // All good
-      cleanup();
-      callback({ email, family });
-    }
-
-    document.getElementById('add-user-ok').onclick = tryAddUser;
-    document.getElementById('add-user-email').onkeydown = function(e) {
-      if (e.key === 'Enter') tryAddUser();
-      if (e.key === 'Escape') document.getElementById('add-user-cancel').click();
-    };
-    document.getElementById('add-user-family').onkeydown = function(e) {
-      if (e.key === 'Enter') tryAddUser();
-      if (e.key === 'Escape') document.getElementById('add-user-cancel').click();
-    };
-  }
-
-  // --- Add User Button click handler (revamped, improved) ---
-  document.getElementById('add-user-btn').onclick = function () {
-    firebase.database().ref('/authorisedUsers').once('value').then(snap => {
-      const users = snap.val() || {};
-      const emails = Object.values(users).map(u => (u && u.email ? u.email.trim().toLowerCase() : ''));
-      const families = Object.values(users).map(u => (u && u.family ? u.family.trim() : ''));
-      showAddUserTwoStageModal(emails, families);
-    });
-  };
-
-  // --- Two-stage modal with radio buttons for existing/new family ---
-  function showAddUserTwoStageModal(existingEmails, existingFamilies) {
-    // Remove any existing modal
-    let backdrop = document.getElementById('add-user-modal-backdrop');
-    if (backdrop) backdrop.remove();
-
-    backdrop = document.createElement('div');
-    backdrop.id = 'add-user-modal-backdrop';
-    backdrop.style = 'position:fixed;left:0;top:0;right:0;bottom:0;z-index:4001;background:rgba(30,40,60,0.18);display:flex;align-items:center;justify-content:center;';
-    backdrop.innerHTML = `
-      <form id="add-user-form" style="background:#fff;border-radius:13px;box-shadow:0 3px 14px rgba(0,0,0,0.13);padding:22px 20px 16px 20px;min-width:240px;max-width:90vw;width:340px;display:flex;flex-direction:column;gap:13px;">
-        <div style="font-size:1.13rem;font-weight:700;margin-bottom:2px;text-align:center;">Add New User</div>
-        <div style="display:flex;flex-direction:column;gap:8px;justify-content:center;margin-bottom:8px;">
-          <label style="display:flex;align-items:center;gap:7px;font-size:1.09rem;font-weight:700;color:#1976d2;cursor:pointer;">
-            <input type="radio" name="add-user-mode" value="existing" checked style="margin-right:6px;vertical-align:middle;">
-            Add this new user to an existing family
-          </label>
-          <label style="display:flex;align-items:center;gap:7px;font-size:1.09rem;font-weight:700;color:#1976d2;cursor:pointer;">
-            <input type="radio" name="add-user-mode" value="new" style="margin-right:6px;vertical-align:middle;">
-            Add this new user along with a new family
-          </label>
-        </div>
-        <div id="add-user-stage"></div>
-        <div id="add-user-error" style="color:#e53935;font-size:0.98rem;min-height:1.2em;text-align:center;"></div>
-        <div style="display:flex;gap:10px;justify-content:center;margin-top:2px;">
-                   <button type="button" id="add-user-cancel" style="flex:1 1 0;padding:7px 0;border-radius:8px;font-weight:600;border:none;background:#f3f6fa;color:#222;">Cancel</button>
-          <button type="submit" id="add-user-ok" style="flex:1 1 0;padding:7px 0;border-radius:8px;font-weight:600;border:none;background:linear-gradient(90deg,#388e3c 60%, #5dd05d 100%);color:#fff;">Add</button>
-        </div>
-      </form>
-    `;
-    document.body.appendChild(backdrop);
-
-    // --- Cancel handler: always set after every render ---
-    function setCancelHandler() {
-      const cancelBtn = document.getElementById('add-user-cancel');
-      if (cancelBtn) {
-        cancelBtn.onclick = () => {
-          if (backdrop && backdrop.parentNode) backdrop.parentNode.removeChild(backdrop);
-        };
-      }
-    }
-
-    // --- Render the stage (inputs) and always re-set cancel handler after every render ---
-    function renderStage(mode, prevEmail = '', prevFamily = '', prevFamilySelect = '') {
-      const stageDiv = document.getElementById('add-user-stage');
-      if (mode === 'existing') {
-        stageDiv.innerHTML = `
-          <input id="add-user-email" type="email" placeholder="New user email" style="font-size:1.01rem;padding:7px 8px;border-radius:7px;border:1.2px solid #c7d1e6;background:#f7fafd;outline:none;width:100%;box-sizing:border-box;margin-bottom:7px;" autocomplete="off"/>
-          <select id="add-user-family-select" class="family-dropdown" style="font-size:1.01rem;padding:7px 8px;border-radius:7px;border:1.2px solid #c7d1e6;background:#f7fafd;outline:none;width:100%;box-sizing:border-box;">
-            <option value="">Select family</option>
-            ${[...new Set(existingFamilies)].map(fam => `<option value="${fam}" class="family-option">${fam}</option>`).join('')}
-          </select>
-        `;
-      } else {
-        stageDiv.innerHTML = `
-          <input id="add-user-email" type="email" placeholder="New user email" style="font-size:1.01rem;padding:7px 8px;border-radius:7px;border:1.2px solid #c7d1e6;background:#f7fafd;outline:none;width:100%;box-sizing:border-box;margin-bottom:7px;" autocomplete="off"/>
-          <input id="add-user-family" type="text" placeholder="New family name" style="font-size:1.01rem;padding:7px 8px;border-radius:7px;border:1.2px solid #c7d1e6;background:#f7fafd;outline:none;width:100%;box-sizing:border-box;" autocomplete="off"/>
-        `;
-      }
-      // Restore values
-      const emailInput = document.getElementById('add-user-email');
-      let famInput = null, famSelect = null;
-      if (mode === 'existing') famSelect = document.getElementById('add-user-family-select');
-      if (mode === 'new') famInput = document.getElementById('add-user-family');
-      if (emailInput) emailInput.value = prevEmail || '';
-      if (famInput) famInput.value = prevFamily || '';
-      if (famSelect) famSelect.value = prevFamilySelect || '';
-      setCancelHandler();
-
-      // --- Live validation for email and family name duplicacy ---
-      const errorDiv = document.getElementById('add-user-error');
-      function validate() {
-        let emailVal = emailInput ? emailInput.value.trim().toLowerCase() : '';
-        let famVal = famInput ? famInput.value.trim() : (famSelect ? famSelect.value : '');
-        let valid = true;
-        let errorMsg = '';
-
-        if (!emailVal) {
-          valid = false;
-          errorMsg = 'Please enter an email address.';
-        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) {
-          valid = false;
-          errorMsg = 'Please enter a valid email address.';
-        } else if (existingEmails.includes(emailVal)) {
-          valid = false;
-          errorMsg = 'This email already exists.';
-        }
-
-        if (mode === 'existing') {
-          if (!famSelect || !famSelect.value) {
-            valid = false;
-            if (!errorMsg) errorMsg = 'Please select a family.';
-          }
-        } else {
-          if (!famVal) {
-            valid = false;
-            if (!errorMsg) errorMsg = 'Please enter a family name.';
-          } else if (existingFamilies.map(f => f.toLowerCase()).includes(famVal.toLowerCase())) {
-            valid = false;
-            errorMsg = 'This family name already exists.';
-          }
-        }
-
-        errorDiv.textContent = errorMsg;
-        const okBtn = document.getElementById('add-user-ok');
-        if (okBtn) {
-          okBtn.disabled = !valid;
-          okBtn.style.opacity = valid ? '' : '0.6';
-          okBtn.style.cursor = valid ? '' : 'not-allowed';
-        }
-      }
-
-      if (emailInput) emailInput.addEventListener('input', validate);
-      if (famInput) famInput.addEventListener('input', validate);
-      if (famSelect) famSelect.addEventListener('change', validate);
-      setTimeout(validate, 0);
-    }
-
-    // --- Initial render ---
-    let mode = 'existing';
-    renderStage(mode);
-
-    // --- Radio logic: re-render stage and re-set cancel handler ---
-    document.querySelectorAll('input[name="add-user-mode"]').forEach(radio => {
-           radio.addEventListener('change', function () {
-        mode = this.value;
-        // Save values before switching
-        const emailInput = document.getElementById('add-user-email');
-        const famInput = document.getElementById('add-user-family');
-        const famSelect = document.getElementById('add-user-family-select');
-        const prevEmail = emailInput ? emailInput.value : '';
-        const prevFamily = famInput ? famInput.value : '';
-        const prevFamilySelect = famSelect ? famSelect.value : '';
-        renderStage(mode, prevEmail, prevFamily, prevFamilySelect);
-      });
-    });
-
-    setCancelHandler();
-
-    // --- Confirmation and DB logic (same as before, with padded user keys) ---
-    let awaitingConfirmation = false;
-
-    // --- FIX: Get the form element after modal is added to DOM ---
-    const form = document.getElementById('add-user-form');
-    form.onsubmit = function (e) {
-      e.preventDefault();
-      const email = (document.getElementById('add-user-email')?.value || '').trim().toLowerCase();
-      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || existingEmails.includes(email)) return;
-      if (mode === 'existing') {
-        const fam = document.getElementById('add-user-family-select').value;
-        if (!fam) return;
-        const familyId = sanitizeFamilyId(fam);
-        if (!awaitingConfirmation) {
-          awaitingConfirmation = true;
-          showModal(
-            `Are you sure you want to add user "${email}" to family "${fam}"?`,
-            function (yes) {
-              awaitingConfirmation = false;
-              if (!yes) return;
-              firebase.database().ref('/authorisedUsers').once('value').then(snap => {
-                const users = snap.val() || {};
-                let maxN = 0;
-                Object.keys(users).forEach(key => {
-                  const m = key.match(/^user(\d+)$/);
-                  if (m) {
-
-
-                    const n = parseInt(m[1], 10);
-                    if (n > maxN) maxN = n;
-                  }
-                });
-                const nextKey = 'user' + String(maxN + 1).padStart(4, '0');
-                firebase.database().ref('/authorisedUsers/' + nextKey).set({
-                  email: email,
-                  family: familyId
-                }).then(() => {
-                  const modal = document.getElementById('add-user-modal-backdrop');
-                  if (modal && modal.parentNode) modal.parentNode.removeChild(modal);
-                  showModal(`<div style="color: #4CAF50; font-weight: bold;">Success!</div>User "${email}" added to family "${fam}".`);
-                }).catch(err => {
-                  const errorDiv = document.getElementById('add-user-error');
-                  if(errorDiv) errorDiv.textContent = 'Failed to add user: ' + err.message;
-                });
-              });
-            }
-          );
-          return;
-        }
-      } else {
-        const fam = (document.getElementById('add-user-family')?.value || '').trim();
-        if (!fam || existingFamilies.map(f => f.toLowerCase()).includes(fam.toLowerCase())) return;
-        const familyId = sanitizeFamilyId(fam);
-        if (!awaitingConfirmation) {
-          awaitingConfirmation = true;
-          showModal(
-            `Are you sure you want to add user "${email}" to new family "${fam}"?`,
-            function (yes) {
-              awaitingConfirmation = false;
-              if (!yes) return;
-              firebase.database().ref('/authorisedUsers').once('value').then(snap => {
-                const users = snap.val() || {};
-                let maxN = 0;
-                Object.keys(users).forEach(key => {
-                  const m = key.match(/^user(\d+)$/);
-                  if (m) {
-                    const n = parseInt(m[1], 10);
-                    if (n > maxN) maxN = n;
-                  }
-                });
-                const nextKey = 'user' + String(maxN + 1).padStart(4, '0');
-                firebase.database().ref('/authorisedUsers/' + nextKey).set({
-                  email: email,
-                  family: familyId
-                }).then(() => {
-                  const modal = document.getElementById('add-user-modal-backdrop');
-                  if (modal && modal.parentNode) modal.parentNode.removeChild(modal);
-                  showModal(`<div style="color: #4CAF50; font-weight: bold;">Success!</div>User "${email}" added to new family "${fam}".`);
-                }).catch(err => {
-                  const errorDiv = document.getElementById('add-user-error');
-                  if(errorDiv) errorDiv.textContent = 'Failed to add user: ' + err.message;
-                });
-              });
-            }
-          );
-          return;
-        }
-      }
-    };
-  };
-
-  // --- Always show the login screen on initial load ---
-  showLogin();
-
-  // --- LocalStorage Caching for Fast Load ---
-  function saveCache() {
-    try {
-      const cache = {
-        groceryData,
-        tableNames,
-        tableOrder: typeof tableOrder !== 'undefined' ? tableOrder : [],
-        categories
-      };
-      localStorage.setItem('swiftListCache', JSON.stringify(cache));
-    } catch (e) { /* ignore */ }
-  }
-
-  function loadCache() {
-    try {
-      const cache = JSON.parse(localStorage.getItem('swiftListCache'));
-      if (cache && typeof cache === 'object') {
-        groceryData = cache.groceryData || {};
-        tableNames = cache.tableNames || {};
-        tableOrder = cache.tableOrder || Object.keys(groceryData);
-        categories = cache.categories || Object.keys(groceryData);
-        renderAllTables();
-      }
-    } catch (e) { /* ignore */ }
-  }
-
-  // --- On page load, render from cache immediately ---
-  loadCache();
-
-  // --- Show main section by default for instant load ---
-  document.getElementById('login-bg').style.display = 'none';
-  document.getElementById('main-section').style.display = '';
-
-  // --- If already authenticated, show main UI and email ---
-  if (auth.currentUser) {
-    showMain();
-    showLoggedInEmail(auth.currentUser.email);
-  }
-
-  // --- Auth State Change ---
-  auth.onAuthStateChanged(user => {
-    fetchAuthorisedUsers(() => {
-      if (user) {
-        showMain();
-        showLoggedInEmail(user.email);
-        handleUserLogin(user);
-      } else {
-        showLogin(); // Only show login if not authenticated
-      }
-    });
-  });
-
-  // --- Remove old sync indicator logic
-  // (function addSyncIndicator() { ... })();
-
-// Utility to show/hide sync toast notification
-function setSyncIndicator(visible) {
-  let toast = document.getElementById('sync-toast');
-  if (!toast) {
-    toast = document.createElement('div');
-    toast.id = 'sync-toast';
-    toast.className = 'sync-toast';
-    toast.style.display = 'none'; // Initially hidden
-    toast.innerHTML = `
-      <div class="sync-spinner">
-        <div class="cloud-lightning-container">
-          <svg class="cloud-with-lightning" width="28" height="20" viewBox="0 0 28 20" xmlns="http://www.w3.org/2000/svg">
-            <!-- Main cloud shape -->
-            <path class="cloud-base" d="M22 8C22 5.5 20 3.5 17.5 3.5C16.8 3.5 16.2 3.7 15.7 4C14.8 2.3 13 1 11 1C8.2 1 6 3.2 6 6C6 6.2 6 6.4 6.1 6.5C5.7 6.4 5.4 6.3 5 6.3C3.3 6.3 2 7.6 2 9.3C2 10.8 3.1 12 4.5 12.2H21.5C23.4 12.2 25 10.6 25 8.7C25 8.2 24.9 7.8 24.7 7.4C23.6 7.7 22.8 7.9 22 8Z" 
-                  fill="#fff" 
-                  stroke="#fff" 
-                  stroke-width="1" 
-                  opacity="0.9"/>
-            
-            <!-- Lightning outline that will animate -->
-            <path class="lightning-outline" d="M22 8C22 5.5 20 3.5 17.5 3.5C16.8 3.5 16.2 3.7 15.7 4C14.8 2.3 13 1 11 1C8.2 1 6 3.2 6 6C6 6.2 6 6.4 6.1 6.5C5.7 6.4 5.4 6.3 5 6.3C3.3 6.3 2 7.6 2 9.3C2 10.8 3.1 12 4.5 12.2H21.5C23.4 12.2 25 10.6 25 8.7C25 8.2 24.9 7.8 24.7 7.4C23.6 7.7 22.8 7.9 22 8Z" 
-                  fill="transparent" 
-                  stroke="#4fc3f7" 
-                  stroke-width="2.5" 
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  pathLength="100"/>
-            
-            <!-- Electric spark effects -->
-            <g class="spark-effects">
-              <circle class="spark spark-1" cx="8" cy="5" r="1" fill="#4fc3f7" opacity="0"/>
-              <circle class="spark spark-2" cx="15" cy="4" r="1" fill="#4fc3f7" opacity="0"/>
-              <circle class="spark spark-3" cx="20" cy="7" r="1" fill="#4fc3f7" opacity="0"/>
-              <circle class="spark spark-4" cx="12" cy="11" r="1" fill="#4fc3f7" opacity="0"/>
-            </g>
-          </svg>
-        </div>
-      </div>
-      <span class="sync-text">Syncing with cloud...</span>
-    `;
-    document.body.appendChild(toast);
-
-    // Add CSS for lightning animation
-    if (!document.getElementById('sync-indicator-progress-css')) {
-      const style = document.createElement('style');
-      style.id = 'sync-indicator-progress-css';
-      style.innerHTML = `
-        /* Prevent inherited animations */
-        .sync-spinner,
-        .cloud-base,
-        #sync-cloud-icon,
-        .fa-cloud,
-        .fa-spin {
-          animation: none !important;
-          transform: none !important;
-        }
-        
-        .cloud-lightning-container {
-          position: relative;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          width: 32px;
-          height: 24px;
-          margin-right: 7px;
-        }
-        
-        .cloud-with-lightning {
-          position: relative;
-          z-index: 3;
-        }
-        
-        /* Lightning outline progress animation */
-        .lightning-outline {
-          stroke-dasharray: 100;
-          stroke-dashoffset: 100;
-          animation: lightning-progress 1.5s ease-in-out infinite !important;
-          filter: drop-shadow(0 0 3px #4fc3f7);
-        }
-        
-        @keyframes lightning-progress {
-          0% {
-            stroke-dashoffset: 100;
-            stroke: #4fc3f7;
-            filter: drop-shadow(0 0 3px #4fc3f7);
-          }
-          25% {
-            stroke-dashoffset: 75;
-            stroke: #29b6f6;
-            filter: drop-shadow(0 0 5px #29b6f6);
-          }
-          50% {
-            stroke-dashoffset: 50;
-            stroke: #03a9f4;
-            filter: drop-shadow(0 0 8px #03a9f4);
-          }
-          75% {
-            stroke-dashoffset: 25;
-            stroke: #0288d1;
-            filter: drop-shadow(0 0 5px #0288d1);
-          }
-          100% {
-            stroke-dashoffset: 0;
-            stroke: #01579b;
-            filter: drop-shadow(0 0 3px #01579b);
-          }
-        }
-        
-        /* Electric spark animations */
-        .spark {
-          animation: spark-flash 2s ease-in-out infinite !important;
-        }
-        
-        .spark-1 { animation-delay: 0.2s !important; }
-        .spark-2 { animation-delay: 0.6s !important; }
-        .spark-3 { animation-delay: 1.0s !important; }
-        .spark-4 { animation-delay: 1.4s !important; }
-        
-        @keyframes spark-flash {
-          0%, 90%, 100% {
-            opacity: 0;
-            transform: scale(1);
-          }
-          5%, 15% {
-            opacity: 1;
-            transform: scale(1.5);
-          }
-          10% {
-            opacity: 0.7;
-            transform: scale(1.2);
-          }
-        }
-        
-        /* Webkit fallbacks */
-        @-webkit-keyframes lightning-progress {
-          0% { stroke-dashoffset: 100; }
-          100% { stroke-dashoffset: 0; }
-        }
-        
-        @-webkit-keyframes spark-flash {
-          0%, 90%, 100% { opacity: 0; }
-          5%, 15% { opacity: 1; }
-        }
-        
-        .lightning-outline {
-          -webkit-animation: lightning-progress 1.5s ease-in-out infinite !important;
-        }
-        
-        .spark {
-          -webkit-animation: spark-flash 2s ease-in-out infinite !important;
-        }
-        
-        /* Cloud subtle glow effect */
-        .cloud-base {
-          filter: drop-shadow(0 0 4px rgba(255,255,255,0.3));
-        }
-        
-        /* Override FontAwesome interference */
-        .sync-toast .fa-spin,
-        .sync-toast .fa-pulse,
-        .sync-toast [class*="fa-"] {
-          animation: none !important;
-        }
-      `;
-      document.head.appendChild(style);
-    }
-  }
-
-  if (visible) {
-    toast.style.display = 'flex';
-    setTimeout(() => {
-      toast.style.opacity = '1';
-      toast.style.top = '55px';
-    }, 10);
-  } else {
-    toast.style.opacity = '0';
-    toast.style.top = '40px';
-    setTimeout(() => {
-      if (toast) toast.style.display = 'none';
-    }, 300);
+@import url('https://fonts.googleapis.com/css2?family=Pacifico&display=swap');
+
+/* Mobile-first base styles */
+body, html {
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+  font-size: 17px;
+  background: #e3e7ee;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  -webkit-user-select: none;
+     -moz-user-select: none;
+      -ms-user-select: none;
+          user-select: none;
+  overflow-x: hidden !important;
+  width: 100vw !important;
+  box-sizing: border-box !important;
+}
+
+/* When editing text, allow selection globally */
+body.text-selection-active {
+  -webkit-user-select: auto;
+     -moz-user-select: auto;
+      -ms-user-select: auto;
+          user-select: auto;
+}
+
+/* --- Modern Top Bar --- */
+.top-bar {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: #f8fafc;
+  border-radius: 0 0 18px 18px;
+  box-shadow: 0 2px 8px rgba(60,80,130,0.07);
+  padding: 7px 10px 7px 7px;
+  margin: 0 0 7px 0;
+  min-height: 44px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+/* Top bar: compact, no extra white space */
+.top-bar.compact {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px; /* was 18px, reduce for less space between email and buttons */
+  background: #f8fafc;
+  border-radius: 0 0 18px 18px;
+  box-shadow: 0 2px 8px rgba(60,80,130,0.07);
+  padding: 4px 6px 4px 6px;
+  margin: 0 0 2px 0;
+  min-height: 36px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+/* Logout button: colorful, round, same size as collapse-all */
+.action-btn.logout {
+  background: linear-gradient(135deg, #ff5858 0%, #f09819 100%) !important;
+  color: #fff !important;
+  border-radius: 50% !important;
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  min-height: 40px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  box-shadow: 0 2px 8px rgba(30,30,30,0.13), 0 1.5px 4px rgba(60,80,130,0.10) !important;
+  opacity: 1 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  order: 0 !important;
+  border: none !important;
+  transition: background 0.18s, box-shadow 0.13s, transform 0.12s !important;
+  z-index: 100 !important;
+  outline: none !important;
+  cursor: pointer !important;
+  overflow: visible !important;
+}
+.action-btn.logout svg {
+  width: 24px !important;
+  height: 24px !important;
+  fill: #fff !important;
+  stroke: #fff !important;
+  display: block !important;
+  transition: fill 0.13s, stroke 0.13s !important;
+}
+.action-btn.logout:active,
+.action-btn.logout:hover,
+.action-btn.logout:focus {
+  background: linear-gradient(135deg, #f09819 0%, #ff5858 100%) !important;
+  color: #fff !important;
+  box-shadow: 0 4px 16px rgba(30,30,30,0.18) !important;
+  transform: scale(1.08) !important;
+}
+
+/* Email label: next to logout, no extra margin */
+#user-email-label {
+  background: #f9f9f9;
+  color: #333;
+  font-size: 1em;
+  padding: 0.02em 0.5em; 
+  border-radius: 1.2em;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  margin: 0;
+  font-weight: 500;
+  min-width: 0;
+  max-width: 60vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  align-self: center;
+}
+
+/* Collapse All: colorful, round, same size as logout */
+#collapse-all-btn {
+  position: static;
+  margin: 0 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #36d1c4 0%, #5b86e5 100%) !important;
+  border: none !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  cursor: pointer;
+  min-width: 40px !important;
+  min-height: 40px !important;
+  width: 40px !important;
+  height: 40px !important;
+  transition: background 0.13s, box-shadow 0.13s, transform 0.11s;
+  z-index: 1;
+  order: 2;
+}
+#collapse-all-btn .collapse-icon svg {
+  width: 24px !important;
+  height: 24px !important;
+}
+#collapse-all-btn:active,
+#collapse-all-btn:hover {
+  background: linear-gradient(135deg, #5b86e5 0%, #36d1c4 100%) !important;
+  box-shadow: 0 4px 12px rgba(60, 80, 130, 0.17);
+  transform: scale(1.07);
+}
+
+/* --- Modern Action Buttons --- */
+.actions-mobile {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  max-width: 99vw;
+  margin: 0 auto 0 auto;
+  padding: 0 2vw;
+}
+
+/* Remove extra white space below top bar */
+.actions-mobile.compact-actions {
+  margin-top: 18px !important; /* Add vertical space below top bar */
+  margin: 0 auto 0 auto;
+  padding: 0 2vw;
+  gap: 0;
+}
+
+
+
+.row-btns {
+  display: flex;
+  flex-direction: row;
+  gap: 7px;
+  width: 100%;
+  margin-bottom: 2px;
+}
+
+.action-btn.reset {
+  background: linear-gradient(90deg, #6366f1 70%, #a5b4fc 100%);
+  color: #fff;
+  border-radius: 10px;
+  font-size: 1.08rem;
+  min-height: 38px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  box-shadow: 0 1px 4px rgba(60,80,130,0.09);
+}
+
+.action-btn.check-zeros {
+  background: linear-gradient(90deg, #22c55e 70%, #38bdf8 100%) !important;
+  color: #fff !important;
+  border-radius: 12px !important;
+  font-size: 0.97rem !important;
+  min-height: 32px !important;
+  max-height: 36px !important;
+  padding: 0 12px !important;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  box-shadow: 0 1px 4px rgba(60,80,130,0.09);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 70px !important;
+  max-width: 80px !important;
+  white-space: nowrap;
+  overflow: visible;
+  text-overflow: unset;
+}
+
+/* Force the three main buttons to always be in a single horizontal line */
+.actions-mobile .row-btns,
+.actions-mobile .row-btns.one-line-btns,
+.actions-mobile .compact-row-btns,
+.actions-mobile .row-btns.compact-row-btns {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 2px !important; /* was 3px */
+  width: 100%;
+  margin-bottom: 2px;
+  justify-content: space-between;
+}
+
+/* Make the buttons as compact as possible */
+.action-btn.compact-btn,
+.action-btn.reset,
+.action-btn.check-zeros {
+  font-size: 0.89rem;
+  min-height: 27px;
+  padding: 0 3px;
+  border-radius: 6px;
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(60,80,130,0.05);
+  flex: 1 1 0;
+  max-width: 50%; /* Adjust to 50% for two buttons */
+  white-space: nowrap;
+  line-height: 1.1;
+  margin: 0;
+}
+
+/* Remove extra margin from .action-btn.move-delete */
+/* This rule is no longer needed.
+.action-btn.move-delete {
+  margin-bottom: 0;
+}
+*/
+
+/* On small screens, keep them horizontal unless extremely narrow */
+@media (max-width: 350px) {
+  .actions-mobile .row-btns,
+  .actions-mobile .row-btns.one-line-btns,
+  .actions-mobile .compact-row-btns,
+  .actions-mobile .row-btns.compact-row-btns {
+    flex-direction: column !important;
+    gap: 5px !important;
   }
 }
 
-  // --- Reset Individual Table ---
-  function resetTable(cat) {
-    // Confirm reset action with YES/NO
-    showModal(
-      `Are you sure you want to reset all counters and uncheck all items in table "${tableNames[cat] || cat}"?`,
-      function(confirmed) {
-        if (!confirmed) return;
-
-        setSyncIndicator(true);
-
-        // 1. Update all local data instantly (only count and checked, do NOT touch order or remove items)
-        const items = groceryData[cat] || {};
-        for (const key in items) {
-          if (key !== "order") {
-            if (typeof items[key].count === 'number') items[key].count = 0;
-            items[key].checked = false;
-          }
-        }
-        tempOrders[cat] = [];
-
-        // Instantly update UI for this table
-        renderList(cat);
-        updateHeaderCount(cat);
-
-        // 2. Update DB in the background (only count and checked, do NOT touch order or remove items)
-        setTimeout(() => {
-          const updates = {};
-          for (const key in items) {
-            if (key !== "order") {
-              updates[`${key}/count`] = 0;
-              updates[`${key}/checked`] = false;
-            }
-          }
-          if (Object.keys(updates).length > 0) {
-            db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${cat}`).update(updates);
-          }
-          // Clear temp order for this table in DB
-          db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/${cat}_temp_items_orders_check_zeros_btn`).remove();
-
-          setTimeout(() => {
-            setSyncIndicator(false);
-          }, 500);
-        }, 0);
-      }
-    );
+/* Responsive: stack buttons on very small screens */
+@media (max-width: 430px) {
+  .row-btns {
+    flex-direction: column;
+    gap: 7px;
   }
-  window.resetTable = resetTable;
-
-  // --- Enable Move/Delete Mode ---
-  function enableMoveDeleteMode() {
-    moveDeleteMode = true;
-    renderAllTables();
-    // Add history entry for back button functionality
-    history.pushState({ moveMode: true }, '', '');
+  .top-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    padding: 7px 5px 7px 5px;
   }
-
-  // --- Enable Move Mode ---
-  function enableMoveMode() {
-    moveMode = true;
-    deleteMode = false;
-    moveDeleteMode = true; // Keep for compatibility
-    renderAllTables();
-    // Add history entry for back button functionality
-    history.pushState({ moveMode: true }, '', '');
+  #user-email-label {
+    max-width: 90vw;
+    margin: 0 0 0 0;
   }
-
-  // --- Enable Delete Mode ---
-  function enableDeleteMode() {
-    deleteMode = true;
-    moveMode = false;
-    moveDeleteMode = true; // Keep for compatibility
-    renderAllTables();
-    // Add history entry for back button functionality
-    history.pushState({ deleteMode: true }, '', '');
+  .row-btns.one-line-btns {
+    flex-direction: column;
+    gap: 5px;
   }
+}
 
-  // --- Disable Move/Delete Mode ---
-  function disableMoveDeleteMode() {
-    moveDeleteMode = false;
-    moveMode = false;
-    deleteMode = false;
-    renderAllTables();
+/* Center the title */
+.center-title {
+  text-align: center;
+  margin: 8px 0 0 0 !important;
+  font-size: 1.55rem;
+  color: #343c4e;
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.main-title-your {
+  color: #4B5563; /* A softer dark grey */
+}
+
+.main-title-swiftlist {
+  font-family: 'Pacifico', cursive;
+  color: #1976d2; /* Purple accent color */
+  font-weight: 500; /* Pacifico is best at a lower weight */
+}
+
+/* Remove space between title and clock */
+.tight-datetime {
+  font-size: 1.06rem;
+  color: #6c7a89;
+  text-align: center;
+  margin-top: 2px;
+  margin-bottom: 13px;
+  font-weight: 500;
+  opacity: 0.92;
+}
+
+/* Datetime display */
+.datetime {
+  font-size: 1.06rem;
+  color: #6c7a89;
+  text-align: center;
+  margin-bottom: 13px;
+  font-weight: 500;
+  opacity: 0.92;
+}
+
+/* List/table containers */
+.container {
+  width: 100vw !important;
+  max-width: 100vw !important;
+  min-width: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  box-sizing: border-box !important;
+  overflow-x: auto !important;
+  /* Remove extra margin if present */
+  margin: 13px 0 22px 0 !important;
+  background: #fff;
+  border-radius:10px;
+  box-shadow:0 2px 9px rgba(66,80,104,0.08);
+  overflow:hidden;
+  border:1px solid #d8e0ed;
+  max-width: 99vw;
+  padding-bottom: 3px;
+}
+.header {
+  display:flex;
+  flex-direction:row;
+  align-items:center;
+  padding:8px 10px 8px 10px; /* Decreased vertical padding */
+  font-size:1.22rem;
+  font-weight:700;
+  color:#fff;
+  cursor:pointer;
+  min-height:32px; /* Decreased from 48px */
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+  letter-spacing:0.01em;
+  border-bottom: 1px solid #d6dbe2;
+  font-size: 1.38rem !important; /* Force larger header font always */
+}
+.veggies-header { background: #388e3c; }
+.grocery-header { background: #1976d2; }
+.indian-header { background: #ff9800; }
+.kmart_bigw_target-header { background: #8e24aa; }
+.pharmacy-header { background: #00897b; }
+.others-header { background: #607d8b; }
+.default-header { background: #546e7a; }
+.header-title{
+  flex:0 0 auto;
+  font-size:1.03rem;
+  margin-right:7px;
+  color: #fff;
+  letter-spacing:0.01em;
+  cursor: pointer;
+  font-size: 1.22rem !important; /* Force larger header title always */
+}
+.header-count{
+  font-size:1.01rem;
+  font-weight:900;
+  background:rgba(240,240,240,0.98);
+  color:#222;
+  padding:2px 10px;
+  border-radius:17px;
+  margin-left:3px;
+  margin-right: 18px; /* <-- Add more space after count */
+  min-width:20px;
+  text-align:center;
+  display:inline-block;
+  vertical-align:middle;
+  box-shadow:0 1px 3px rgba(0,0,0,.05);
+  border:1px solid #e0e3ea;
+  margin-right: 8px; /* Adjust spacing for icons */
+}
+.header-check{
+  font-size:1.01rem;
+  font-weight:900;
+  color:#fff;
+  background:#71c77a;
+  padding:2px 8px;
+  border-radius:17px;
+  margin-left:4px;
+  min-width:15px;
+  display:inline-block;
+  text-align:center;
+}
+
+/* --- Header Action Buttons (Voice, Menu) --- */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 21px; /* This is line 405. It controls the spacing. */
+  margin-left: auto; /* Push to the right, before collapse arrow */
+}
+
+.header .voice-add-btn,
+.header .header-burger-menu {
+  background: rgba(255,255,255,0.2);
+  border: 1px solid rgba(255,255,255,0.3);
+  color: inherit;
+  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  transform: scale(1);
+  padding: 0;
+  margin: 0;
+}
+
+.header .voice-add-btn:hover,
+.header .header-burger-menu:hover {
+  background: rgba(255,255,255,0.35);
+  transform: scale(1.05);
+}
+
+.header .voice-add-btn.pressing,
+.header .voice-add-btn:active,
+.header .header-burger-menu:active {
+  background: rgba(255,255,255,0.45);
+  transform: scale(0.95);
+  transition: transform 0.1s ease-in-out;
+}
+
+/* --- Icon Stack for Voice Add Button --- */
+.icon-stack {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+}
+
+.icon-stack .fa-microphone-alt {
+  font-size: 20px; /* Larger mic icon */
+  line-height: 1;
+}
+
+.icon-stack .fa-plus {
+  position: absolute;
+  font-size: 10px; /* Small plus icon */
+  font-weight: 900;
+  bottom: 0px;
+  right: -2px;
+  line-height: 1;
+}
+
+/* --- MODERN VOICE RECOGNITION UI --- */
+@keyframes pulse-glow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(54, 209, 196, 0.5);
   }
-
-  // --- Reset All Items ---
-  function resetAllItems() {
-    showModal("Reset all counters to 0 and uncheck all items in all tables?", function (yes) {
-      if (!yes) return;
-
-      // 1. Update all local data instantly (only count and checked, do NOT touch order)
-      for (let i = 0; i < categories.length; i++) {
-        const cat = categories[i];
-        const items = groceryData[cat] || {};
-        for (const key in items) {
-          if (key !== "order") {
-            if (typeof groceryData[cat][key].count === 'number') groceryData[cat][key].count = 0;
-            groceryData[cat][key].checked = false;
-          }
-        }
-        tempOrders[cat] = [];
-      }
-
-      // --- Instantly update UI ---
-      renderAllTables();
-
-      // 2. Update DB in the background (only count and checked, do NOT touch order)
-      setTimeout(() => {
-        for (let i = 0; i < categories.length; i++) {
-          const cat = categories[i];
-          const items = groceryData[cat] || {};
-          const updates = {};
-          for (const key in items) {
-            if (key !== "order") {
-              updates[`${key}/count`] = 0;
-              updates[`${key}/checked`] = false;
-            }
-          }
-          if (Object.keys(updates).length > 0) {
-            db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${cat}`).update(updates);
-          }
-        }
-        // --- Clear all temp order tables in DB ---
-        clearAllTempOrders();
-      }, 0);
-    });
+  70% {
+    box-shadow: 0 0 0 20px rgba(54, 209, 196, 0);
   }
-
-  // --- Handle browser back button to exit move mode ---
-  window.addEventListener('popstate', function(event) {
-    // --- Close help modal if it's open ---
-    const helpModal = document.getElementById('help-modal-backdrop');
-    if (helpModal) {
-      helpModal.remove();
-    }
-
-    // --- Close context menu if it's open ---
-    const contextMenu = document.querySelector('.header-context-menu');
-    if (contextMenu) {
-        contextMenu.remove();
-    }
-    
-    if (moveDeleteMode || moveMode || deleteMode) {
-      // Exit move/delete mode when back button is pressed
-      disableMoveDeleteMode();
-      // Prevent default back navigation
-      event.preventDefault();
-    }
-  });
-
-  // --- Fix: Add stringToHeaderColor utility ---
-  function stringToHeaderColor(str) {
-    // Deterministic color palette for table headers
-    const palettes = [
-      { bg: "#b8dbc7", fg: "#23472b", lightBg: "#f1f8f4" }, 
-      { bg: "#d7c3e6", fg: "#4b2956", lightBg: "#f8f3fb" }, 
-      { bg: "#c3d4ea", fg: "#23324b", lightBg: "#f3f6fa" }, 
-      { bg: "#cfd8dc", fg: "#263238", lightBg: "#f6f8f9" }, 
-      { bg: "#f3cccc", fg: "#8b1c1c", lightBg: "#fdf5f5" }, 
-      { bg: "#e2d3cb", fg: "#4e342e", lightBg: "#f9f6f4" }, 
-      { bg: "#c3d4ea", fg: "#232c3d", lightBg: "#f3f6fa" }, 
-    ];
-    // Pick palette based on hash of string
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
-    const idx = Math.abs(hash) % palettes.length;
-    return palettes[idx];
+  100% {
+    box-shadow: 0 0 0 0 rgba(54, 209, 196, 0);
   }
+}
 
-  // --- Utility: sanitize family name for Firebase key ---
-  function sanitizeFamilyId(name) {
-    return (name || '')
-      .trim()
-      .toLowerCase()
-      .replace(/[\.\#\$\[\]]/g, '')
-      .replace(/\s+/g, '_')
-      .replace(/[^a-z0-9_\-]/g, ''); // allow a-z, 0-9, _, -
+.voice-notification-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(248, 250, 252, 0.85);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  z-index: 9998;
+  display: flex;
+  align-items: flex-start; /* Position at the top */
+  justify-content: center;
+  padding-top: 15vh; /* Space from the top */
+  animation: fadeInBackdrop 0.3s ease-out;
+}
+
+@keyframes fadeInBackdrop {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.voice-notification {
+  background: #fff;
+  border-radius: 24px;
+  box-shadow: 0 12px 48px rgba(60, 80, 130, 0.2);
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: 90vw;
+  max-width: 380px;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  animation: popIn 0.4s cubic-bezier(.68,-0.55,.27,1.55);
+}
+
+@keyframes popIn {
+    from { opacity: 0; transform: scale(0.8); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.voice-icon-wrapper {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #36d1c4 0%, #5b86e5 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: pulse-glow 2s infinite;
+}
+
+.voice-notification i.fa-microphone-alt {
+  font-size: 36px;
+  color: #fff;
+}
+
+.voice-text-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.voice-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #475569;
+}
+
+.voice-interim-results {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1e293b;
+  min-height: 2.5rem; /* Reserve space to prevent layout shifts */
+  padding: 8px 12px;
+  text-align: center;
+  line-height: 1.3;
+  transition: color 0.3s ease;
+}
+
+.voice-subtitle {
+  font-size: 1rem;
+  color: #6c7a89;
+  font-weight: 500;
+}
+
+.voice-list-name {
+  font-size: 1.4rem;
+  font-weight: 800;
+  /* color is now set via inline style */
+  margin-top: 4px;
+  padding: 4px 16px;
+  border-radius: 12px;
+  max-width: 90%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.voice-cancel-btn {
+  margin-top: 16px;
+  padding: 12px 24px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  background: #f1f5f9;
+  color: #475569;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, transform 0.15s;
+}
+
+.voice-cancel-btn:hover {
+  background: #e2e8f0;
+  color: #1e293b;
+  transform: scale(1.05);
+}
+
+/* --- Item Blink Animation --- */
+@keyframes blink-animation {
+  0%, 100% { background-color: #fff176 !important; } /* Yellow */
+  50% { background-color: inherit !important; }
+}
+
+/* New, more specific class to apply the blink animation */
+li.item-blink,
+.item-blink {
+  animation: blink-animation 0.5s ease-in-out 4 !important;
+}
+
+.collapse-arrow{
+  margin-left:auto; /* Push to far right */
+  margin-right: 8px; /* Some space from right edge */
+  min-width: 32px;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0; /* Hide default triangle text */
+  cursor: pointer;
+  user-select: none;
+  z-index: 2;
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 6px;
+  transition: all 0.18s ease;
+  position: relative;
+  order: 999; /* Ensure it's always last */
+}
+
+/* Modern chevron icon using CSS */
+.collapse-arrow::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform 0.18s ease;
+  opacity: 0.85;
+}
+
+/* Hover effect */
+.collapse-arrow:hover {
+  background: rgba(255,255,255,0.25);
+  border-color: rgba(255,255,255,0.4);
+  transform: scale(1.05);
+}
+
+/* Collapsed state - rotate chevron */
+.collapsed .collapse-arrow::before {
+  transform: rotate(-135deg);
+}
+
+/* Active state */
+.collapse-arrow:active {
+  background: rgba(255,255,255,0.35);
+  transform: scale(0.98);
+}
+
+ul { list-style:none; margin:0; padding:0 }
+li {
+  border: 1px solid #ccc;
+  display:flex;
+  align-items:center;
+  gap:16px;
+  padding:8px 4px; /* Reduced padding for compact rows */
+  border-bottom:1px solid #e3e9f2;
+  background: #fff;
+  font-size:1.13rem; /* Larger list item font for desktop */
+  user-select:none;
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+  position:relative;
+  border-radius:10px;
+  margin: 8px 0;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+  min-height: 36px; /* Reduced row height from 64px */
+  font-size: 1.18rem !important; /* Force larger list item font always */
+  width: 100% !important;
+  max-width: 100vw !important;
+  box-sizing: border-box !important;
+  overflow-x: hidden !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+li:last-child { border-bottom:none }
+li.checked {
+  background: #f1f1f1 !important;
+  color: #444 !important;
+  opacity: .77;
+  text-decoration: line-through;
+}
+li.to-buy {
+  background: #FFF8D6 !important;
+  color: #b26a00 !important;
+  opacity: 1;
+  text-decoration: none;
+}
+li.zero-count {
+  background: #fff !important;
+  color: inherit !important;
+  opacity: 1;
+  text-decoration: none;
+}
+
+/* Delete SVG wrapper */
+.item-delete-svg-wrap {
+  background: #fff;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  box-shadow: 0 1.5px 4px rgba(60,80,130,0.10);
+  border: 1.5px solid #bbb; /* Add subtle border for visibility */
+  transition: background 0.13s, border-color 0.13s;
+}
+
+/* Move handle for items: square white background, like bin icon */
+.item-move-handle {
+  margin-left: 4px;      /* Reduce left margin */
+  margin-right: 20px;     /* Add right margin to move icon leftwards */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  background: #fff;
+  border-radius: 7px;
+  width: 28px;
+  height: 28px;
+  box-shadow: 0 1.5px 4px rgba(60,80,130,0.10);
+  border: 1.5px solid #bbb;
+  transition: background 0.13s, border-color 0.13s;
+  color: #888;
+}
+
+.item-move-handle i {
+  font-size: 18px;
+  color: #666;
+}
+
+.item-move-handle:active {
+  background: #f3f6fa;
+  border-color: #888;
+}
+
+/* Edit input for table name */
+.edit-table-input {
+  font-size: 1.13rem;
+  font-weight: 700;
+  border-radius: 6px;
+  padding: 2px 7px;
+  margin: 0 2px;
+  width: 80%;
+  border: 1.5px solid #c7d1e6;
+  background: #f7fafd;
+  outline: none;
+  box-sizing: border-box;
+}
+.edit-table-input:focus {
+  border: 1.5px solid #388e3c;
+  background: #fff;
+}
+
+/* Edit input for item name */
+.edit-item-input {
+  font-size: 1.15rem;
+  font-weight: 700;
+  border-radius: 6px;
+  padding: 2px 7px;
+  margin: 0 2px;
+  width: 90%;
+  border: 1.5px solid #c7d1e6;
+  background: #f7fafd;
+  outline: none;
+  box-sizing: border-box;
+}
+.edit-item-input:focus {
+  border: 1.5px solid #388e3c;
+  background: #fff;
+}
+
+/* --- NAME FIELD: Larger font and padding --- */
+.name {
+  /* --- THIS CONTROLS THE ITEM NAME FONT SIZE AND STYLE --- */
+  flex: 1;
+  min-width: 0;
+  font-size: 1.6rem !important; /* <--- Item name font size (change this for item name size, !important added) */
+  line-height: 1.2;
+  border: none;
+  background: transparent;
+  outline: none;
+  padding: 0 0 0 4px;
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+  font-weight: 700;
+  color: #232323;
+  letter-spacing: 0.01em;
+  border-radius: 8px;
+  word-break: break-word;
+  cursor: pointer;
+}
+
+/* --- Hindi font for item names in Devanagari script --- */
+.name:lang(hi),
+.name.hindi-text {
+  font-family: 'Noto Sans Devanagari', 'Mangal', 'Lohit Devanagari', 'Arial', sans-serif !important;
+  font-weight: 700;
+  /* Optionally, adjust font-size or color for Hindi if needed */
+}
+
+/* --- COUNTER BUTTONS: Squeeze and right-align --- */
+.counter {
+  /* --- THIS CONTROLS THE COUNTER BUTTONS SIZE AND LAYOUT --- */
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: transparent !important; /* Remove any background */
+  border-radius: 16px;
+  padding: 0 2px;
+  min-width: 0;
+  justify-content: flex-end;
+  box-shadow: none;
+  margin-left: auto;
+  margin-right: 15px !important;
+  border: none;
+  flex: 0 0 auto;
+  /* Optionally, set a max-width if needed */
+}
+
+.counter button {
+  /* --- THIS CONTROLS THE COUNTER BUTTON SIZE --- */
+  width: 28px !important;      /* <--- Counter button width */
+  height: 28px !important;     /* <--- Counter button height */
+  min-width: 28px !important;
+  min-height: 28px !important;
+  font-size: 1.05rem !important; /* <--- Counter button font size */
+  border-radius: 20% !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  font-weight: 700;
+  border: 0.001px solid #888;
+  background: transparent;
+  color: #222;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, border-color 0.15s;
+  touch-action: manipulation;
+  outline: none;
+  line-height: 1;
+}
+.counter .count {
+  /* --- THIS CONTROLS THE NUMBER FONT SIZE IN THE COUNTER --- */
+  font-size: 1.6rem !important; /* <--- Counter number font size */
+  font-weight: 700;
+  margin: 0 2px;
+  min-width: 16px;
+  text-align: center;
+  color: #1c2331;
+}
+
+/* --- CHECKBOXES: Large for touch --- */
+input[type="checkbox"] {
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  margin-top: 1px;
+  accent-color: #666;
+  border-radius: 7px;
+  box-shadow: 0 1px 4px rgba(80,80,80,0.07);
+  border: 1.5px solid #d3dbe6;
+  background: #fafbfc;
+  margin-left: 4px;
+}
+
+/* --- BUTTONS: General --- */
+.add-table-btn,
+.action-btn {
+  font-size: 1.25rem !important;
+  min-height: 54px !important;
+  padding: 0 18px !important;
+  border-radius: 12px !important;
+  font-weight: 700 !important;
+  box-shadow: 0 1px 4px rgba(60,80,130,0.09);
+  touch-action: manipulation;
+  color: #444 !important; /* Make text gray, not black */
+}
+
+/* --- ADD TABLE BUTTON WRAP: Make button small and left-aligned --- */
+.add-table-btn-wrap {
+  width: 100%;
+  display: flex;
+  justify-content: flex-start;   /* Left align */
+  align-items: flex-start;
+  margin: 54px 0 0 0;           /* Increased from 38px to 54px for more space from top */
+  padding-left: 0;
+}
+
+/* --- ADD TABLE BUTTON: Small, compact, left, mobile-friendly --- */
+.add-table-btn {
+  font-size: 0.97rem !important;
+  min-height: 24px !important;
+  max-height: 28px !important;
+  padding: 0 13px !important;
+  border-radius: 7px !important;
+  font-weight: 700 !important;
+  box-shadow: 0 1px 2px rgba(60,80,130,0.07);
+  color: #444 !important;
+  background: #f5f7fa !important;
+  border: 1.2px solid #bbb;
+  margin-left: 10px;
+  margin-right: 0;
+  margin-top: 12px;              /* Space from last item */
+  margin-bottom: 0;
+  width: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  transition: background 0.13s, border-color 0.13s;
+}
+
+/* Remove extra centering for add-table-btn inside wrap */
+.add-table-btn {
+  margin: 0 0 0 10px;
+}
+
+/* For the per-table "+ Add Item" button at the bottom of each table */
+.container > .add-table-btn {
+  font-size: 0.97rem !important;
+  min-height: 22px !important;
+  max-height: 26px !important;
+  padding: 0 10px !important;
+  border-radius: 7px !important;
+  font-weight: 700 !important;
+  margin-top: 18px !important;    /* Space from last item in list */
+  margin-bottom: 6px !important;  /* Minimal space at bottom */
+  margin-left: 12px !important;   /* Left align, some indent */
+  margin-right: 0 !important;
+  box-shadow: 0 1px 2px rgba(60,80,130,0.07);
+  background: #f5f7fa !important;
+  border: 1.2px solid #bbb;
+  color: #444 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  width: auto !important;
+  max-width: 180px !important;
+  min-width: 0 !important;
+}
+
+/* Prevent full width for per-table add button */
+.container > .add-table-btn,
+.container > .add-table-btn:only-child {
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: 180px !important;
+  display: inline-flex;
+}
+
+/* Remove any centering from the wrap for per-table button */
+.add-table-btn-wrap {
+  width: 100%;
+  display: flex;
+  justify-content: flex-start;
+  align-items: flex-start;
+  margin: 20px 0 10px 0;
+  padding-left: 0;
+}
+
+/* --- MODALS: Make popups smaller and buttons compact --- */
+.modal-dialog, .input-modal-dialog {
+  min-width: 180px;
+  max-width: 90vw;
+  width: 320px;
+  padding: 18px 12px 12px 12px;
+  font-size: 1.04rem;
+  border-radius: 13px;
+  background: #fff;
+  box-shadow: 0 3px 14px rgba(0,0,0,0.13);
+  border: 1px solid #e2e7f1;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.modal-title, .input-modal-title {
+  font-size: 1.07rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+  text-align: center;
+}
+
+.modal-btns, .input-modal-btns {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  justify-content: center;
+  align-items: center;
+  margin-top: 4px;
+  width: 100%;
+}
+
+.modal-btn-no, .modal-btn-yes, .input-modal-btn {
+  width: auto;
+  min-width: 64px;
+  max-width: 120px;
+  padding: 7px 0;
+  font-size: 1.01rem;
+  border-radius: 8px;
+  font-weight: 600;
+  border: none;
+  background: #f3f6fa;
+  color: #222;
+  margin: 0;
+  box-shadow: none;
+  transition: background 0.14s;
+  flex: 1 1 0;
+}
+
+.modal-btn-yes, .input-modal-btn-ok {
+  background: linear-gradient(90deg,#388e3c 60%, #5dd05d 100%);
+  color: #fff;
+}
+
+.modal-btn-no, .input-modal-btn-cancel {
+  background: #f3f6fa;
+  color: #222;
+}
+
+.modal-btn-no:active, .input-modal-btn-cancel:active {
+  background: #e0e7ef;
+}
+.modal-btn-yes:active, .input-modal-btn-ok:active {
+  background: linear-gradient(90deg,#3070b3 0%,#2b79c2 100%);
+}
+
+.input-modal-backdrop {
+  position: fixed;
+  z-index: 2000;
+  left: 0; top: 0; right: 0; bottom: 0;
+  background: rgba(30,40,60,0.18);
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+.input-modal-backdrop.active {
+  display: flex;
+}
+.input-modal-dialog {
+  background: #fff;
+  border-radius: 13px;
+  box-shadow: 0 3px 14px rgba(0,0,0,0.13);
+  border: 1px solid #e2e7f1;
+  min-width: 180px;
+  max-width: 90vw;
+  width: 320px;
+  padding: 18px 12px 12px 12px;
+  font-size: 1.04rem;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.input-modal-title {
+  font-size: 1.07rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+  text-align: center;
+}
+.input-modal-input {
+  font-size: 1.07rem;
+  padding: 8px 8px;
+  border-radius: 7px;
+  border: 1.2px solid #c7d1e6;
+  background: #f7fafd;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 4px;
+  transition: border 0.13s, background 0.13s;
+}
+.input-modal-input:focus {
+  border: 1.2px solid #388e3c;
+  background: #fff;
+}
+.input-modal-btns {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  justify-content: center;
+  align-items: center;
+  margin-top: 4px;
+  width: 100%;
+}
+.input-modal-btn {
+  width: auto;
+  min-width: 64px;
+  max-width: 120px;
+  padding: 7px 0;
+  font-size: 1.01rem;
+  border-radius: 8px;
+  font-weight: 600;
+  border: none;
+  background: #f3f6fa;
+  color: #222;
+  margin: 0;
+  box-shadow: none;
+  transition: background 0.14s;
+  flex: 1 1 0;
+}
+.input-modal-btn-ok {
+  background: linear-gradient(90deg,#388e3c 60%, #5dd05d 100%);
+  color: #fff;
+}
+.input-modal-btn-cancel {
+  background: #f3f6fa;
+  color: #222;
+}
+.input-modal-btn-cancel:active {
+  background: #e0e7ef;
+}
+.input-modal-btn-ok:active {
+  background: linear-gradient(90deg,#3070b3 0%,#2b79c2 100%);
+}
+
+/* --- LOGIN CARD: Larger for mobile --- */
+.login-card {
+  padding: 38px 8vw 38px 8vw;
+  min-width: 0;
+  width: 98vw;
+  max-width: 99vw;
+  border-radius: 18px;
+  gap: 18px;
+}
+.login-logo {
+  font-size: 3.2rem;
+  width: 70px;
+  height: 70px;
+}
+.login-title {
+  font-size: 1.45rem;
+}
+.login-desc {
+  font-size: 1.18rem;
+}
+.allowed-item {
+  font-size: 1.18rem;
+  padding: 14px 18px;
+  gap: 14px;
+}
+.allowed-avatar {
+  width: 44px;
+  height: 44px;
+  font-size: 1.35rem;
+}
+.google-btn {
+  font-size: 1.18rem;
+  padding: 14px 0;
+  gap: 14px;
+}
+
+/* --- MODERN LOGIN PAGE --- */
+.login-bg-modern {
+  min-height: 100vh;
+  width: 100vw;
+  background: linear-gradient(135deg, #e3e7ee 0%, #f8fafc 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: fixed;
+  top: 0; left: 0;
+  z-index: 100;
+}
+
+.login-card-modern {
+  background: #fff;
+  border-radius: 22px;
+  box-shadow: 0 8px 32px rgba(60,80,130,0.13), 0 1.5px 4px rgba(60,80,130,0.10);
+  padding: 48px 32px 36px 32px;
+  min-width: 0;
+  width: 98vw;
+  max-width: 410px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+  margin: 0 auto;
+  position: relative;
+}
+
+.login-logo-modern {
+  margin-bottom: 10px;
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-title-modern {
+  font-size: 2.1rem;
+  font-weight: 800;
+  color: #232c3d;
+  letter-spacing: 0.01em;
+  text-align: center;
+  margin-bottom: 0;
+}
+.brand-accent {
+  color: #1976d2;
+  font-weight: 900;
+}
+
+.login-desc-modern {
+  font-size: 1.18rem;
+  color: #4b5563;
+  text-align: center;
+  margin-bottom: 0;
+  font-weight: 500;
+}
+.login-subdesc {
+  font-size: 1.01rem;
+  color: #6c7a89;
+  display: block;
+  margin-top: 7px;
+  font-weight: 400;
+}
+
+.google-btn-modern {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 13px;
+  background: linear-gradient(90deg, #fff 70%, #f3f6fa 100%);
+  border: 1.5px solid #d1d5db;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(60,80,130,0.07);
+  font-size: 1.18rem;
+  font-weight: 700;
+  color: #232c3d;
+  padding: 13px 0;
+  width: 100%;
+  max-width: 340px;
+  cursor: pointer;
+  transition: background 0.13s, box-shadow 0.13s, border 0.13s;
+  margin-top: 10px;
+}
+.google-btn-modern:hover,
+.google-btn-modern:focus {
+  background: #f3f6fa;
+  border-color: #1976d2;
+  color: #1976d2;
+  box-shadow: 0 4px 16px rgba(60,80,130,0.13);
+  outline: none;
+}
+.google-logo-modern {
+  width: 32px;
+  height: 32px;
+  display: block;
+}
+
+#google-btn-text-modern {
+  font-size: 1.18rem;
+  font-weight: 700;
+  color: #232c3d;
+}
+
+.login-error-modern {
+  color: #e53935;
+  font-size: 1.01rem;
+  margin-top: 8px;
+  text-align: center;
+  min-height: 1.2em;
+}
+
+/* Responsive for login card */
+@media (max-width: 600px) {
+  .login-card-modern {
+    padding: 32px 8vw 32px 8vw;
+    max-width: 98vw;
+    min-width: 0;
+    border-radius: 16px;
   }
-
-  // --- Help Modal Logic ---
-  function showHelpModal() {
-    // Remove existing modal if any
-    const existingModal = document.getElementById('help-modal-backdrop');
-    if (existingModal) existingModal.remove();
-
-    const backdrop = document.createElement('div');
-    backdrop.id = 'help-modal-backdrop';
-    backdrop.innerHTML = `
-      <div class="help-modal-content">
-        <div class="help-modal-header">
-          <h2>Your <span class="brand-accent">SwiftList</span> - Help & Features</h2>
-          <button id="help-close-btn">&times;</button>
-        </div>
-        <div class="help-modal-body">
-          <div class="help-section">
-            <h3>General Usage</h3>
-            <ul>
-              <li>
-                <span class="help-label">Add New List</span>
-                <span class="help-desc">Click the "＋ Add New List & Item" button at the bottom.</span>
-              </li>
-              <li>
-                <span class="help-label">Add Item to List</span>
-                <span class="help-desc">Click the "＋ Add Item" button below any list.</span>
-              </li>
-              <li>
-                <span class="help-label">Edit Name</span>
-                <span class="help-desc">Double-click on any list title or item name to edit it.</span>
-              </li>
-               <li>
-                <span class="help-label">Collapse/Expand</span>
-                <span class="help-desc">Click on a list's header or the arrow on the right to toggle its visibility.</span>
-              </li>
-            </ul>
-          </div>
-          <div class="help-section">
-            <h3>Voice Commands</h3>
-            <ul>
-              <li>
-                <span class="help-label">Add by Voice</span>
-                <span class="help-desc">Long-press the <span class="help-icon-wrap"><i class="fas fa-microphone-alt"></i><i class="fas fa-plus" style="font-size:0.7em;"></i></span> icon on a list header. If the item exists, its count is increased. If not, it's added to the list with a count of 1.</span>
-              </li>
-            </ul>
-          </div>
-          <div class="help-section">
-            <h3>Advanced Actions (Context Menu)</h3>
-            <p style="padding-left:5px; margin-bottom:15px;">Long-press (or right-click) the <i class="fas fa-ellipsis-v"></i> icon on a list header to open the context menu.</p>
-            <ul>
-              <li>
-                <span class="help-label">Highlight Items</span>
-                <span class="help-desc">Automatically checks off items with a count of 0 and moves them to the bottom of the list.</span>
-              </li>
-              <li>
-                <span class="help-label">Move Mode</span>
-                <span class="help-desc">Enter a mode to reorder items within a list or entire lists on the page by dragging them.</span>
-              </li>
-               <li>
-                <span class="help-label">Delete Mode</span>
-                <span class="help-desc">Enter a mode to show delete buttons for items and lists.</span>
-              </li>
-               <li>
-                <span class="help-label">Reset List</span>
-                <span class="help-desc">Resets all item counts to 0 and un-checks all items for that specific list.</span>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(backdrop);
-
-    // --- Push state for back button dismissal ---
-    history.pushState({ helpModal: true }, 'Help Modal');
-
-    const close = () => {
-      // If the modal is being closed and the history state is ours, go back.
-      if (history.state && history.state.helpModal) {
-        history.back();
-      }
-      backdrop.remove();
-    };
-
-    backdrop.onclick = (e) => { if (e.target === backdrop) close(); };
-    document.getElementById('help-close-btn').onclick = close;
+  .login-title-modern {
+    font-size: 1.45rem;
   }
+  .login-desc-modern {
+    font-size: 1.08rem;
+  }
+  .google-btn-modern {
+    font-size: 1.08rem;
+    padding: 12px 0;
+    border-radius: 10px;
+    max-width: 99vw;
+  }
+  .login-logo-modern {
+    width: 54px;
+    height: 54px;
+  }
+}
 
-  // Attach listener to help icon
-  document.body.addEventListener('click', function(e) {
-    if (e.target.id === 'help-icon') {
-      showHelpModal();
-    }
-  });
-});
-  // --- END OF DOMContentLoaded ---
+/* Hide old login card if present */
+.login-card, .login-bg {
+  display: none !important;
+}
+
+/* --- MODALS: Position input modals higher on mobile to avoid keyboard overlap --- */
+@media (max-width: 600px) {
+  .input-modal-backdrop.active,
+  .modal-backdrop.active {
+    align-items: flex-start !important;
+    justify-content: center !important;
+  }
+  .input-modal-dialog,
+  .modal-dialog {
+    margin-top: 10vh !important;
+    margin-bottom: 0 !important;
+  }
+}
+
+/* For very small screens, push even higher */
+@media (max-width: 430px) {
+  .input-modal-dialog,
+  .modal-dialog {
+    margin-top: 4vh !important;
+  }
+}
+
+/* --- Make input modal dialog float above keyboard, centered, not full width --- */
+@media (max-width: 600px) {
+  .input-modal-backdrop.active {
+    align-items: flex-end !important;
+    justify-content: center !important;
+  }
+  .input-modal-dialog {
+    position: fixed !important;
+    left: 50% !important;
+    /* Place the dialog above the keyboard, but not at the very bottom */
+    bottom: 18vh !important;
+    transform: translateX(-50%) !important;
+    width: 92vw !important;
+    max-width: 340px !important;
+    min-width: 0 !important;
+    border-radius: 13px !important;
+    margin: 0 !important;
+    z-index: 2001 !important;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.13);
+    background: #fff;
+    padding-bottom: 12px;
+  }
+}
+
+/* For very small screens, float a bit higher and keep width reasonable */
+@media (max-width: 430px) {
+  .input-modal-dialog {
+    bottom: 24vh !important;
+    width: 97vw !important;
+    max-width: 99vw !important;
+  }
+}
+
+/* Add white rectangle background to the delete and move buttons in table headers */
+.table-delete-btn, .table-move-handle {
+  background: #fff !important;
+  border-radius: 7px !important;
+  box-shadow: 0 1.5px 4px rgba(60,80,130,0.10);
+  border: 1.5px solid #bbb !important;
+  padding: 0 !important;
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  min-height: 32px !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  margin-right: 0 !important;
+}
+
+/* Hide modals by default, show only when active */
+.modal-backdrop {
+  display: none !important;
+}
+
+/* --- MODAL DEBUG: Hide all modals by default, only show when .active is present --- */
+.modal-backdrop {
+  display: none !important;
+  align-items: center !important;
+  justify-content: center !important;
+  position: fixed !important;
+  left: 0; top: 0; right: 0; bottom: 0;
+  z-index: 2000;
+  background: rgba(30,40,60,0.18);
+}
+.modal-backdrop.active {
+  display: flex !important;
+}
+
+/* Make sure .modal-dialog is only visible when .modal-backdrop is active */
+.modal-backdrop:not(.active) .modal-dialog {
+  display: none !important;
+}
+
+/* --- Modern Professional Action Buttons --- */
+.row-btns .action-btn,
+.row-btns .add-table-btn {
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif !important;
+  font-size: 1.13rem !important;
+  font-weight: 700 !important;
+  border-radius: 13px !important;
+  border: none !important;
+  box-shadow: 0 2px 8px rgba(60,80,130,0.09);
+  padding: 0.85em 0.5em !important;
+  margin: 0 7px 0 0 !important;
+  min-height: 44px !important;
+  max-height: 54px !important;
+  flex: 1 1 0;
+  transition: background 0.16s, box-shadow 0.13s, color 0.13s, transform 0.11s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: 0.01em;
+  outline: none;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-sizing: border-box;
+}
+
+.row-btns .action-btn:last-child,
+.row-btns .add-table-btn:last-child {
+  margin-right: 0 !important;
+}
+
+/* Edit Button */
+.row-btns .action-btn.move-delete {
+  background: linear-gradient(90deg, #ffb347 0%, #ffcc80 100%) !important;
+  color: #232323 !important;
+  border: 1.5px solid #f59e42 !important;
+  box-shadow: 0 2px 8px rgba(245,158,66,0.10);
+}
+.row-btns .action-btn.move-delete.editing-mode {
+  background: linear-gradient(90deg, #f59e42 0%, #fbbf24 100%) !important;
+  color: #333 !important;
+  border: 1.5px solid #f59e42 !important;
+}
+
+/* Reset Button */
+.row-btns .action-btn.reset {
+  background: linear-gradient(90deg, #6366f1 0%, #60a5fa 100%) !important;
+  color: #fff !important;
+  border: 1.5px solid #6366f1 !important;
+  box-shadow: 0 2px 8px rgba(99,102,241,0.10);
+}
+
+/* Check Zeros Button */
+.row-btns .action-btn.check-zeros {
+  background: linear-gradient(90deg, #22c55e 0%, #38bdf8 100%) !important;
+  color: #fff !important;
+  border: 1.5px solid #22c55e !important;
+  box-shadow: 0 2px 8px rgba(34,197,94,0.10);
+}
+
+/* Button hover/active/focus states */
+.row-btns .action-btn:hover,
+.row-btns .action-btn:focus {
+  filter: brightness(1.07) saturate(1.08);
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: 0 4px 16px rgba(60,80,130,0.13);
+  outline: none;
+}
+.row-btns .action-btn:active {
+  filter: brightness(0.97);
+  transform: scale(0.98);
+}
+
+/* Make sure text is always centered and ellipsis if too long */
+.row-btns .action-btn span,
+.row-btns .action-btn {
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Reduce height for the three main action buttons */
+.row-btns .action-btn,
+.row-btns .add-table-btn {
+  min-height: 28px !important; /* was 32px */
+  max-height: 32px !important; /* was 38px */
+  padding: 0.35em 0.35em !important; /* was 0.5em 0.5em */
+  font-size: 0.97rem !important; /* was 1.13rem */
+}
+
+/* Responsive: smaller on mobile */
+@media (max-width: 600px) {
+  .row-btns .action-btn,
+  .row-btns .add-table-btn {
+    min-height: 28px !important;
+    max-height: 34px !important;
+    padding: 0.4em 0.3em !important;
+  }
+}
+
+/* Hide the add-table-btn when the table is collapsed */
+.container.collapsed > .add-table-btn {
+  display: none !important;
+}
+
+/* Remove !important from display for .add-table-btn so JS/CSS can control it */
+.container > .add-table-btn,
+.container > .add-table-btn:only-child {
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: 180px !important;
+  display: inline-flex;
+}
+
+/* Style the main "+ Add New Store & Item" button to be darker, centered, and spaced down */
+.add-table-btn-wrap {
+  width: 100%;
+  display: flex;
+  justify-content: center;      /* Center horizontally */
+  align-items: flex-start;
+  margin: 54px 0 0 0;           /* Increased from 38px to 54px for more space from top */
+  padding-left: 0;
+  margin-bottom: 160px; /* Keep as is for bottom space */
+}
+
+#add-table-btn-main.add-table-btn {
+  background: linear-gradient(90deg, #959494 0%, #959494 100%) !important;
+  color: #fff !important;
+  border: 1.5px solid #222 !important;
+  font-size: 1.09rem !important;
+  min-height: 34px !important;
+  max-height: 40px !important;
+  padding: 0 22px !important;
+  border-radius: 9px !important;
+  font-weight: 700 !important;
+  margin: 0 auto !important;
+  box-shadow: 0 2px 8px rgba(60,80,130,0.10);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.13s, border-color 0.13s, color 0.13s;
+}
+
+#add-table-btn-main.add-table-btn:hover {
+  background: linear-gradient(90deg, #222 0%, #444 100%) !important;
+  color: #fff !important;
+  border-color: #111 !important;
+}
+
+/* Restore per-table "+ Add Item" button styles (do NOT override with dark color or center) */
+.container > .add-table-btn,
+.container > .add-table-btn:only-child {
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: 180px !important;
+  display: inline-flex;
+}
+
+/* Center and space down the main button only */
+.add-table-btn-wrap {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  margin: 38px 0 0 0;
+  padding-left: 0;
+}
+
+/* Center modal dialog vertically and horizontally on all screens */
+.modal-backdrop {
+  display: none !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+.modal-backdrop.active {
+  display: flex !important;
+}
+
+/* --- MODAL CENTERING FIX: Always center modal dialog in viewport --- */
+.modal-backdrop,
+.modal-backdrop.active {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  position: fixed !important;
+  left: 0; top: 0; right: 0; bottom: 0;
+  z-index: 2000;
+  background: rgba(30,40,60,0.18);
+}
+
+/* Ensure modal-dialog is centered and not positioned at the bottom */
+.modal-dialog {
+  margin: 0 !important;
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  transform: none !important;
+}
+
+/* Remove any mobile overrides that push modal to the top or bottom */
+@media (max-width: 600px) {
+  .modal-backdrop.active {
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  .modal-dialog {
+    margin: 0 !important;
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    transform: none !important;
+  }
+}
+
+/* --- FIX: Prevent modal-backdrop from blocking clicks when not active --- */
+.modal-backdrop {
+  display: none !important;
+  pointer-events: none !important; /* Do not block clicks when hidden */
+}
+.modal-backdrop.active {
+  display: flex !important;
+  pointer-events: auto !important; /* Only block clicks when active */
+}
+
+/* Add gap between delete and move icons in table header */
+.header .table-delete-btn {
+  margin-right: 14px !important; /* Increase this value for more gap */
+}
+
+/* Table header delete and move icons: same height and width */
+.header .table-delete-btn,
+.header .table-move-handle {
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  min-height: 32px !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Make SVGs inside both icons the same size */
+.header .table-delete-btn svg,
+.header .table-move-handle svg {
+  width: 22px !important;
+  height: 22px !important;
+  display: block;
+}
+
+/* --- Undo Toast: Show above the Add New Store button, floating, centered, visually clear --- */
+.undo-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 38px;
+  transform: translateX(-50%);
+  z-index: 3000;
+  background: rgba(34,44,61,0.82);
+  color: #fff;
+  padding: 10px 18px 10px 14px;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(30,40,60,0.18), 0 1.5px 4px rgba(60,80,130,0.10);
+  font-size: 1.01rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  opacity: 0.97;
+  pointer-events: auto;
+  min-width: 0;
+  max-width: 85vw;
+  white-space: pre-line;
+  border: 1.5px solid rgba(255,255,255,0.10);
+  transition: box-shadow 0.18s, background 0.18s;
+}
+
+.undo-toast .undo-message {
+  flex: 1 1 auto;
+  font-size: 1.01rem;
+  font-weight: 600;
+  color: #fff;
+  margin-right: 6px;
+  letter-spacing: 0.01em;
+  line-height: 1.3;
+}
+
+.undo-toast .undo-btn {
+  background: linear-gradient(90deg, #22c55e 0%, #38bdf8 100%);
+  color: #fff;
+  font-size: 0.97rem;
+  font-weight: 700;
+  border: none;
+  border-radius: 8px;
+  padding: 7px 16px;
+  margin-left: 4px;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(34,197,94,0.13);
+  transition: background 0.13s, color 0.13s, box-shadow 0.13s;
+  outline: none;
+}
+.undo-toast .undo-btn:active,
+.undo-toast .undo-btn:focus {
+  background: linear-gradient(90deg, #38bdf8 0%, #22c55e 100%);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(34,197,94,0.18);
+}
+
+/* Animation for subtle appearance */
+@keyframes undo-flash {
+  0% { box-shadow: 0 0 0 0 #22c55e55; }
+  60% { box-shadow: 0 0 0 8px #22c55e33; }
+  100% { box-shadow: 0 8px 32px rgba(30,40,60,0.18), 0 1.5px 4px rgba(60,80,130,0.10);}
+}
+.undo-toast {
+  animation: undo-flash 0.5s;
+}
+
+/* Responsive: make toast even more compact on small screens */
+@media (max-width: 430px) {
+  .undo-toast {
+    padding: 8px 10px 8px 10px;
+    font-size: 0.97rem;
+    border-radius: 13px;
+    gap: 8px;
+    bottom: 18px;
+    max-width: 98vw;
+  }
+  .undo-toast .undo-btn {
+    padding: 6px 12px;
+    font-size: 0.93rem;
+  }
+}
+
+/* --- Table header colors: readable, not white --- */
+.header.veggies-header      { background: #b8dbc7 !important; color: #23472b !important; }
+.header.indian-header       { background: #d7c3e6 !important; color: #4b2956 !important; }
+.header.bigw_target_kmart-header { background: #c3d4ea !important; color: #23324b !important; }
+.header.bunnings-header     { background: #cfd8dc !important; color: #263238 !important; }
+.header.officeworks-header  { background: #f3cccc !important; color: #8b1c1c !important; }
+.header.test-header         { background: #e2d3cb !important; color: #4e342e !important; }
+.header.default-header      { background: #c3d4ea !important; color: #232c3d !important; }
+
+/* Ensure header children also use readable color */
+.header,
+.header * { color: #232c3d !important; }
+.header.veggies-header,
+.header.veggies-header * { color: #23472b !important; }
+.header.indian-header,
+.header.indian-header * { color: #4b2956 !important; }
+.header.bigw_target_kmart-header,
+.header.bigw_target_kmart-header * { color: #23324b !important; }
+.header.bunnings-header,
+.header.bunnings-header * { color: #263238 !important; }
+.header.officeworks-header,
+.header.officeworks-header * { color: #8b1c1c !important; }
+.header.test-header,
+.header.test-header * { color: #4e342e !important; }
+.header.default-header,
+.header.default-header * { color: #232c3d !important; }
+
+/* --- SYNC TOAST: Floating notification for sync status --- */
+.sync-toast {
+  position: fixed;
+  left: 50%;
+  top: 22px;
+  transform: translateX(-50%);
+  z-index: 4000;
+  background: rgba(25, 118, 210, 0.85); /* glassy blue */
+  color: #fff;
+  padding: 14px 32px 14px 22px;
+  border-radius: 18px;
+  box-shadow: 0 8px 32px rgba(30,40,60,0.18), 0 1.5px 4px rgba(60,80,130,0.10);
+  font-size: 1.13rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  opacity: 0.97;
+  pointer-events: none;
+  min-width: 0;
+  max-width: 92vw;
+  white-space: nowrap;
+  border: 1.5px solid rgba(255,255,255,0.18);
+  animation: sync-flash 1.2s linear infinite;
+  transition: box-shadow 0.18s, background 0.18s;
+}
+.sync-toast i {
+  font-size: 1.35em;
+  margin-right: 8px;
+  color: #fff;
+  filter: drop-shadow(0 2px 6px #1565c0aa);
+}
+.sync-toast .sync-progress-bar {
+  height: 4px;
+  width: 48px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #fff 0%, #90caf9 100%);
+  margin-left: 12px;
+  overflow: hidden;
+  position: relative;
+}
+.sync-toast .sync-progress-bar::before {
+  content: '';
+  position: absolute;
+  left: -48px;
+  top: 0;
+  height: 100%;
+  width: 48px;
+  background: linear-gradient(90deg, #90caf9 0%, #fff 100%);
+  animation: sync-progress-move 1.2s linear infinite;
+  border-radius: 2px;
+}
+@keyframes sync-progress-move {
+  0% { left: -48px; }
+  100% { left: 48px; }
+}
+@keyframes sync-flash {
+  0%,100%{opacity:1;}
+  50%{opacity:0.7;}
+}
+
+
