@@ -1793,6 +1793,8 @@ document.addEventListener("DOMContentLoaded", function () {
       // Only cleanup if a final result was NOT being processed.
       // This handles cases where the user cancels or there's an error.
       if (!final_transcript) {
+        // Add this line to show an error notification when no speech was detected
+        showErrorNotification("I didn't hear any voice prompt to add item! Please try again.");
         cleanup(false);
       }
     };
@@ -1825,10 +1827,102 @@ document.addEventListener("DOMContentLoaded", function () {
     }, 150); // Increased delay slightly to ensure the element is ready.
   }
 
+
+  
+  // Add this helper once in your JS (outside the function). Error notification is not able to get the voice prompt to add an item
+  
+  function showErrorNotification(message) {
+    let notif = document.getElementById('voice-error-notification');
+    if (!notif) {
+      notif = document.createElement('div');
+      notif.id = 'voice-error-notification';
+      notif.style.position = 'fixed';
+      notif.style.top = '16px';
+      notif.style.right = '16px';
+      notif.style.zIndex = '9999';
+      notif.style.padding = '14px 18px';
+      notif.style.background = 'linear-gradient(135deg, #ff5252 0%, #e53935 100%)';
+      notif.style.color = 'white';
+      notif.style.fontWeight = 'bold';
+      notif.style.borderRadius = '8px';
+      notif.style.boxShadow = '0 4px 12px rgba(229, 57, 53, 0.3)';
+      notif.style.transform = 'translateX(120%)';
+      notif.style.transition = 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+      notif.style.display = 'flex';
+      notif.style.alignItems = 'center';
+      notif.style.minWidth = '280px';
+      notif.style.maxWidth = '90vw';
+      
+      // Add icon container
+      const iconContainer = document.createElement('div');
+      iconContainer.style.marginRight = '12px';
+      iconContainer.innerHTML = '<i class="fas fa-exclamation-circle" style="font-size: 20px;"></i>';
+      notif.appendChild(iconContainer);
+      
+      // Add text container
+      const textContainer = document.createElement('div');
+      textContainer.style.flex = '1';
+      notif.appendChild(textContainer);
+      
+      document.body.appendChild(notif);
+    }
+    
+    // Update the text
+    const textContainer = notif.querySelector('div:nth-child(2)');
+    if (textContainer) textContainer.textContent = message;
+    
+    // Show with animation
+    setTimeout(() => {
+      notif.style.transform = 'translateX(0)';
+    }, 10);
+    
+    // Add shake animation
+    setTimeout(() => {
+      notif.style.animation = 'shake 0.5s cubic-bezier(.36,.07,.19,.97) both';
+    }, 300);
+    
+    // Add shake animation style if not already added
+    if (!document.getElementById('error-notification-animation')) {
+      const style = document.createElement('style');
+      style.id = 'error-notification-animation';
+      style.innerHTML = `
+        @keyframes shake {
+          10%, 90% { transform: translateX(-1px); }
+          20%, 80% { transform: translateX(2px); }
+          30%, 50%, 70% { transform: translateX(-3px); }
+          40%, 60% { transform: translateX(3px); }
+        }
+        @keyframes fadeOut {
+          from { opacity: 1; transform: translateX(0); }
+          to { opacity: 0; transform: translateX(120%); }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+    
+    // Hide with animation after delay
+    setTimeout(() => {
+      notif.style.animation = 'fadeOut 0.5s forwards';
+      setTimeout(() => {
+        notif.style.display = 'none';
+        notif.style.transform = 'translateX(120%)';
+      }, 500);
+    }, 4000); // Increased from 3000 to 4000 for better readability
+  }
+
+  
   function processVoiceResult(cat, itemName) {
-    if (!itemName) return;
+
+    // Recognize and trim input
+    if (!itemName || typeof itemName !== "string" || !itemName.trim()) {
+      showErrorNotification("Sorry, I didn't catch that item. Please try again.");
+      return;
+    }
     const trimmedName = toProperCase(itemName.trim().replace(/\s+/g, ' '));
-    if (!trimmedName) return;
+    if (!trimmedName) {
+      showErrorNotification("Sorry, I couldn't process that item name.");
+      return;
+    }
 
     const items = groceryData[cat] || {};
     const existingKeys = Object.keys(items).filter(key => key !== 'order' && items[key] && typeof items[key] === 'object' && typeof items[key].name === 'string');
@@ -1837,22 +1931,24 @@ document.addEventListener("DOMContentLoaded", function () {
     const existingItemKey = existingKeys.find(key => items[key].name.trim().toLowerCase() === searchName);
 
     let targetKey;
-
-    // --- Set a flag to prevent the 'on' listener from re-rendering and creating duplicates ---
     isVoiceAdding = true;
 
     if (existingItemKey) {
-      // Item exists, increment count
       targetKey = existingItemKey;
       const currentCount = items[targetKey].count || 0;
-      groceryData[cat][targetKey].count = currentCount + 1;
-      groceryData[cat][targetKey].checked = false; // Uncheck if it was checked
-      db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${cat}/${targetKey}`).update({
-        count: currentCount + 1,
-        checked: false
-      });
+      try {
+        groceryData[cat][targetKey].count = currentCount + 1;
+        groceryData[cat][targetKey].checked = false;
+        db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${cat}/${targetKey}`).update({
+          count: currentCount + 1,
+          checked: false
+        });
+      } catch (e) {
+        showErrorNotification("Failed to update the item. Please try again.");
+        isVoiceAdding = false;
+        return;
+      }
     } else {
-      // Item does not exist, add it with count 1
       let maxNum = 0;
       existingKeys.forEach(key => {
         const match = key.match(/-?item(\d+)/);
@@ -1864,21 +1960,24 @@ document.addEventListener("DOMContentLoaded", function () {
       targetKey = `item${maxNum + 1}`;
       const newItem = { name: trimmedName, count: 1, checked: false };
 
-      if (!groceryData[cat]) groceryData[cat] = {};
-      groceryData[cat][targetKey] = newItem;
-      if (!Array.isArray(groceryData[cat].order)) groceryData[cat].order = [];
-                groceryData[cat].order.push(targetKey);
-      
-      // --- FIX: If a temporary order is active, add the new item to it ---
-      if (tempOrders[cat] && tempOrders[cat].length > 0) {
-        // Add the new item to the beginning of the temporary order
-        tempOrders[cat].unshift(targetKey);
-        // Save the updated temporary order to Firebase
-        saveTempOrder(cat, tempOrders[cat]);
+      try {
+        if (!groceryData[cat]) groceryData[cat] = {};
+        groceryData[cat][targetKey] = newItem;
+        if (!Array.isArray(groceryData[cat].order)) groceryData[cat].order = [];
+        groceryData[cat].order.push(targetKey);
+
+        if (tempOrders[cat] && tempOrders[cat].length > 0) {
+          tempOrders[cat].unshift(targetKey);
+          saveTempOrder(cat, tempOrders[cat]);
+        }
+
+        db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${cat}/${targetKey}`).set(newItem);
+        db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${cat}/order`).set(groceryData[cat].order);
+      } catch (e) {
+        showErrorNotification("Failed to add the item. Please try again.");
+        isVoiceAdding = false;
+        return;
       }
-      
-      db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${cat}/${targetKey}`).set(newItem);
-      db.ref(`/shoppingListsPerFamily/${USER_LIST_KEY}/groceryLists/${cat}/order`).set(groceryData[cat].order);
     }
 
     // Re-render and then scroll and blink
@@ -1886,31 +1985,12 @@ document.addEventListener("DOMContentLoaded", function () {
     saveCache();
     highlightAndScrollToItem(cat, targetKey);
 
-    // --- Clear the flag after a short delay to allow the next real sync to proceed ---
     setTimeout(() => {
       isVoiceAdding = false;
-    }, 1500); // 1.5 seconds should be enough for DB to sync
+    }, 1500);
   }
 
-  // --- Move/Delete/Reset Toggle Button ---
-  /* This button is being removed. The functionality is available in the table header context menu.
-  document.getElementById('move-delete-toggle').onclick = function (e) {
-    // This button is now only for entering/exiting move/delete item mode.
-    // The specific mode (move vs delete) is handled by the context menu.
-    // We just need to toggle a general "editing" state.
-    
-    const wasInMoveDeleteMode = moveMode || deleteMode;
 
-    if (wasInMoveDeleteMode) {
-      // If we were in any edit mode, exit all of them.
-      disableMoveDeleteMode();
-    } else {
-      // If we were not in an edit mode, enter the default one (e.g., move items).
-      // The user can switch to delete via the context menu.
-      enableMoveMode();
-    }
-  };
- */
 
   document.getElementById('reset-all').onclick = function () {
     showModal("Reset all counters to 0 and uncheck all items in all tables?", function (yes) {
