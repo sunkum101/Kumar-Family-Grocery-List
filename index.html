@@ -4,6 +4,17 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>Your SwiftList</title>
+  <link rel="manifest" href="manifest.webmanifest"> <!-- PWA manifest for installable app -->
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#1976d2">
+
+  <!-- iOS/Apple PWA support -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="SwiftList">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-192.png">
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Lato:wght@700&family=Pacifico&family=Poppins:wght@400;500;700&family=Tiro+Devanagari+Hindi&display=swap" rel="stylesheet">
@@ -24,14 +35,14 @@
     /* --- Style for Hindi item names (more specific selector) --- */
     .name.hindi-text {
       font-family: 'Tiro Devanagari Hindi', serif !important;
-      font-size: 1.1em; /* Slightly larger for better readability */
+      font-size: 1.1em;
     }
 
     /* --- Modern branding font --- */
     .main-title-swiftlist,
     .brand-accent {
       font-family: 'Pacifico', cursive;
-      font-weight: 400; /* Pacifico is a single-weight font */
+      font-weight: 400;
       color: #1976d2;
     }
 
@@ -39,7 +50,6 @@
     .sync-toast {
       position: fixed;
       top: 55px;
-      /* Position it below the top bar */
       left: 50%;
       transform: translateX(-50%);
       background-color: rgba(30, 40, 60, 0.9);
@@ -65,47 +75,39 @@
       height: 20px;
       animation: rotate 2s linear infinite;
     }
-
     .sync-spinner svg {
       width: 100%;
       height: 100%;
     }
-
     .sync-spinner-track,
     .sync-spinner-head {
       fill: none;
       stroke-width: 3.5;
       stroke-linecap: round;
     }
-
     .sync-spinner-track {
       stroke: rgba(255, 255, 255, 0.2);
     }
-
     .sync-spinner-head {
       stroke: #fff;
       stroke-dasharray: 50, 100;
       stroke-dashoffset: 0;
       animation: spin 1.5s ease-in-out infinite;
     }
-
     @keyframes rotate {
       100% {
         transform: rotate(360deg);
       }
     }
-
     @keyframes spin {
       0% {
         stroke-dasharray: 1, 100;
         stroke-dashoffset: 0;
       }
-
       50% {
         stroke-dasharray: 90, 100;
         stroke-dashoffset: -35;
       }
-
       100% {
         stroke-dasharray: 90, 100;
         stroke-dashoffset: -124;
@@ -126,7 +128,6 @@
       justify-content: center;
       padding: 15px;
     }
-
     .help-modal-content {
       background: #fff;
       border-radius: 13px;
@@ -138,17 +139,14 @@
       flex-direction: column;
       gap: 15px;
       max-height: 85vh;
-      /* overflow-y: auto; */ /* Remove scroll from main container */
     }
-
     .help-modal-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
       margin-bottom: 10px;
-      flex-shrink: 0; /* Prevent header from shrinking */
+      flex-shrink: 0;
     }
-
     .help-modal-header h2 {
       font-family: 'Poppins', sans-serif;
       font-size: 1.5rem;
@@ -156,7 +154,6 @@
       color: #1976d2;
       margin: 0;
     }
-
     #help-close-btn {
       background: transparent;
       border: none;
@@ -166,19 +163,16 @@
       padding: 0;
       line-height: 1;
     }
-
     .help-modal-body {
-      overflow-y: auto; /* Add scroll to this new body container */
-      padding-right: 10px; /* Add some padding to avoid scrollbar overlap */
+      overflow-y: auto;
+      padding-right: 10px;
     }
-
     .help-section h3 {
       margin-bottom: 0.5em;
       color: #333;
       border-bottom: 1px solid #eee;
       padding-bottom: 5px;
     }
-
     .help-section ul {
       margin-top: 0;
       color: #555;
@@ -186,14 +180,12 @@
       list-style: none;
       padding-left: 5px;
     }
-
     .help-section li {
       display: flex;
       gap: 15px;
       margin-bottom: 12px;
       align-items: flex-start;
     }
-
     .help-label {
       font-weight: 700;
       color: #333;
@@ -201,21 +193,161 @@
       flex-shrink: 0;
       text-align: right;
     }
-
     .help-desc {
       flex-grow: 1;
     }
-
     .help-icon-wrap {
       display: inline-block;
       white-space: nowrap;
     }
-
     .help-icon-wrap i {
       vertical-align: -0.1em;
       margin: 0 2px;
     }
+
+    /* Accessibility helpers */
+    .skip-link {
+      position: absolute;
+      left: -999px;
+      top: 10px;
+      background: #1976d2;
+      color: #fff;
+      padding: 8px 14px;
+      z-index: 10001;
+      border-radius: 7px;
+      font-weight: bold;
+      text-decoration: none;
+    }
+    .skip-link:focus {
+      left: 10px;
+      outline: 2px solid #fff;
+    }
+    button:focus, .add-table-btn:focus, .action-btn:focus {
+      outline: 2px solid #1976d2;
+      outline-offset: 2px;
+    }
   </style>
+
+  <!-- Service worker registration with update prompt -->
+  <script>
+    (function() {
+      if (!('serviceWorker' in navigator)) return;
+
+      function showUpdateToast(onReload) {
+        // Remove existing if any
+        const existing = document.getElementById('sw-update-toast');
+        if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
+
+        const toast = document.createElement('div');
+        toast.id = 'sw-update-toast';
+        toast.setAttribute('role', 'status');
+        toast.setAttribute('aria-live', 'polite');
+        toast.style.position = 'fixed';
+        toast.style.left = '50%';
+        toast.style.bottom = '24px';
+        toast.style.transform = 'translateX(-50%)';
+        toast.style.zIndex = '10050';
+        toast.style.display = 'flex';
+        toast.style.alignItems = 'center';
+        toast.style.gap = '12px';
+        toast.style.padding = '10px 14px';
+        toast.style.borderRadius = '12px';
+        toast.style.background = 'rgba(25,118,210,0.92)';
+        toast.style.color = '#fff';
+        toast.style.boxShadow = '0 8px 24px rgba(0,0,0,0.25)';
+        toast.style.backdropFilter = 'blur(6px)';
+        toast.style.WebkitBackdropFilter = 'blur(6px)';
+        toast.style.fontWeight = '700';
+
+        const text = document.createElement('span');
+        text.textContent = 'A new version of SwiftList is available.';
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = 'Reload';
+        btn.style.border = 'none';
+        btn.style.borderRadius = '8px';
+        btn.style.padding = '8px 12px';
+        btn.style.fontWeight = '800';
+        btn.style.cursor = 'pointer';
+        btn.style.background = '#fff';
+        btn.style.color = '#1976d2';
+        btn.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
+
+        const later = document.createElement('button');
+        later.type = 'button';
+        later.textContent = 'Later';
+        later.style.border = 'none';
+        later.style.borderRadius = '8px';
+        later.style.padding = '8px 12px';
+        later.style.fontWeight = '700';
+        later.style.cursor = 'pointer';
+        later.style.background = 'rgba(255,255,255,0.15)';
+        later.style.color = '#fff';
+
+        btn.onclick = function() {
+          if (typeof onReload === 'function') onReload();
+        };
+        later.onclick = function() {
+          if (toast.parentNode) toast.parentNode.removeChild(toast);
+        };
+
+        toast.appendChild(text);
+        toast.appendChild(btn);
+        toast.appendChild(later);
+        document.body.appendChild(toast);
+      }
+
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('sw.js').then(function(reg) {
+          function promptForUpdate(worker) {
+            if (!worker) return;
+            showUpdateToast(function() {
+              try {
+                worker.postMessage('SKIP_WAITING');
+              } catch (e) {
+                location.reload();
+              }
+            });
+          }
+
+          // If there's an existing waiting SW, prompt immediately
+          if (reg.waiting) {
+            promptForUpdate(reg.waiting);
+          }
+
+          // When a new SW is found
+          reg.addEventListener('updatefound', function() {
+            const sw = reg.installing;
+            if (!sw) return;
+            sw.addEventListener('statechange', function() {
+              if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+                // New update ready
+                promptForUpdate(reg.waiting || sw);
+              }
+            });
+          });
+
+          // When the controller changes (after SKIP_WAITING), reload once
+          let refreshing = false;
+          navigator.serviceWorker.addEventListener('controllerchange', function() {
+            if (refreshing) return;
+            refreshing = true;
+            window.location.reload();
+          });
+
+          // Ask SW to check for updates when tab becomes visible
+          document.addEventListener('visibilitychange', function() {
+            if (document.visibilityState === 'visible' && reg.update) {
+              try { reg.update(); } catch (e) {}
+            }
+          });
+        }).catch(function() {
+          // Ignore registration errors silently
+        });
+      });
+    })();
+  </script>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -228,16 +360,17 @@
   </script>
 </head>
 <body>
+  <a href="#main-section" class="skip-link">Skip to main content</a>
+
   <div class="top-bar compact">
-    <button class="action-btn logout" id="logout-btn-top" title="Logout" style="display:none;">
-      <!-- Inline SVG logout icon, always visible -->
+    <button class="action-btn logout" id="logout-btn-top" aria-label="Logout" title="Logout" style="display:none;">
       <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none">
         <path d="M14.7 17.3a1 1 0 0 1 0-1.4l2.6-2.6H9a1 1 0 1 1 0-2h8.3l-2.6-2.6a1 1 0 1 1 1.4-1.4l4.3 4.3a1 1 0 0 1 0 1.4l-4.3 4.3a1 1 0 0 1-1.4 0z" fill="#fff"/>
         <path d="M5 21a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7a1 1 0 1 1 0 2H5v14h7a1 1 0 1 1 0 2H5z" fill="#fff"/>
       </svg>
     </button>
     <div id="user-email-label" style="display:none"></div>
-    <button id="collapse-all-btn" title="Collapse All Tables" style="display:none;">
+    <button id="collapse-all-btn" title="Collapse All Tables" aria-label="Collapse all lists" style="display:none;">
       <span class="collapse-icon">
         <svg viewBox="0 0 24 24" width="24" height="24" fill="none">
           <path d="M7 14l5-5 5 5" stroke="#333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -245,17 +378,18 @@
       </span>
     </button>
   </div>
-  <div id="main-section" style="display:none; position:relative;">
+
+  <div id="main-section" role="main" style="display:none; position:relative;">
     <div class="actions-mobile compact-actions">
       <div class="row-btns compact-row-btns one-line-btns">
-        <button class="action-btn move-delete compact-btn" id="move-delete-toggle" title="Toggle move/delete/reset mode">
+        <button class="action-btn move-delete compact-btn" id="move-delete-toggle" aria-label="Enter move/delete/reset mode" title="Toggle move/delete/reset mode">
           <i class="fas fa-up-down-left-right" style="margin-right: 6px;" title="Move items"></i>
           <i class="fas fa-trash" title="Delete items" style="margin-right: 6px;"></i>
           <span class="reset-circle-icon" title="Reset all">
             <i class="fas fa-rotate-left"></i>
           </span>
         </button>
-        <button id="reset-all" class="action-btn compact-btn" title="Reset All" style="display:none;">
+        <button id="reset-all" class="action-btn compact-btn" title="Reset All" aria-label="Reset all counters" style="display:none;">
           <i class="fas fa-rotate-left"></i> <span style="margin-left: 6px;">Reset All</span>
         </button>
       </div>
@@ -267,7 +401,7 @@
     <div class="datetime tight-datetime" id="datetime"></div>
     <div id="tables-area"></div>
     <div class="add-table-btn-wrap">
-      <button class="add-table-btn" id="add-table-btn-main">＋ Add New List & Item</button>
+      <button class="add-table-btn" id="add-table-btn-main" aria-label="Add new list and item">＋ Add New List & Item</button>
     </div>
   </div>
 
@@ -284,7 +418,7 @@
         Sign in with your Google account to access your family swift list.<br>
         <span class="login-subdesc">Fast, secure, and always in sync.</span>
       </div>
-      <button class="google-btn-modern" id="google-signin-btn">
+      <button class="google-btn-modern" id="google-signin-btn" aria-label="Sign in with Google">
         <img class="google-logo-modern" src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
         <span id="google-btn-text-modern">Sign in with Google</span>
       </button>
@@ -308,7 +442,7 @@
     <div class="help-modal-content">
       <div class="help-modal-header">
         <h2>Help & Documentation</h2>
-        <button id="help-close-btn">&times;</button>
+        <button id="help-close-btn" aria-label="Close help">&times;</button>
       </div>
       <div class="help-modal-body">
         <div class="help-section">
@@ -381,11 +515,10 @@
 
   <script src="script.js"></script>
   <!-- Add User Floating Button (only visible when logged in) -->
-  <button id="add-user-btn" title="Add New User"
+  <button id="add-user-btn" title="Add New User" aria-label="Add user"
     style="display:none;position:relative;z-index:2001;width:40px;height:40px;border-radius:50%;background:#a4a4a4;color:#fff;font-size:1.4rem;box-shadow:0 4px 16px rgba(30,40,60,0.13);border:none;align-items:center;justify-content:center;display:flex;">
     <i class="fas fa-user-plus"></i>
   </button>
-
 
   <!-- Context menu for table header long-press -->
   <div id="table-header-context-menu" style="display:none;position:fixed;z-index:5000;background:#fff;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,0.13);padding:7px 0;min-width:180px;">
@@ -396,6 +529,5 @@
       <i class="fas fa-up-down-left-right" style="margin-right:8px;"></i> Move Items Mode
     </div>
   </div>
-
 </body>
 </html>

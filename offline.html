@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>SwiftList – Offline</title>
+  <meta name="theme-color" content="#1976d2" />
+  <style>
+    :root { color-scheme: light dark; }
+    body {
+      margin: 0; padding: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      display: grid; min-height: 100svh; place-items: center;
+      background: #f5f7fb; color: #1f2937;
+    }
+    .card {
+      width: min(92vw, 560px);
+      background: white;
+      border-radius: 16px;
+      padding: 24px 20px;
+      box-shadow: 0 10px 30px rgba(30,40,60,.12);
+      border: 1px solid #e5e7eb;
+      text-align: center;
+    }
+    h1 { margin: 0 0 8px; font-size: 1.6rem; color: #1976d2; }
+    p { margin: 8px 0; color: #475569; }
+    .hint { font-size: .95rem; color: #6b7280; }
+    .actions { margin-top: 16px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+    .btn {
+      border: none; border-radius: 10px; padding: 10px 14px; font-weight: 700; cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,.08);
+      background: #1976d2; color: #fff;
+    }
+    .btn.secondary { background: #f3f6fa; color: #1f2937; }
+    .small { font-size: .9rem; margin-top: 10px; color: #6b7280; }
+    @media (prefers-color-scheme: dark) {
+      body { background: #0f172a; color: #e5e7eb; }
+      .card { background: #0b1220; border-color: #1f2937; box-shadow: 0 10px 30px rgba(0,0,0,.5); }
+      p, .hint, .small { color: #cbd5e1; }
+      .btn.secondary { background: #0f172a; color: #e5e7eb; }
+    }
+  </style>
+</head>
+<body>
+  <main class="card" role="main" aria-labelledby="offline-title">
+    <h1 id="offline-title">You’re offline</h1>
+    <p>SwiftList can’t reach the internet right now.</p>
+    <p class="hint">When you’re back online, reload to sync your lists.</p>
+    <div class="actions">
+      <button class="btn" onclick="location.reload()">Reload app</button>
+      <button class="btn secondary" onclick="history.back()">Go back</button>
+    </div>
+    <div class="small">Tip: You can still open cached pages and assets.</div>
+  </main>
+</body>
+</html>
